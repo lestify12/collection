@@ -34,7 +34,7 @@ window.APP_CONFIG = {
   onlyProjects: [
     "peace-lagoons-ii-tower-a", "peace-lagoons-ii-tower-b",
     "natuzzi-harmony-residences", "sky-vista", "peace-avenue",
-    "peace-lagoons-tower-a", "sky-line", "sky-livings",
+    "peace-lagoons-tower-a", "peace-lagoons-tower-b", "sky-line", "sky-livings",
   ],
 
   /* Category registry — colors are fixed identity slots from the
