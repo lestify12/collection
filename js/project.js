@@ -4,7 +4,7 @@
 import * as db from "./db.js";
 import {
   CATS, catByKey, esc, fmtMoney, fmtInt, fmtDate, renderNav, initTheme,
-  initSidebar, setModeBadge, observeReveals, toast,
+  initSidebar, setModeBadge, observeReveals, toast, visibleProjects,
 } from "./ui.js";
 
 initTheme();
@@ -74,8 +74,9 @@ async function main() {
   const { summary, records } = await db.loadAll();
   setModeBadge(db.LIVE);
 
-  project = summary.projects.find((p) => p.id === projectId) || summary.projects[0];
-  renderNav(summary.projects, project.id);
+  const projects = visibleProjects(summary.projects);
+  project = summary.projects.find((p) => p.id === projectId) || projects[0] || summary.projects[0];
+  renderNav(projects, project.id);
   allRecords = records;
 
   document.title = `${project.name} — Collection Tracker`;

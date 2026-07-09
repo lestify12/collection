@@ -4,7 +4,7 @@
 import * as db from "./db.js";
 import {
   CATS, catByKey, esc, fmtMoney, fmtInt, renderNav, initTheme, initSidebar,
-  setModeBadge, observeReveals, countUp, attachTips, toast,
+  setModeBadge, observeReveals, countUp, attachTips, toast, visibleProjects,
 } from "./ui.js";
 
 initTheme();
@@ -27,13 +27,14 @@ async function main() {
 
   const { summary, records } = data;
   setModeBadge(db.LIVE);
-  renderNav(summary.projects, null);
+  const projects = visibleProjects(summary.projects);
+  renderNav(projects, null);
 
   document.getElementById("reportDate").textContent =
-    `Report date ${summary.reportDate || ""} · ${summary.projects.length} projects`;
+    `Report date ${summary.reportDate || ""} · ${projects.length} project${projects.length === 1 ? "" : "s"}`;
 
   // per-project metrics: live from unit records where present, else the seeded workbook figures
-  const rows = summary.projects.map((p) => ({ ...p, m: db.projectMetrics(p, records) }));
+  const rows = projects.map((p) => ({ ...p, m: db.projectMetrics(p, records) }));
 
   const tot = { totalDue: 0, totalUnits: 0, unsoldUnits: 0, projectUnits: 0 };
   const catTot = {};

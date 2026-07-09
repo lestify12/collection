@@ -26,6 +26,13 @@ window.APP_CONFIG = {
 
   currency: "AED",
 
+  /* Which projects to show across the whole app (dashboard, nav, totals).
+     Leave as an empty array [] to show ALL projects from the summary.
+     Right now we only have client-wise data for Peace Lagoons II, so the
+     app is scoped to those two towers. To bring the other projects back,
+     just empty this array (or add their ids). */
+  onlyProjects: ["peace-lagoons-ii-tower-a", "peace-lagoons-ii-tower-b"],
+
   /* Category registry — colors are fixed identity slots from the
      validated palette (see css/style.css). Order here is the
      canonical stacking/legend order everywhere in the app. */

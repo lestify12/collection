@@ -6,6 +6,13 @@ export const CATS = window.APP_CONFIG.categories;
 export const CUR = window.APP_CONFIG.currency;
 export const catByKey = Object.fromEntries(CATS.map((c) => [c.key, c]));
 
+/* Scope the app to a subset of projects (config.onlyProjects). Empty → all. */
+export function visibleProjects(projects) {
+  const only = window.APP_CONFIG.onlyProjects;
+  if (!Array.isArray(only) || only.length === 0) return projects;
+  return projects.filter((p) => only.includes(p.id));
+}
+
 /* ------------------------------------------------ theme */
 const THEME_KEY = "collection_theme";
 export function initTheme() {
