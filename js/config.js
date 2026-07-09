@@ -15,13 +15,14 @@
 
 window.APP_CONFIG = {
   firebase: {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: "",
+    apiKey: "AIzaSyDb5PzobUO0YjAdAnmmOOiDQn9_JdNkDzM",
+    authDomain: "collection-tracker-6cda7.firebaseapp.com",
+    projectId: "collection-tracker-6cda7",
+    storageBucket: "collection-tracker-6cda7.firebasestorage.app",
+    messagingSenderId: "818800487630",
+    appId: "1:818800487630:web:86cf42f627c185b993b49f",
   },
+
 
   currency: "AED",
 
