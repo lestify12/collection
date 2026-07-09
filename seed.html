@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seed Firestore — Collection Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="main" style="max-width:760px;margin:0 auto;padding:40px 20px">
+    <div class="card">
+      <h2>One-time Firestore import</h2>
+      <div class="card-sub">Pushes the bundled Excel seed data (summary + client-wise records) into your Firebase project.</div>
+      <div class="notice" id="status">Checking configuration…</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" id="runBtn" disabled>Import seed data</button>
+        <a class="btn" href="index.html">← Back to dashboard</a>
+      </div>
+      <pre id="log" style="font-size:12px;color:var(--ink-2);margin-top:16px;white-space:pre-wrap"></pre>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script type="module">
+    const FB_VER = "10.12.2";
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+    const btn = document.getElementById("runBtn");
+    const log = (m) => { logEl.textContent += m + "\n"; };
+
+    const cfg = window.APP_CONFIG.firebase;
+    if (!cfg.apiKey) {
+      statusEl.innerHTML = "<b>Firebase is not configured.</b>&nbsp;Paste your web app config into <code>js/config.js</code> first, redeploy, then open this page again.";
+    } else {
+      const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
+      const fs = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`);
+      const db = fs.getFirestore(initializeApp(cfg));
+
+      const existing = await fs.getCountFromServer(fs.collection(db, "records"));
+      const n = existing.data().count;
+      statusEl.innerHTML = n > 0
+        ? `<b>Warning:</b>&nbsp;the <code>records</code> collection already has ${n} documents. Importing again will create duplicates.`
+        : `Connected to <b>${cfg.projectId}</b>. The records collection is empty — safe to import.`;
+      btn.disabled = false;
+
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try {
+          const summary = await (await fetch("data/projects.json")).json();
+          const { records } = await (await fetch("data/records.json")).json();
+
+          log("Writing summary document…");
+          await fs.setDoc(fs.doc(db, "app", "summary"), summary);
+
+          log(`Writing ${records.length} unit records in batches…`);
+          for (let i = 0; i < records.length; i += 400) {
+            const batch = fs.writeBatch(db);
+            for (const rec of records.slice(i, i + 400)) {
+              batch.set(fs.doc(fs.collection(db, "records")), rec);
+            }
+            await batch.commit();
+            log(`  ${Math.min(i + 400, records.length)} / ${records.length}`);
+          }
+          log("Done ✔ — open index.html; the badge should show Live · Firebase.");
+        } catch (e) {
+          console.error(e);
+          log("FAILED: " + e.message);
+          btn.disabled = false;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

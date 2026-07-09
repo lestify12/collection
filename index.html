@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collection Analytics — All Projects</title>
+  <meta name="description" content="Collection summary dashboard across all projects.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div>
+          <div class="brand-name">Collections</div>
+          <div class="brand-sub">Recovery tracker</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="index.html" id="navDashboard"><span class="dot"></span><span>Analytics Dashboard</span></a>
+        <div class="nav-group-label">Projects</div>
+        <div id="navProjects"><div class="skeleton" style="height:200px"></div></div>
+      </nav>
+    </aside>
+    <div class="scrim"></div>
+
+    <main class="main">
+      <div class="topbar">
+        <button class="icon-btn menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+        <div>
+          <h1>All Project Collection Summary</h1>
+          <div class="sub" id="reportDate"></div>
+        </div>
+        <div class="spacer"></div>
+        <span class="mode-badge" id="modeBadge"><span class="pulse"></span><span class="mode-text">Loading…</span></span>
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">☾</button>
+      </div>
+
+      <div id="dashboard">
+        <div class="kpi-row">
+          <div class="skeleton" style="height:96px"></div>
+          <div class="skeleton" style="height:96px"></div>
+          <div class="skeleton" style="height:96px"></div>
+          <div class="skeleton" style="height:96px"></div>
+        </div>
+        <div class="skeleton" style="height:360px"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>
