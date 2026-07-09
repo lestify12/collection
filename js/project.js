@@ -39,6 +39,7 @@ const SCHEMAS = {
   legal:       [...COMMON, "monthlyInstallment", "outstanding", "unsettledMonths", "remarks"],
   dnc:         [...COMMON, "outstanding", "remarks"],
   cancelled:   [...COMMON, "outstanding", "remarks"],
+  others:      [...COMMON, "monthlyInstallment", "outstanding", "unsettledMonths", "remarks"],
   available:   ["unitNo", "type", "sellingPrice", "remarks"],
 };
 
@@ -61,6 +62,7 @@ const TABLE_COLS = {
   available: [["unitNo", "Unit"], ["type", "Type"], MONEY("sellingPrice", "Price"), ["remarks", "Remarks", "remarks"]],
 };
 TABLE_COLS.legal = TABLE_COLS.installment;
+TABLE_COLS.others = TABLE_COLS.installment;
 
 /* ------------------------------------------------ state */
 const params = new URLSearchParams(location.search);
@@ -99,19 +101,19 @@ const catRecords = (cat) => myRecords().filter((r) => r.category === cat);
 function renderChips() {
   const m = db.projectMetrics(project, allRecords);
   const chips = CATS.map((c) => {
-    let clients, due;
-    if (m.source === "records") {
-      clients = m[c.key]?.clients ?? 0; due = m[c.key]?.due ?? 0;
-    } else if (c.key === "available") {
-      clients = m.unsoldUnits ?? 0; due = null;
+    let clients, foot;
+    if (c.key === "available") {
+      clients = m.unsoldUnits ?? 0;
+      foot = "units unsold";
     } else {
-      clients = m[c.key]?.clients ?? 0; due = m[c.key]?.due ?? 0;
+      clients = m[c.key]?.clients ?? 0;
+      foot = fmtMoney(m[c.key]?.due ?? 0, { compact: true }) + " due";
     }
     return `
       <div class="chip reveal" style="--chip-c:${c.color}">
         <div class="c-label">${esc(c.short)}</div>
         <div class="c-value">${fmtInt(clients)}</div>
-        <div class="c-foot">${c.due ? fmtMoney(due, { compact: true }) + " due" : "units unsold"}</div>
+        <div class="c-foot">${foot}</div>
       </div>`;
   }).join("");
 

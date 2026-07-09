@@ -28,10 +28,14 @@ window.APP_CONFIG = {
 
   /* Which projects to show across the whole app (dashboard, nav, totals).
      Leave as an empty array [] to show ALL projects from the summary.
-     Right now we only have client-wise data for Peace Lagoons II, so the
-     app is scoped to those two towers. To bring the other projects back,
-     just empty this array (or add their ids). */
-  onlyProjects: ["peace-lagoons-ii-tower-a", "peace-lagoons-ii-tower-b"],
+     Listed here are the projects we have client-wise data loaded for.
+     Sky Suites and Peace Lagoons Tower B are not yet loaded. To show every
+     project (including those still on summary figures only), empty this array. */
+  onlyProjects: [
+    "peace-lagoons-ii-tower-a", "peace-lagoons-ii-tower-b",
+    "natuzzi-harmony-residences", "sky-vista", "peace-avenue",
+    "peace-lagoons-tower-a", "sky-line", "sky-livings",
+  ],
 
   /* Category registry — colors are fixed identity slots from the
      validated palette (see css/style.css). Order here is the
@@ -42,6 +46,7 @@ window.APP_CONFIG = {
     { key: "dnc",         label: "DNC Clients",                short: "DNC",         color: "var(--cat-dnc)",         due: true },
     { key: "dp24",        label: "24% Downpayment Due",        short: "24% DP",      color: "var(--cat-dp24)",        due: true },
     { key: "cancelled",   label: "Unit Cancelled by Client",   short: "Cancelled",   color: "var(--cat-cancelled)",   due: true },
+    { key: "others",      label: "Others / Returned to Inventory", short: "Others",  color: "var(--cat-others)",      due: false, showDue: true },
     { key: "available",   label: "Available Units",            short: "Available",   color: "var(--cat-available)",   due: false },
   ],
 };

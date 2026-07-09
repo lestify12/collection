@@ -27,6 +27,7 @@
   --cat-dnc:         #eda100;  /* slot 3 yellow */
   --cat-dp24:        #008300;  /* slot 4 green  */
   --cat-cancelled:   #4a3aa7;  /* slot 5 violet */
+  --cat-others:      #eb6834;  /* slot 8 orange — parked / returned to inventory */
   --cat-available:   #898781;  /* neutral — not a due */
 
   --radius: 14px;
@@ -57,6 +58,7 @@
   --cat-dnc:         #c98500;
   --cat-dp24:        #008300;
   --cat-cancelled:   #9085e9;
+  --cat-others:      #d95926;
   --cat-available:   #898781;
 
   --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 28px -14px rgba(0,0,0,.55);

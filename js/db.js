@@ -162,7 +162,12 @@ export function projectMetrics(project, records) {
   }
   m.totalUnits = withDues;
   m.totalDue = Math.round(totalDue * 100) / 100;
-  m.unsoldUnits = m.available.clients;
-  m.projectUnits = recs.length;
+  // Unsold / total-unit counts come from the client-wise "available" records
+  // when the workbook has them (Peace Lagoons II); otherwise fall back to the
+  // boss summary figures, since most workbooks don't list available units.
+  const sm = project.metrics || {};
+  const hasAvail = (m.available?.clients || 0) > 0;
+  m.unsoldUnits = hasAvail ? m.available.clients : (sm.unsoldUnits || 0);
+  m.projectUnits = hasAvail ? recs.length : (sm.projectUnits || recs.length);
   return m;
 }
