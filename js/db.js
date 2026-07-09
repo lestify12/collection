@@ -8,16 +8,25 @@ const FB_VER = "10.12.2";
 const LS_KEY = "collection_local_v1";
 
 const cfg = (window.APP_CONFIG && window.APP_CONFIG.firebase) || {};
-export const LIVE = !!cfg.apiKey;
-export const mode = LIVE ? "live" : "local";
+export let LIVE = !!cfg.apiKey;   // may flip to false if the SDK can't load
+export let mode = LIVE ? "live" : "local";
 
 let fs = null;   // firestore module namespace
 let db = null;
 
 if (LIVE) {
-  const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
-  fs = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`);
-  db = fs.getFirestore(initializeApp(cfg));
+  try {
+    const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
+    fs = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`);
+    db = fs.getFirestore(initializeApp(cfg));
+  } catch (e) {
+    // Network / CDN failure — degrade to local mode instead of hanging on a blank page.
+    console.error("Firebase SDK failed to load — falling back to local data.", e);
+    LIVE = false;
+    mode = "local";
+    fs = null;
+    db = null;
+  }
 }
 
 /* ------------------------------------------------ local overlay */
