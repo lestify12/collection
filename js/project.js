@@ -48,6 +48,7 @@ async function main() {
 
   document.getElementById("sidebarAdd")?.addEventListener("click", () =>
     openAdd(activeTab === "overview" ? "installment" : activeTab));
+  document.getElementById("exportAllBtn")?.addEventListener("click", exportAllExcel);
 }
 
 const myRecords = () => allRecords.filter((r) => r.projectId === project.id);
@@ -255,6 +256,41 @@ function csvCell(v) {
   if (v === null || v === undefined) return "";
   const s = String(v);
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/* ---- Export ALL categories into one multi-sheet Excel workbook (SpreadsheetML) ---- */
+const SHEET_LABEL = { dp24: "24% Due", installment: "Installment", legal: "Legal",
+  dnc: "DNC", cancelled: "Cancelled", others: "Others", available: "Available" };
+const SHEET_ORDER = ["dp24", "installment", "legal", "dnc", "cancelled", "others", "available"];
+const NUMERIC = new Set(["sellingPrice", "dld", "adminFee", "dp20", "dpTotal", "reflected", "monthlyInstallment", "outstanding"]);
+const xmlEsc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c]));
+
+function sheetXML(cat, recs) {
+  const spec = EXPORT[cat] || EXPORT._full;
+  const head = "<Row>" + spec.map(([h]) => `<Cell><Data ss:Type="String">${xmlEsc(h)}</Data></Cell>`).join("") + "</Row>";
+  const body = recs.map((r, i) => "<Row>" + spec.map(([, k]) => {
+    const v = k === "_sr" ? i + 1 : r[k];
+    if (v === null || v === undefined || v === "") return "<Cell/>";
+    if (k === "_sr" || (NUMERIC.has(k) && typeof v === "number" && isFinite(v)))
+      return `<Cell><Data ss:Type="Number">${v}</Data></Cell>`;
+    return `<Cell><Data ss:Type="String">${xmlEsc(v)}</Data></Cell>`;
+  }).join("") + "</Row>").join("");
+  return `<Worksheet ss:Name="${xmlEsc(SHEET_LABEL[cat])}"><Table>${head}${body}</Table></Worksheet>`;
+}
+
+function exportAllExcel() {
+  const sheets = SHEET_ORDER.filter((c) => c !== "others" || catRecords("others").length);
+  const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">`
+    + sheets.map((c) => sheetXML(c, catRecords(c))).join("") + `</Workbook>`;
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${project.id}_all_${new Date().toISOString().slice(0, 10)}.xls`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Exported all categories to Excel");
 }
 function exportCSV(rows, cat) {
   const spec = EXPORT[cat] || EXPORT._full;
