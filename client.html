@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project — Collection Tracker</title>
+  <title>Client — Collection Tracker</title>
   <link rel="stylesheet" href="fonts/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👤</text></svg>">
 </head>
 <body>
   <nav class="navbar">
@@ -20,10 +20,7 @@
       <button class="navbar-icon-btn" id="themeToggle" title="Toggle theme"><i class="ti ti-moon"></i></button>
       <a class="navbar-icon-btn" href="seed.html" title="Import / seed data"><i class="ti ti-database-cog"></i></a>
       <div class="navbar-user">
-        <div class="user-info">
-          <div class="user-name">Collections</div>
-          <div class="user-role">Recovery Tracker</div>
-        </div>
+        <div class="user-info"><div class="user-name">Collections</div><div class="user-role">Recovery Tracker</div></div>
         <div class="user-avatar">PH</div>
       </div>
     </div>
@@ -31,7 +28,6 @@
 
   <div class="app-body">
     <aside class="sidebar">
-      <button class="sidebar-create" id="sidebarAdd"><i class="ti ti-plus" style="font-size:16px"></i> Add Record</button>
       <div class="sidebar-section">
         <div class="sidebar-section-label">Overview</div>
         <a class="sidebar-item" id="navDashboard" href="index.html"><i class="ti ti-layout-dashboard"></i>Dashboard</a>
@@ -43,36 +39,17 @@
       <div class="sidebar-spacer"></div>
       <div class="sidebar-foot" id="modeBadge">
         <span class="pulse"></span>
-        <div>
-          <div class="foot-text mode-text">Loading…</div>
-          <div class="foot-sub">data source</div>
-        </div>
+        <div><div class="foot-text mode-text">Loading…</div><div class="foot-sub">data source</div></div>
       </div>
     </aside>
 
-    <main class="main">
-      <div class="breadcrumb"><a href="index.html">Projects</a><i class="ti ti-chevron-right"></i><span id="bcName">…</span></div>
-      <div class="page-header">
-        <div>
-          <div class="detail-title">
-            <span class="page-title" id="projTitle">Loading…</span>
-            <span class="status-badge" id="projStatus">Active</span>
-          </div>
-          <div class="page-subtitle" id="projSub"></div>
-        </div>
-      </div>
-
-      <section class="card">
-        <div class="tabs" id="tabs"></div>
-        <div id="tabBody">
-          <div class="skeleton" style="height:280px"></div>
-        </div>
-      </section>
+    <main class="main" id="clientMain">
+      <div class="skeleton" style="height:300px"></div>
     </main>
   </div>
 
   <script src="js/config.js"></script>
-  <script type="module" src="js/project.js"></script>
+  <script type="module" src="js/client.js"></script>
   <script src="js/mobile-nav.js"></script>
 </body>
 </html>
