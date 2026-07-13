@@ -144,6 +144,55 @@ export async function deleteRecord(id) {
   invalidate();
 }
 
+/* ------------------------------------------------ bulk (import) */
+export async function addRecordsBulk(records) {
+  const stamp = new Date().toISOString();
+  const clean = records.map((r) => ({ ...cleanRecord(r), createdAt: stamp }));
+  if (LIVE) {
+    for (let i = 0; i < clean.length; i += 400) {
+      const batch = fs.writeBatch(db);
+      for (const rec of clean.slice(i, i + 400)) batch.set(fs.doc(fs.collection(db, "records")), rec);
+      await batch.commit();
+    }
+    invalidate();
+    return clean.length;
+  }
+  const local = loadLocal();
+  clean.forEach((rec, i) =>
+    local.added.push({ id: `loc_${Date.now()}_${i}_${Math.floor(Math.random() * 1e5)}`, ...rec }));
+  saveLocal(local);
+  invalidate();
+  return clean.length;
+}
+
+/** Delete every record for a project+category (used before a replace-import). */
+export async function deleteCategoryRecords(projectId, category) {
+  if (LIVE) {
+    let removed = 0;
+    while (true) {
+      const q = fs.query(fs.collection(db, "records"),
+        fs.where("projectId", "==", projectId), fs.where("category", "==", category), fs.limit(400));
+      const snap = await fs.getDocs(q);
+      if (snap.empty) break;
+      const batch = fs.writeBatch(db);
+      snap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+      removed += snap.size;
+    }
+    invalidate();
+    return removed;
+  }
+  const local = loadLocal();
+  const before = local.added.length;
+  local.added = local.added.filter((r) => !(r.projectId === projectId && r.category === category));
+  for (const r of cache?.records || [])
+    if (r.projectId === projectId && r.category === category && !String(r.id).startsWith("loc_"))
+      local.overrides[r.id] = null;
+  saveLocal(local);
+  invalidate();
+  return before - local.added.length;
+}
+
 /* ------------------------------------------------ derived metrics */
 
 /** Per-project metrics: computed live from unit records when the project

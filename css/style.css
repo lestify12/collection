@@ -487,6 +487,14 @@ table.data tfoot td {
   border-top: 1px solid var(--grid);
 }
 
+/* import preview */
+.imp-body { overflow-y: auto; min-height: 0; }
+.imp-row { display: flex; align-items: center; gap: 4px; padding: 9px 2px; border-bottom: 1px solid var(--grid); font-size: 14px; color: var(--ink); }
+.imp-row .imp-count { margin-left: auto; font-weight: 650; font-variant-numeric: tabular-nums; }
+.imp-skip { font-size: 12px; color: var(--ink-3); margin-top: 10px; }
+.imp-replace { display: flex; align-items: center; gap: 9px; margin-top: 14px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.imp-replace input { width: 16px; height: 16px; accent-color: var(--brand); }
+
 /* ---------------------------------------------------------- toast */
 .toast {
   position: fixed; left: 50%; bottom: 26px; z-index: 95;

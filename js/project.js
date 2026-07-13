@@ -8,6 +8,7 @@ import {
   initSidebar, setModeBadge, observeReveals, toast, visibleProjects,
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
+import { importWorkbook } from "./import-xlsx.js";
 
 initTheme();
 initSidebar();
@@ -49,6 +50,14 @@ async function main() {
   document.getElementById("sidebarAdd")?.addEventListener("click", () =>
     openAdd(activeTab === "overview" ? "installment" : activeTab));
   document.getElementById("exportAllBtn")?.addEventListener("click", exportAllExcel);
+  const importFile = document.getElementById("importFile");
+  document.getElementById("importBtn")?.addEventListener("click", () => importFile.click());
+  importFile?.addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try { await importWorkbook(f, project, refresh); }
+    catch (err) { console.error(err); toast("Import failed — " + err.message); }
+  });
 }
 
 const myRecords = () => allRecords.filter((r) => r.projectId === project.id);
