@@ -5,23 +5,23 @@
    ============================================================ */
 
 :root {
-  /* Luxe Signature PM chrome palette */
-  --navy:            #0d2456;
-  --navy-hover:      #163078;
-  --blue:            #2563eb;
+  /* Company chrome palette — dark green (Luxe PM layout) */
+  --brand:           #14432f;   /* dark green — navbar, sidebar active, primary */
+  --brand-hover:     #1c5a3f;
+  --brand-accent:    #2f8f5b;   /* lighter green — avatar / accents */
 
-  --page:            #f4f6fb;
+  --page:            #f3f6f4;
   --surface:         #ffffff;
-  --surface-2:       #f4f6fb;
-  --ink:             #0d1f3c;
-  --ink-2:           #4a5568;
-  --ink-3:           #7a8aaa;
-  --grid:            #f0f2f8;
-  --baseline:        #e8ecf5;
-  --border:          #e8ecf5;
-  --accent:          #0d2456;
+  --surface-2:       #eef3f0;
+  --ink:             #12281e;
+  --ink-2:           #4a5852;
+  --ink-3:           #7f8f88;
+  --grid:            #eef2f0;
+  --baseline:        #e4ebe7;
+  --border:          #e4ebe7;
+  --accent:          #14432f;
   --accent-ink:      #ffffff;
-  --accent-soft:     #eef2ff;
+  --accent-soft:     #e7f2ec;
   --good:            #16a34a;
   --danger:          #ef4444;
   --danger-soft:     rgba(239, 68, 68, 0.10);
@@ -37,24 +37,28 @@
 
   --radius: 14px;
   --radius-sm: 10px;
-  --shadow: 0 1px 3px rgba(13,36,86,.05), 0 8px 24px -12px rgba(13,36,86,.12);
+  --shadow: 0 1px 3px rgba(20,67,47,.06), 0 8px 24px -12px rgba(20,67,47,.14);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   --navbar-h: 56px;
   --sidebar-w: 220px;
 }
 
 :root[data-theme="dark"] {
-  --page:            #0b1020;
-  --surface:         #131a2e;
-  --surface-2:       #1b2338;
+  --brand:           #14432f;
+  --brand-hover:     #1c5a3f;
+  --brand-accent:    #2f8f5b;
+
+  --page:            #0b140f;
+  --surface:         #121d17;
+  --surface-2:       #1a2820;
   --ink:             #ffffff;
-  --ink-2:           #c3ccdd;
-  --ink-3:           #8794ad;
-  --grid:            #232c44;
-  --baseline:        #2c3550;
-  --border:          #232c44;
-  --accent:          #3987e5;
-  --accent-soft:     rgba(57, 135, 229, 0.16);
+  --ink-2:           #c3d3ca;
+  --ink-3:           #82968b;
+  --grid:            #223026;
+  --baseline:        #2b3b31;
+  --border:          #223026;
+  --accent:          #2f8f5b;
+  --accent-soft:     rgba(47, 143, 91, 0.18);
   --good:            #22c55e;
   --danger:          #f87171;
   --danger-soft:     rgba(248, 113, 113, 0.14);
@@ -90,7 +94,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 
 /* ── Top navbar ── */
 .navbar {
-  height: var(--navbar-h); background: var(--navy);
+  height: var(--navbar-h); background: var(--brand);
   display: flex; align-items: center; padding: 0 20px; gap: 16px;
   flex-shrink: 0; position: sticky; top: 0; z-index: 100;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18);
@@ -127,7 +131,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 .navbar-user .user-name { font-size: 0.82rem; font-weight: 600; color: #fff; }
 .navbar-user .user-role { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
 .navbar-user .user-avatar {
-  width: 32px; height: 32px; border-radius: 8px; background: var(--blue);
+  width: 32px; height: 32px; border-radius: 8px; background: var(--brand-accent);
   display: flex; align-items: center; justify-content: center;
   font-size: 0.85rem; font-weight: 700; color: #fff; flex-shrink: 0;
 }
@@ -143,13 +147,13 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   height: calc(100vh - var(--navbar-h)); z-index: 40;
 }
 .sidebar-create {
-  margin: 0 14px 18px; padding: 10px 16px; background: var(--navy);
+  margin: 0 14px 18px; padding: 10px 16px; background: var(--brand);
   color: #fff; border: none; border-radius: 10px; font-size: 0.875rem;
   font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;
   justify-content: center; width: calc(100% - 28px); font-family: inherit;
   transition: background .15s;
 }
-.sidebar-create:hover { background: var(--navy-hover); }
+.sidebar-create:hover { background: var(--brand-hover); }
 .sidebar-section { margin-bottom: 8px; }
 .sidebar-section-label {
   font-size: 0.7rem; font-weight: 700; color: #aab2c4; letter-spacing: 0.6px;
@@ -161,11 +165,11 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   transition: background .12s, color .12s; position: relative;
   white-space: nowrap; overflow: hidden;
 }
-.sidebar-item:hover { background: var(--surface-2); color: var(--navy); }
-.sidebar-item.active { background: var(--accent-soft); color: var(--navy); font-weight: 600; }
+.sidebar-item:hover { background: var(--surface-2); color: var(--brand); }
+.sidebar-item.active { background: var(--accent-soft); color: var(--brand); font-weight: 600; }
 .sidebar-item.active::before {
   content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
-  width: 3px; background: var(--navy); border-radius: 0 3px 3px 0;
+  width: 3px; background: var(--brand); border-radius: 0 3px 3px 0;
 }
 .sidebar-item i { flex-shrink: 0; opacity: 0.6; font-size: 17px; }
 .sidebar-item.active i { opacity: 1; }
@@ -174,7 +178,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   padding: 1px 7px; border-radius: 999px; min-width: 18px; text-align: center;
   background: var(--surface-2); color: var(--ink-3);
 }
-.sidebar-item.active .sidebar-badge { background: var(--navy); color: #fff; }
+.sidebar-item.active .sidebar-badge { background: var(--brand); color: #fff; }
 .sidebar-spacer { flex: 1; }
 
 /* mode badge lives in the sidebar footer */
