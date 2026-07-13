@@ -69,157 +69,109 @@ function stackTip(name, m) {
 
 function render(rows, tot, catTot, summary) {
   const el = document.getElementById("dashboard");
-  const maxDue = Math.max(...rows.map((r) => r.m.totalDue || 0), 1);
-  const byDue = [...rows].sort((a, b) => (b.m.totalDue || 0) - (a.m.totalDue || 0));
+  const inst = catTot.installment;                          // the focus of this dashboard
+  const instShare = tot.totalDue ? Math.round((inst.due / tot.totalDue) * 100) : 0;
+
+  // rank projects by installment outstanding (the metric that matters most here)
+  const byInst = [...rows].sort((a, b) => (b.m.installment?.due || 0) - (a.m.installment?.due || 0));
+  const maxInst = Math.max(...byInst.map((r) => r.m.installment?.due || 0), 1);
+
+  const cats = DUE_CATS.map((c) => ({ ...c, due: catTot[c.key].due, clients: catTot[c.key].clients }))
+    .sort((a, b) => b.due - a.due);
+  const maxCat = Math.max(...cats.map((c) => c.due), 1);
 
   el.innerHTML = `
-    <!-- KPI row -->
-    <div class="kpi-row">
-      <div class="kpi hero reveal" style="--d:0s"><span class="kpi-accent"></span>
-        <div class="kpi-label">Total outstanding</div>
-        <div class="kpi-value" id="kpiDue">0</div>
-        <div class="kpi-foot">across ${rows.length} projects</div>
+    <section class="hero-card reveal">
+      <div class="hero-main">
+        <div class="hero-icon"><i class="ti ti-calendar-repeat"></i></div>
+        <div>
+          <div class="hero-label">Installment outstanding</div>
+          <div class="hero-value" id="kpiInst">0</div>
+          <div class="hero-foot">${fmtInt(inst.clients)} account${inst.clients === 1 ? "" : "s"} on 1% monthly · ${instShare}% of all outstanding</div>
+        </div>
       </div>
-      <div class="kpi reveal" style="--d:.06s;--kpi-c:var(--cat-legal)">
-        <span class="kpi-accent"></span>
-        <div class="kpi-label">Units with dues</div>
-        <div class="kpi-value" id="kpiUnits">0</div>
-        <div class="kpi-foot">of ${fmtInt(tot.projectUnits)} total units</div>
-      </div>
-      <div class="kpi reveal" style="--d:.12s;--kpi-c:var(--cat-dnc)">
-        <span class="kpi-accent"></span>
-        <div class="kpi-label">Legal case exposure</div>
-        <div class="kpi-value" id="kpiLegal">0</div>
-        <div class="kpi-foot">${fmtInt(catTot.legal.clients)} cases</div>
-      </div>
-      <div class="kpi reveal" style="--d:.18s;--kpi-c:var(--cat-cancelled)">
-        <span class="kpi-accent"></span>
-        <div class="kpi-label">Unsold units</div>
-        <div class="kpi-value" id="kpiUnsold">0</div>
-        <div class="kpi-foot">available / hold / blocked</div>
-      </div>
+      <div class="hero-meter"><div class="hero-meter-fill" data-w="${instShare}"></div></div>
+    </section>
+
+    <div class="stat-grid">
+      <div class="stat-card reveal"><div class="stat-icon green"><i class="ti ti-report-money"></i></div>
+        <div><div class="stat-value" id="kpiDue">0</div><div class="stat-label">Total outstanding</div>
+        <div class="stat-foot">all categories · ${rows.length} project${rows.length === 1 ? "" : "s"}</div></div></div>
+      <div class="stat-card reveal"><div class="stat-icon navy"><i class="ti ti-users-group"></i></div>
+        <div><div class="stat-value" id="kpiUnits">0</div><div class="stat-label">Units with dues</div>
+        <div class="stat-foot">of ${fmtInt(tot.projectUnits)} total units</div></div></div>
+      <div class="stat-card reveal"><div class="stat-icon red"><i class="ti ti-gavel"></i></div>
+        <div><div class="stat-value" id="kpiLegal">0</div><div class="stat-label">Legal exposure</div>
+        <div class="stat-foot">${fmtInt(catTot.legal.clients)} legal cases</div></div></div>
+      <div class="stat-card reveal"><div class="stat-icon amber"><i class="ti ti-home"></i></div>
+        <div><div class="stat-value" id="kpiUnsold">0</div><div class="stat-label">Unsold units</div>
+        <div class="stat-foot">available / hold / blocked</div></div></div>
     </div>
 
-    <!-- Outstanding by project -->
     <section class="card section reveal">
-      <h2>Outstanding by project</h2>
-      <div class="card-sub">Total dues split by category — hover a bar for the breakdown, click a name to open the project</div>
-      ${legendHTML()}
-      <div class="hbar-chart baseline-rule" style="padding-left:10px" id="projChart">
-        ${byDue.map((r) => `
-          <div class="hbar-row">
-            <div class="hbar-name"><a href="project.html?id=${encodeURIComponent(r.id)}">${esc(r.name)}</a></div>
-            <div class="hbar-track">
-              <div class="hbar-stack" data-w="${((r.m.totalDue || 0) / maxDue * 100).toFixed(2)}"
-                   data-tip='${stackTip(r.name, r.m).replace(/'/g, "&#39;")}'>
-                ${DUE_CATS.map((c) => {
-                  const v = r.m[c.key]?.due || 0;
-                  if (!v) return "";
-                  return `<span class="hbar-seg" style="flex:${v} ${v} 0;background:${c.color}"></span>`;
-                }).join("")}
-              </div>
-            </div>
-            <div class="hbar-val">${fmtMoney(r.m.totalDue, { compact: true })}</div>
+      <h2>Installment outstanding by project</h2>
+      <div class="card-sub">1% monthly collection to chase, largest first — click to open</div>
+      <div class="simple-bars">
+        ${byInst.map((r) => `
+          <a class="sbar-row" href="project.html?id=${encodeURIComponent(r.id)}">
+            <div class="sbar-name">${esc(r.name)}</div>
+            <div class="sbar-track"><div class="sbar-fill" data-w="${((r.m.installment?.due || 0) / maxInst * 100).toFixed(1)}"></div></div>
+            <div class="sbar-val">${fmtMoney(r.m.installment?.due || 0, { compact: true })}<span class="sbar-sub"> · ${fmtInt(r.m.installment?.clients || 0)}</span></div>
+          </a>`).join("")}
+      </div>
+    </section>
+
+    <section class="card section reveal">
+      <h2>Outstanding by category</h2>
+      <div class="card-sub">Where the ${fmtMoney(tot.totalDue, { compact: true })} to collect sits</div>
+      <div class="simple-bars">
+        ${cats.map((c) => `
+          <div class="sbar-row${c.key === "installment" ? " focus" : ""}">
+            <div class="sbar-name"><span class="cat-dot" style="background:${c.color}"></span>${esc(c.label)}</div>
+            <div class="sbar-track"><div class="sbar-fill" data-w="${(c.due / maxCat * 100).toFixed(1)}" style="background:${c.color}"></div></div>
+            <div class="sbar-val">${fmtMoney(c.due, { compact: true })}<span class="sbar-sub"> · ${fmtInt(c.clients)}</span></div>
           </div>`).join("")}
       </div>
     </section>
 
-    <!-- Portfolio composition -->
     <section class="card section reveal">
-      <h2>Portfolio dues composition</h2>
-      <div class="card-sub">Where the ${fmtMoney(tot.totalDue, { compact: true })} outstanding sits</div>
-      <div class="comp-bar" id="compBar">
-        ${DUE_CATS.map((c) => `
-          <span class="comp-seg" style="flex:${catTot[c.key].due} ${catTot[c.key].due} 0;background:${c.color};transition-delay:${DUE_CATS.indexOf(c) * 0.07}s"
-            data-tip='<div class="t-title">${esc(c.label)}</div>
-              <div class="t-row"><span>Outstanding</span><span class="v">${fmtMoney(catTot[c.key].due, { compact: true })}</span></div>
-              <div class="t-row"><span>Clients</span><span class="v">${fmtInt(catTot[c.key].clients)}</span></div>'></span>`).join("")}
-      </div>
-      <div class="comp-labels">
-        ${DUE_CATS.map((c) => `
-          <div class="comp-label">
-            <span class="swatch" style="background:${c.color}"></span>
-            <span class="n">${esc(c.short)} · ${fmtInt(catTot[c.key].clients)} clients</span>
-            <span class="v">${fmtMoney(catTot[c.key].due, { compact: true })}</span>
-          </div>`).join("")}
-      </div>
-    </section>
-
-    <!-- Full summary table -->
-    <section class="card section reveal">
-      <h2>Project summary table</h2>
+      <h2>Projects</h2>
       <div class="card-sub">${esc(summary.target || "")}</div>
       <div class="table-wrap">
         <table class="data">
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th class="num">24% clients</th><th class="num">24% due</th>
-              <th class="num">Inst. clients</th><th class="num">Installment due</th>
-              <th class="num">Legal</th><th class="num">Legal due</th>
-              <th class="num">DNC</th><th class="num">DNC due</th>
-              <th class="num">Cancelled</th><th class="num">Cancelled due</th>
-              <th class="num">Units w/ dues</th><th class="num">Total due</th>
-              <th class="num">Unsold</th><th class="num">Total units</th>
-              <th>Updated by</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Project</th><th>Assigned to</th><th class="num">Installment due</th><th class="num">Total outstanding</th><th></th></tr></thead>
           <tbody>
-            ${rows.map((r) => `
+            ${byInst.map((r) => `
               <tr class="clickable" data-href="project.html?id=${encodeURIComponent(r.id)}">
-                <td class="strong">${esc(r.name)}${r.m.source === "records" ? ' <span title="Computed live from client-wise records" style="color:var(--good)">●</span>' : ""}</td>
-                <td class="num">${fmtInt(r.m.dp24?.clients)}</td><td class="num">${fmtMoney(r.m.dp24?.due, { currency: false })}</td>
-                <td class="num">${fmtInt(r.m.installment?.clients)}</td><td class="num">${fmtMoney(r.m.installment?.due, { currency: false })}</td>
-                <td class="num">${fmtInt(r.m.legal?.clients)}</td><td class="num">${fmtMoney(r.m.legal?.due, { currency: false })}</td>
-                <td class="num">${fmtInt(r.m.dnc?.clients)}</td><td class="num">${fmtMoney(r.m.dnc?.due, { currency: false })}</td>
-                <td class="num">${fmtInt(r.m.cancelled?.clients)}</td><td class="num">${fmtMoney(r.m.cancelled?.due, { currency: false })}</td>
-                <td class="num">${fmtInt(r.m.totalUnits)}</td>
-                <td class="num strong">${fmtMoney(r.m.totalDue, { currency: false })}</td>
-                <td class="num">${fmtInt(r.m.unsoldUnits)}</td>
-                <td class="num">${fmtInt(r.m.projectUnits)}</td>
-                <td style="white-space:nowrap">${esc(r.handler || "")}</td>
+                <td class="strong">${esc(r.name)}</td>
+                <td style="white-space:nowrap;color:var(--ink-2)">${esc(r.handler || "—")}</td>
+                <td class="num strong">${fmtMoney(r.m.installment?.due || 0, { currency: false })}</td>
+                <td class="num">${fmtMoney(r.m.totalDue, { currency: false })}</td>
+                <td class="num"><i class="ti ti-chevron-right" style="color:var(--ink-3)"></i></td>
               </tr>`).join("")}
           </tbody>
-          <tfoot>
-            <tr>
-              <td>Total</td>
-              <td class="num">${fmtInt(sum(rows, "dp24", "clients"))}</td><td class="num">${fmtMoney(sum(rows, "dp24", "due"), { currency: false })}</td>
-              <td class="num">${fmtInt(sum(rows, "installment", "clients"))}</td><td class="num">${fmtMoney(sum(rows, "installment", "due"), { currency: false })}</td>
-              <td class="num">${fmtInt(sum(rows, "legal", "clients"))}</td><td class="num">${fmtMoney(sum(rows, "legal", "due"), { currency: false })}</td>
-              <td class="num">${fmtInt(sum(rows, "dnc", "clients"))}</td><td class="num">${fmtMoney(sum(rows, "dnc", "due"), { currency: false })}</td>
-              <td class="num">${fmtInt(sum(rows, "cancelled", "clients"))}</td><td class="num">${fmtMoney(sum(rows, "cancelled", "due"), { currency: false })}</td>
-              <td class="num">${fmtInt(tot.totalUnits)}</td>
-              <td class="num">${fmtMoney(tot.totalDue, { currency: false })}</td>
-              <td class="num">${fmtInt(tot.unsoldUnits)}</td>
-              <td class="num">${fmtInt(tot.projectUnits)}</td>
-              <td></td>
-            </tr>
-          </tfoot>
+          <tfoot><tr>
+            <td>Total</td><td></td>
+            <td class="num strong">${fmtMoney(inst.due, { currency: false })}</td>
+            <td class="num">${fmtMoney(tot.totalDue, { currency: false })}</td><td></td>
+          </tr></tfoot>
         </table>
       </div>
     </section>`;
 
-  // KPI count-ups
+  countUp(document.getElementById("kpiInst"), inst.due, { money: true });
   countUp(document.getElementById("kpiDue"), tot.totalDue, { money: true });
   countUp(document.getElementById("kpiUnits"), tot.totalUnits);
   countUp(document.getElementById("kpiLegal"), catTot.legal.due, { money: true });
   countUp(document.getElementById("kpiUnsold"), tot.unsoldUnits);
 
-  // animate bars in after mount
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    el.querySelectorAll(".hbar-stack").forEach((b) => {
-      b.style.setProperty("--w", b.dataset.w + "%");
-      b.style.width = b.dataset.w + "%";
-    });
-    document.getElementById("compBar")?.classList.add("in");
-  }));
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    el.querySelectorAll(".sbar-fill, .hero-meter-fill").forEach((f) => { f.style.width = f.dataset.w + "%"; })));
 
-  // clickable table rows
   el.querySelectorAll("tr.clickable").forEach((tr) =>
     tr.addEventListener("click", () => (location.href = tr.dataset.href)));
 
   observeReveals();
-  attachTips(el);
 }
 
 function sum(rows, cat, field) {

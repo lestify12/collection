@@ -599,6 +599,43 @@ table.data tfoot td {
 td.money-good { font-variant-numeric: tabular-nums; }
 .cat-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 9px; vertical-align: middle; }
 
+/* hero card — the installment-outstanding headline of the dashboard */
+.hero-card {
+  background: linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
+  border-radius: 16px; padding: 22px 24px; margin-bottom: 20px;
+  box-shadow: var(--shadow); color: #fff;
+}
+.hero-main { display: flex; gap: 18px; align-items: center; }
+.hero-icon {
+  width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 28px;
+  background: rgba(255,255,255,.16); color: #fff;
+}
+.hero-label { font-size: 13px; font-weight: 550; letter-spacing: .02em; color: rgba(255,255,255,.82); }
+.hero-value { font-size: 34px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin: 2px 0; }
+.hero-foot { font-size: 12.5px; color: rgba(255,255,255,.78); }
+.hero-meter { height: 7px; border-radius: 6px; background: rgba(255,255,255,.2); margin-top: 16px; overflow: hidden; }
+.hero-meter-fill { height: 100%; width: 0; border-radius: 6px; background: #7fe0a8; transition: width 1s cubic-bezier(.2,.7,.2,1); }
+
+/* simple sorted bars — one row per project/category */
+.simple-bars { display: flex; flex-direction: column; gap: 11px; }
+.sbar-row {
+  display: grid; grid-template-columns: minmax(120px, 1.4fr) minmax(90px, 3fr) auto;
+  gap: 14px; align-items: center; text-decoration: none; color: inherit;
+  border-radius: 8px; padding: 3px 4px; transition: background .15s;
+}
+a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
+.sbar-name { font-size: 13px; font-weight: 550; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sbar-track { height: 12px; border-radius: 7px; background: var(--sched-track, #d4ded8); overflow: hidden; }
+.sbar-fill { height: 100%; width: 0; border-radius: 7px; background: var(--brand-accent, #2f8f5b); transition: width .9s cubic-bezier(.2,.7,.2,1); }
+.sbar-val { font-size: 13px; font-weight: 700; color: var(--ink); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sbar-sub { font-size: 11.5px; font-weight: 500; color: var(--ink-3); }
+.sbar-row.focus .sbar-name { font-weight: 700; }
+@media (max-width: 560px) {
+  .sbar-row { grid-template-columns: 1fr auto; }
+  .sbar-track { grid-column: 1 / -1; order: 3; }
+}
+
 /* client detail */
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: stretch; }
 .detail-grid > .card { margin-top: 0; }   /* cancel the .card + .card top margin in the grid */
