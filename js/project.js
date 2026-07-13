@@ -233,13 +233,34 @@ function openAdd(cat) {
   });
 }
 
-const EXPORT_COLS = ["unitNo", "bookingDate", "agent", "type", "buyerName", "paymentPlan",
-  "sellingPrice", "dld", "adminFee", "dp20", "dpTotal", "reflected", "monthlyInstallment",
-  "outstanding", "unsettledMonths", "remarks"];
+/* Per-category CSV layout — [header, field] pairs. "_sr" = running number (col A). */
+const EXPORT_BASE = [
+  ["SR", "_sr"], ["Unit No", "unitNo"], ["Booking Date", "bookingDate"], ["Internal Agent", "agent"],
+  ["Unit Type", "type"], ["Buyer Name", "buyerName"], ["Payment Plan", "paymentPlan"],
+  ["Selling Price", "sellingPrice"], ["DLD", "dld"], ["Admin Fee", "adminFee"], ["20% DP", "dp20"],
+  ["Downpayment + DLD + Admin", "dpTotal"], ["Reflected", "reflected"],
+];
+const EXPORT = {
+  dp24: [...EXPORT_BASE, ["Outstanding Dues", "outstanding"], ["Remarks", "remarks"]],
+  _full: [...EXPORT_BASE,
+    ["Monthly Installment (1%)", "monthlyInstallment"], ["Outstanding Dues", "outstanding"],
+    ["No. of Unsettled Monthly Installments", "unsettledMonths"], ["Remarks", "remarks"]],
+  available: [["SR", "_sr"], ["Unit No", "unitNo"], ["Unit Type", "type"],
+    ["Selling Price", "sellingPrice"], ["Remarks", "remarks"]],
+};
+EXPORT.installment = EXPORT.legal = EXPORT.dnc = EXPORT.cancelled = EXPORT.others = EXPORT._full;
+
+function csvCell(v) {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 function exportCSV(rows, cat) {
-  const lines = [EXPORT_COLS, ...rows.map((r) => EXPORT_COLS.map((k) => r[k] ?? ""))]
-    .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","));
-  const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const spec = EXPORT[cat] || EXPORT._full;
+  const table = [spec.map(([h]) => h),
+    ...rows.map((r, i) => spec.map(([, k]) => (k === "_sr" ? i + 1 : r[k] ?? "")))];
+  const csv = table.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `${project.id}_${cat}_${new Date().toISOString().slice(0, 10)}.csv`;

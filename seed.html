@@ -44,10 +44,10 @@
         ? `<b>Connected to ${cfg.projectId}.</b>&nbsp;The <code>records</code> collection has ${n} documents. Use <b>Clear all records</b> to wipe them, or importing again will create duplicates.`
         : `Connected to <b>${cfg.projectId}</b>. The records collection is empty — safe to import.`;
       btn.disabled = false;
-      clearBtn.disabled = n === 0;
+      clearBtn.disabled = false;   // also resets the analytics summary, even if records are already 0
 
       clearBtn.addEventListener("click", async () => {
-        if (!confirm(`Delete ALL ${n} records from Firestore? This cannot be undone.`)) return;
+        if (!confirm(`Delete ALL records AND reset the analytics summary to zero in Firestore? This cannot be undone.`)) return;
         clearBtn.disabled = true; btn.disabled = true;
         try {
           let removed = 0;
@@ -60,8 +60,13 @@
             removed += snap.size;
             log(`  deleted ${removed}…`);
           }
-          log(`Done ✔ — removed ${removed} records. The app now shows an empty slate.`);
-          statusEl.innerHTML = `Connected to <b>${cfg.projectId}</b>. The records collection is empty — safe to import.`;
+          log(`Removed ${removed} records.`);
+          // Reset the dashboard summary — the analytics fall back to this doc when a
+          // project has no records, so it must be zeroed too.
+          const summary = await (await fetch("data/projects.json")).json();
+          await fs.setDoc(fs.doc(db, "app", "summary"), summary);
+          log("Reset analytics summary to zero. Done ✔ — open the dashboard, it should read AED 0.");
+          statusEl.innerHTML = `Connected to <b>${cfg.projectId}</b>. Records cleared and analytics reset — safe to import.`;
         } catch (e) { console.error(e); log("CLEAR FAILED: " + e.message); clearBtn.disabled = false; }
       });
 
