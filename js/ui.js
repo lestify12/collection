@@ -26,8 +26,8 @@ export function initTheme() {
 }
 function setTheme(t, persist) {
   document.documentElement.dataset.theme = t;
-  const btn = document.getElementById("themeToggle");
-  if (btn) btn.textContent = t === "dark" ? "☀" : "☾";
+  const icon = document.querySelector("#themeToggle i");
+  if (icon) icon.className = t === "dark" ? "ti ti-sun" : "ti ti-moon";
   if (persist) localStorage.setItem(THEME_KEY, t);
 }
 
@@ -69,25 +69,26 @@ export function renderNav(projects, activeId) {
   const nav = document.getElementById("navProjects");
   if (!nav) return;
   nav.innerHTML = projects.map((p) => `
-    <a href="project.html?id=${encodeURIComponent(p.id)}" class="${p.id === activeId ? "active" : ""}">
-      <span class="dot"></span>
-      <span>${esc(p.name)}</span>
+    <a class="sidebar-item ${p.id === activeId ? "active" : ""}"
+       href="project.html?id=${encodeURIComponent(p.id)}"
+       data-name="${esc(p.name).toLowerCase()}">
+      <i class="ti ti-building"></i><span>${esc(p.name)}</span>
     </a>`).join("");
 
   const dash = document.getElementById("navDashboard");
   if (dash && !activeId) dash.classList.add("active");
 }
 
+/* Navbar search filters the sidebar project list live. Mobile drawer is
+   handled separately by js/mobile-nav.js. */
 export function initSidebar() {
-  const sidebar = document.querySelector(".sidebar");
-  const scrim = document.querySelector(".scrim");
-  document.getElementById("menuBtn")?.addEventListener("click", () => {
-    sidebar.classList.toggle("open");
-    scrim?.classList.toggle("show", sidebar.classList.contains("open"));
-  });
-  scrim?.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    scrim.classList.remove("show");
+  const search = document.getElementById("projSearch");
+  if (!search) return;
+  search.addEventListener("input", () => {
+    const q = search.value.trim().toLowerCase();
+    document.querySelectorAll("#navProjects .sidebar-item").forEach((a) => {
+      a.style.display = !q || (a.dataset.name || "").includes(q) ? "" : "none";
+    });
   });
 }
 

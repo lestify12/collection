@@ -92,6 +92,8 @@ async function main() {
   renderTabs();
   renderTab();
   observeReveals();
+
+  document.getElementById("sidebarAdd")?.addEventListener("click", () => openModal(null));
 }
 
 const myRecords = () => allRecords.filter((r) => r.projectId === project.id);
