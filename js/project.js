@@ -241,14 +241,15 @@ const EXPORT_BASE = [
   ["Downpayment + DLD + Admin", "dpTotal"], ["Reflected", "reflected"],
 ];
 const EXPORT = {
+  // 24% DP layout (also used by DNC, Cancelled, Available): ends at Outstanding + Remarks
   dp24: [...EXPORT_BASE, ["Outstanding Dues", "outstanding"], ["Remarks", "remarks"]],
+  // full layout: adds Monthly Installment + Unsettled Months
   _full: [...EXPORT_BASE,
     ["Monthly Installment (1%)", "monthlyInstallment"], ["Outstanding Dues", "outstanding"],
     ["No. of Unsettled Monthly Installments", "unsettledMonths"], ["Remarks", "remarks"]],
-  available: [["SR", "_sr"], ["Unit No", "unitNo"], ["Unit Type", "type"],
-    ["Selling Price", "sellingPrice"], ["Remarks", "remarks"]],
 };
-EXPORT.installment = EXPORT.legal = EXPORT.dnc = EXPORT.cancelled = EXPORT.others = EXPORT._full;
+EXPORT.dnc = EXPORT.cancelled = EXPORT.available = EXPORT.dp24;
+EXPORT.installment = EXPORT.legal = EXPORT.others = EXPORT._full;
 
 function csvCell(v) {
   if (v === null || v === undefined) return "";
