@@ -65,14 +65,24 @@ export function fmtDate(iso) {
 }
 
 /* ------------------------------------------------ nav */
+/** Shorter sidebar label (full name kept as tooltip + for search). */
+export function navLabel(name) {
+  return String(name)
+    .replace(/\s*-\s*Tower\s+([AB])\b/i, " - $1")   // "… - Tower A" → "… - A"
+    .replace(/\bHarmony Residences\b/i, "Harmony")
+    .replace(/\bResidences\b/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function renderNav(projects, activeId) {
   const nav = document.getElementById("navProjects");
   if (!nav) return;
   nav.innerHTML = projects.map((p) => `
     <a class="sidebar-item ${p.id === activeId ? "active" : ""}"
        href="project.html?id=${encodeURIComponent(p.id)}"
-       data-name="${esc(p.name).toLowerCase()}">
-      <i class="ti ti-building"></i><span>${esc(p.name)}</span>
+       title="${esc(p.name)}" data-name="${esc(p.name).toLowerCase()}">
+      <i class="ti ti-building"></i><span>${esc(navLabel(p.name))}</span>
     </a>`).join("");
 
   const dash = document.getElementById("navDashboard");

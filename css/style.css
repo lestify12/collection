@@ -171,7 +171,11 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
   width: 3px; background: var(--brand); border-radius: 0 3px 3px 0;
 }
+.sidebar-item span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sidebar-item i { flex-shrink: 0; opacity: 0.6; font-size: 17px; }
+/* per-row loading shimmer (matches a nav item's shape) */
+.sk-nav { display: flex; flex-direction: column; gap: 3px; padding: 2px 0; }
+.sk-nav .skeleton { height: 34px; margin: 0 14px; border-radius: 8px; }
 .sidebar-item.active i { opacity: 1; }
 .sidebar-item .sidebar-badge {
   margin-left: auto; font-size: 0.66rem; font-weight: 700;
