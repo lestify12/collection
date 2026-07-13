@@ -46,9 +46,18 @@ function ensure() {
   backdrop.className = "modal-backdrop";
   backdrop.innerHTML = `
     <div class="modal" role="dialog" aria-modal="true">
-      <h3 id="rfTitle">Add record</h3>
-      <div class="m-sub" id="rfSub"></div>
-      <form id="rfForm"><div class="form-grid" id="rfGrid"></div>
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-header-icon"><i class="ti ti-clipboard-plus" id="rfIcon"></i></div>
+          <div style="min-width:0">
+            <div class="modal-header-title" id="rfTitle">Add record</div>
+            <div class="modal-header-sub" id="rfSub"></div>
+          </div>
+        </div>
+        <button type="button" class="modal-close" id="rfClose" aria-label="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <form id="rfForm">
+        <div class="modal-body"><div class="form-grid" id="rfGrid"></div></div>
         <div class="modal-actions">
           <button type="button" class="btn" id="rfCancel">Cancel</button>
           <button type="submit" class="btn primary" id="rfSave">Save record</button>
@@ -58,6 +67,7 @@ function ensure() {
   document.body.appendChild(backdrop);
   form = backdrop.querySelector("#rfForm");
   backdrop.querySelector("#rfCancel").addEventListener("click", close);
+  backdrop.querySelector("#rfClose").addEventListener("click", close);
   backdrop.addEventListener("click", (e) => { if (e.target === backdrop) close(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
   form.addEventListener("submit", submit);
@@ -71,6 +81,7 @@ export function openRecordForm(opts) {
   ctx = opts;
   const cat = catByKey[opts.category];
   const rec = opts.record || null;
+  backdrop.querySelector("#rfIcon").className = rec ? "ti ti-pencil" : "ti ti-clipboard-plus";
   backdrop.querySelector("#rfTitle").textContent =
     rec ? `Edit ${rec.unitNo} — ${cat.label}` : `Add record — ${cat.label}`;
   backdrop.querySelector("#rfSub").textContent =

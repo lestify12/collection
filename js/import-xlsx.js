@@ -170,13 +170,22 @@ function showPreview(parsed, skipped, fileName, project, onDone) {
 
   backdrop.innerHTML = `
     <div class="modal" role="dialog" aria-modal="true">
-      <h3>Import — ${esc(project.name)}</h3>
-      <div class="m-sub">${esc(fileName)}${db.LIVE ? "" : " · local mode: saved in this browser only"}</div>
-      <div class="imp-body">
-        ${total ? rows : `<div class="empty" style="padding:20px"><div class="e-icon">🤔</div>
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-header-icon"><i class="ti ti-file-import"></i></div>
+          <div style="min-width:0">
+            <div class="modal-header-title">Import — ${esc(project.name)}</div>
+            <div class="modal-header-sub">${esc(fileName)}${db.LIVE ? "" : " · local mode"}</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close" id="impClose" aria-label="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        ${total ? `<div class="imp-lead">Found <b>${fmtInt(total)}</b> records across ${cats.length} categor${cats.length === 1 ? "y" : "ies"}:</div>${rows}`
+          : `<div class="empty" style="padding:14px"><div class="e-icon">🤔</div>
           <div class="e-title">No recognizable category tabs</div>
           <div class="e-sub">Name the sheets like 24% Due, Installment, Legal, DNC, Cancelled, Available.</div></div>`}
-        ${skipped.length ? `<div class="imp-skip">Skipped sheets: ${skipped.map(esc).join(", ")}</div>` : ""}
+        ${skipped.length ? `<div class="imp-skip"><i class="ti ti-info-circle"></i> Skipped sheets: ${skipped.map(esc).join(", ")}</div>` : ""}
         ${total ? `<label class="imp-replace"><input type="checkbox" id="impReplace" checked>
           Replace existing data in these categories first (avoids duplicates)</label>` : ""}
       </div>
@@ -187,6 +196,7 @@ function showPreview(parsed, skipped, fileName, project, onDone) {
     </div>`;
   backdrop.classList.add("open");
   backdrop.querySelector("#impCancel").addEventListener("click", () => backdrop.classList.remove("open"));
+  backdrop.querySelector("#impClose").addEventListener("click", () => backdrop.classList.remove("open"));
 
   backdrop.querySelector("#impGo")?.addEventListener("click", async () => {
     const go = backdrop.querySelector("#impGo");

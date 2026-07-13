@@ -450,22 +450,38 @@ table.data tfoot td {
 }
 .modal-backdrop.open { opacity: 1; pointer-events: auto; }
 .modal {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 18px; box-shadow: var(--shadow);
+  background: var(--surface);
+  border-radius: 18px; box-shadow: 0 24px 64px rgba(9,30,20,.34);
   width: min(680px, 100%); max-height: 90vh;
   display: flex; flex-direction: column; overflow: hidden;
-  padding: 22px 24px;
   transform: translateY(14px) scale(.98); opacity: 0;
   transition: transform .25s cubic-bezier(.22,.8,.28,1), opacity .2s ease;
 }
 .modal-backdrop.open .modal { transform: none; opacity: 1; }
-.modal h3 { margin: 0 0 4px; font-size: 17px; letter-spacing: -.01em; flex-shrink: 0; }
-.modal .m-sub { color: var(--ink-3); font-size: 12.5px; margin-bottom: 14px; flex-shrink: 0; }
-.modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.form-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 13px 16px;
-  overflow-y: auto; min-height: 0; padding: 2px 4px 4px 2px; margin: 0 -4px 0 -2px;
+
+/* green gradient header */
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 20px; flex-shrink: 0; color: #fff;
+  background: linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
 }
+.modal-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.modal-header-icon {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(255,255,255,.16); display: grid; place-items: center; font-size: 19px;
+}
+.modal-header-title { font-size: 16px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modal-header-sub { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modal-close {
+  width: 32px; height: 32px; border: none; border-radius: 8px; flex-shrink: 0;
+  background: rgba(255,255,255,.12); color: #fff; cursor: pointer;
+  display: grid; place-items: center; font-size: 18px; transition: background .15s;
+}
+.modal-close:hover { background: rgba(255,255,255,.26); }
+
+.modal > form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.modal-body { padding: 20px 22px; overflow-y: auto; min-height: 0; flex: 1; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
 .form-grid .full { grid-column: 1 / -1; }
 .field label {
   display: block; font-size: 11.5px; font-weight: 600;
@@ -473,26 +489,28 @@ table.data tfoot td {
 }
 .field input, .field select, .field textarea {
   width: 100%; font: inherit; font-size: 13.5px; color: var(--ink);
-  background: var(--surface-2); border: 1px solid transparent;
-  border-radius: 9px; padding: 8px 11px; outline: none;
-  transition: border-color .15s ease, background .15s ease;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 9px; padding: 9px 11px; outline: none;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
 .field textarea { resize: vertical; min-height: 64px; }
 .field input:focus, .field select:focus, .field textarea:focus {
-  border-color: var(--accent); background: var(--surface);
+  border-color: var(--brand-accent); background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(47,143,91,.14);
 }
 .modal-actions {
   display: flex; justify-content: flex-end; gap: 10px;
-  flex-shrink: 0; margin-top: 16px; padding-top: 14px;
-  border-top: 1px solid var(--grid);
+  flex-shrink: 0; padding: 14px 22px;
+  border-top: 1px solid var(--grid); background: var(--surface);
 }
 
 /* import preview */
-.imp-body { overflow-y: auto; min-height: 0; }
-.imp-row { display: flex; align-items: center; gap: 4px; padding: 9px 2px; border-bottom: 1px solid var(--grid); font-size: 14px; color: var(--ink); }
-.imp-row .imp-count { margin-left: auto; font-weight: 650; font-variant-numeric: tabular-nums; }
-.imp-skip { font-size: 12px; color: var(--ink-3); margin-top: 10px; }
-.imp-replace { display: flex; align-items: center; gap: 9px; margin-top: 14px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.imp-lead { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.imp-lead b { color: var(--ink); }
+.imp-row { display: flex; align-items: center; gap: 4px; padding: 10px 2px; border-bottom: 1px solid var(--grid); font-size: 14px; color: var(--ink); }
+.imp-row .imp-count { margin-left: auto; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--brand-accent); }
+.imp-skip { font-size: 12px; color: var(--ink-3); margin-top: 12px; display: flex; gap: 6px; align-items: center; }
+.imp-replace { display: flex; align-items: center; gap: 9px; margin-top: 16px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
 .imp-replace input { width: 16px; height: 16px; accent-color: var(--brand); }
 
 /* ---------------------------------------------------------- toast */
