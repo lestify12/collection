@@ -421,7 +421,7 @@ table.data tfoot td {
 .btn {
   border: 1px solid var(--border); background: var(--surface);
   color: var(--ink); font: inherit; font-size: 13px; font-weight: 600;
-  border-radius: 10px; padding: 8px 15px; cursor: pointer;
+  border-radius: 10px; padding: 8px 15px; cursor: pointer; white-space: nowrap;
   display: inline-flex; align-items: center; gap: 7px;
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
@@ -597,7 +597,24 @@ td.money-good { font-variant-numeric: tabular-nums; }
 .cat-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 9px; vertical-align: middle; }
 
 /* client detail */
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: stretch; }
+
+/* framed card with a green gradient header */
+.card--framed { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 18px; color: #fff; flex-shrink: 0;
+  background: linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
+}
+.card-head-t { min-width: 0; }
+.card-head-title { font-size: 15px; font-weight: 650; display: flex; align-items: center; gap: 8px; letter-spacing: -.01em; }
+.card-head-title i { font-size: 17px; opacity: .9; }
+.card-head-sub { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px; }
+.card-pad { padding: 20px 22px; flex: 1; }
+.btn.head-btn {
+  background: rgba(255,255,255,.16); border-color: transparent; color: #fff; white-space: nowrap; flex-shrink: 0;
+}
+.btn.head-btn:hover { background: rgba(255,255,255,.28); box-shadow: none; }
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; margin-top: 14px; }
 .info-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 700; }
 .info-value { font-size: 14px; color: var(--ink); margin-top: 2px; font-weight: 500; }

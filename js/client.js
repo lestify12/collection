@@ -16,6 +16,8 @@ const params = new URLSearchParams(location.search);
 const projectId = params.get("project");
 const recordId = params.get("id");
 let project = null, record = null;
+let activeClientTab = "overview";
+const txns = (r) => (Array.isArray(r.transactions) ? r.transactions : []);
 
 async function main() {
   const { summary, records } = await db.loadAll();
@@ -124,17 +126,6 @@ function render() {
   const title = r.buyerName || `Unit ${r.unitNo}`;
   document.title = `${title} — ${project?.name || "Client"}`;
 
-  const sched = buildSchedule(r);
-  const reflected = Number(r.reflected) || 0;
-  const outstanding = Number(r.outstanding) || 0;
-
-  const infoRows = INFO.filter(([k]) => r[k] !== undefined && r[k] !== null && r[k] !== "" || ["sellingPrice", "reflected", "outstanding", "dpTotal"].includes(k))
-    .map(([k, label, kind]) => `
-      <div class="info-item">
-        <div class="info-label">${label}</div>
-        <div class="info-value ${k === "reflected" ? "money-good" : k === "outstanding" && outstanding > 0 ? "money-bad" : ""}">${infoVal(r, k, kind)}</div>
-      </div>`).join("");
-
   main.innerHTML = `
     <div class="breadcrumb">
       <a href="index.html">Projects</a><i class="ti ti-chevron-right"></i>
@@ -155,6 +146,51 @@ function render() {
       </div>
     </div>
 
+    <div class="tabs" id="clientTabs">
+      <button class="tab ${activeClientTab === "overview" ? "active" : ""}" data-ctab="overview"><i class="ti ti-layout-dashboard" style="font-size:15px"></i> Overview</button>
+      <button class="tab ${activeClientTab === "history" ? "active" : ""}" data-ctab="history"><i class="ti ti-history" style="font-size:15px"></i> Transaction history <span class="count">${txns(r).length}</span></button>
+    </div>
+    <div id="clientBody"></div>`;
+
+  document.getElementById("editBtn").addEventListener("click", () =>
+    openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
+      onSaved: reloadAndRender }));
+  document.getElementById("deleteBtn").addEventListener("click", async () => {
+    if (!confirm(`Delete record for unit ${r.unitNo}? This cannot be undone.`)) return;
+    try { await db.deleteRecord(r.id); toast("Record deleted");
+      location.href = `project.html?id=${encodeURIComponent(project.id)}`;
+    } catch (e) { toast("Delete failed — " + e.message); }
+  });
+  main.querySelectorAll("#clientTabs .tab").forEach((b) =>
+    b.addEventListener("click", () => { activeClientTab = b.dataset.ctab; render(); }));
+
+  renderClientTab();
+  observeReveals();
+}
+
+function renderClientTab() {
+  const r = record;
+  const body = document.getElementById("clientBody");
+  if (activeClientTab === "history") {
+    body.innerHTML = historyHTML(r);
+    document.getElementById("recordPayBtn2")?.addEventListener("click", recordPayment);
+    body.querySelectorAll("[data-deltxn]").forEach((b) =>
+      b.addEventListener("click", () => deleteTxn(b.dataset.deltxn)));
+    return;
+  }
+
+  const c = catByKey[r.category];
+  const sched = buildSchedule(r);
+  const reflected = Number(r.reflected) || 0;
+  const outstanding = Number(r.outstanding) || 0;
+  const infoRows = INFO.filter(([k]) => r[k] !== undefined && r[k] !== null && r[k] !== "" || ["sellingPrice", "reflected", "outstanding", "dpTotal"].includes(k))
+    .map(([k, label, kind]) => `
+      <div class="info-item">
+        <div class="info-label">${label}</div>
+        <div class="info-value ${k === "reflected" ? "money-good" : k === "outstanding" && outstanding > 0 ? "money-bad" : ""}">${infoVal(r, k, kind)}</div>
+      </div>`).join("");
+
+  body.innerHTML = `
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div>
         <div><div class="stat-value money-good">${fmtMoney(reflected, { compact: true })}</div>
@@ -168,23 +204,29 @@ function render() {
     </div>
 
     <div class="detail-grid">
-      <section class="card">
-        <h2>Client details</h2>
-        <div class="card-sub">${esc(c.label)}${r.agent ? " · " + esc(r.agent) : ""}</div>
-        <div class="info-grid">${infoRows}</div>
-        ${r.remarks ? `<div class="info-remarks"><div class="info-label">Remarks</div><div>${esc(r.remarks)}</div></div>` : ""}
-      </section>
-      <section class="card">
-        <div class="sched-head-row">
-          <div>
-            <h2>Payment schedule</h2>
-            <div class="card-sub">1% monthly installments — downpayment (24%) settles first · click a box to set a custom %</div>
-          </div>
-          ${sched ? `<button class="btn primary sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
+      <section class="card card--framed">
+        <div class="card-head"><div class="card-head-t">
+          <div class="card-head-title"><i class="ti ti-user"></i> Client details</div>
+          <div class="card-head-sub">${esc(c.label)}${r.agent ? " · " + esc(r.agent) : ""}</div>
+        </div></div>
+        <div class="card-pad">
+          <div class="info-grid">${infoRows}</div>
+          ${r.remarks ? `<div class="info-remarks"><div class="info-label">Remarks</div><div>${esc(r.remarks)}</div></div>` : ""}
         </div>
-        ${sched ? scheduleHTML(sched, r) : `<div class="empty" style="padding:26px"><div class="e-icon">🧾</div>
-          <div class="e-title">No selling price on record</div>
-          <div class="e-sub">Add a selling price to generate the 1% installment breakdown.</div></div>`}
+      </section>
+      <section class="card card--framed">
+        <div class="card-head">
+          <div class="card-head-t">
+            <div class="card-head-title"><i class="ti ti-calendar-dollar"></i> Payment schedule</div>
+            <div class="card-head-sub">1% monthly · downpayment (24%) first · click a box to set %</div>
+          </div>
+          ${sched ? `<button class="btn head-btn sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
+        </div>
+        <div class="card-pad">
+          ${sched ? scheduleHTML(sched, r) : `<div class="empty" style="padding:26px"><div class="e-icon">🧾</div>
+            <div class="e-title">No selling price on record</div>
+            <div class="e-sub">Add a selling price to generate the 1% installment breakdown.</div></div>`}
+        </div>
       </section>
     </div>`;
 
@@ -200,16 +242,62 @@ function render() {
     document.querySelectorAll(".sched-cell[data-idx]").forEach((el) =>
       el.addEventListener("click", () => editBox(Number(el.dataset.idx))));
   }
-  document.getElementById("editBtn").addEventListener("click", () =>
-    openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
-      onSaved: async () => { const { records } = await db.loadAll(true); record = records.find((x) => x.id === recordId) || record; render(); } }));
-  document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!confirm(`Delete record for unit ${r.unitNo}? This cannot be undone.`)) return;
-    try { await db.deleteRecord(r.id); toast("Record deleted");
-      location.href = `project.html?id=${encodeURIComponent(project.id)}`;
-    } catch (e) { toast("Delete failed — " + e.message); }
-  });
-  observeReveals();
+}
+
+function historyHTML(r) {
+  const list = txns(r).slice().sort((a, b) => String(b.date || b.ts || "").localeCompare(String(a.date || a.ts || "")));
+  const reflected = Number(r.reflected) || 0;
+  const sumTx = list.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const base = r2(reflected - sumTx);
+  const rows = list.map((t) => `
+    <tr>
+      <td style="white-space:nowrap">${t.date ? fmtDate(t.date) : "—"}</td>
+      <td class="num money-good">+${fmtMoney(t.amount, { currency: false })}</td>
+      <td class="cell-remarks">${esc(t.note || "")}</td>
+      <td><div class="row-actions"><button class="del" data-deltxn="${esc(t.id)}" title="Delete payment">✕</button></div></td>
+    </tr>`).join("");
+  const baseRow = base > 0.5 ? `<tr>
+      <td style="white-space:nowrap;color:var(--ink-3)">Opening balance</td>
+      <td class="num money-good">${fmtMoney(base, { currency: false })}</td>
+      <td class="cell-remarks" style="color:var(--ink-3)">Imported / existing reflected amount</td><td></td></tr>` : "";
+  const hasRows = list.length || base > 0.5;
+
+  return `<section class="card card--framed">
+    <div class="card-head">
+      <div class="card-head-t">
+        <div class="card-head-title"><i class="ti ti-receipt-2"></i> Transaction history</div>
+        <div class="card-head-sub">${list.length} recorded payment${list.length === 1 ? "" : "s"} for unit ${esc(r.unitNo)}</div>
+      </div>
+      <button class="btn head-btn sm" id="recordPayBtn2"><i class="ti ti-cash"></i> Record payment</button>
+    </div>
+    <div class="card-pad">
+      ${hasRows ? `<div class="table-wrap"><table class="data">
+        <thead><tr><th>Date</th><th class="num">Amount</th><th>Note</th><th></th></tr></thead>
+        <tbody>${rows}${baseRow}</tbody>
+        <tfoot><tr><td>Total reflected</td><td class="num money-good">${fmtMoney(reflected, { currency: false })}</td><td></td><td></td></tr></tfoot>
+      </table></div>`
+      : `<div class="empty" style="padding:34px"><div class="e-icon">🧾</div>
+        <div class="e-title">No payments recorded yet</div>
+        <div class="e-sub">Use <b>Record payment</b> to log a payment. Each one is listed here and can be deleted.</div></div>`}
+    </div>
+  </section>`;
+}
+
+async function deleteTxn(id) {
+  const list = txns(record);
+  const t = list.find((x) => x.id === id);
+  if (!t) return;
+  if (!confirm(`Delete this ${fmtMoney(t.amount)} payment? Reflected decreases and outstanding increases by that amount.`)) return;
+  const amt = Number(t.amount) || 0;
+  try {
+    await db.updateRecord(record.id, {
+      transactions: list.filter((x) => x.id !== id),
+      reflected: Math.max(0, r2((Number(record.reflected) || 0) - amt)),
+      outstanding: r2((Number(record.outstanding) || 0) + amt),
+    });
+    toast("Payment deleted");
+    await reloadAndRender();
+  } catch (e) { toast("Failed — " + e.message); }
 }
 
 function scheduleHTML(s, r) {
@@ -295,17 +383,25 @@ async function reloadAndRender() {
 }
 
 async function recordPayment() {
+  const today = new Date().toISOString().slice(0, 10);
   const res = await promptModal({
     title: `Record payment — Unit ${record.unitNo}`, icon: "ti-cash",
     sub: record.buyerName || "", submitLabel: "Record payment",
-    fields: [{ key: "amount", label: "Payment amount (AED)", type: "number", step: "0.01", min: 0,
-      hint: "Added to reflected and deducted from outstanding." }],
+    fields: [
+      { key: "amount", label: "Payment amount (AED)", type: "number", step: "0.01", min: 0,
+        hint: "Added to reflected and deducted from outstanding." },
+      { key: "date", label: "Payment date", type: "date", value: today },
+      { key: "note", label: "Note (optional)", type: "text", value: "" },
+    ],
   });
   if (!res) return;
   const amt = Number(res.amount);
   if (!(amt > 0)) { toast("Enter a valid amount"); return; }
+  const t = { id: `t_${Date.now()}_${Math.floor(Math.random() * 1e5)}`, amount: r2(amt),
+    date: res.date || today, note: (res.note || "").trim(), ts: new Date().toISOString() };
   try {
     await db.updateRecord(record.id, {
+      transactions: [...txns(record), t],
       reflected: r2((Number(record.reflected) || 0) + amt),
       outstanding: Math.max(0, r2((Number(record.outstanding) || 0) - amt)),
     });
