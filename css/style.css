@@ -625,6 +625,13 @@ td.money-good { font-variant-numeric: tabular-nums; }
 .sched-cell.partial { background: #f0a500; }
 .sched-cell.due { background: rgba(239,68,68,.22); }
 :root[data-theme="dark"] .sched-cell.due { background: rgba(248,113,113,.22); }
+.sched-cell[data-idx] { cursor: pointer; transition: outline .1s; }
+.sched-cell[data-idx]:hover { outline: 2px solid var(--brand-accent); outline-offset: 1px; }
+.sched-grid.preview .sched-cell { opacity: .85; }
+.sched-head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
+.sched-head-row h2 { margin: 0; }
+.sched-transfer { margin-top: 12px; width: 100%; justify-content: center; }
+.pm-hint { font-size: 11px; color: var(--ink-3); margin-top: 5px; line-height: 1.4; }
 
 @media (max-width: 1050px) { .detail-grid { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .info-grid { grid-template-columns: 1fr; } .stat-value { font-size: 21px; } }

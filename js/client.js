@@ -35,31 +35,69 @@ async function main() {
 }
 
 /* ------------------------------------------------ payment schedule */
+const r2 = (n) => Math.round(n * 100) / 100;
+
+/** Fill `balance` with `onePct` boxes; last box is the remainder. */
+function genBoxes(balance, onePct) {
+  const boxes = [];
+  let acc = 0;
+  while (acc < balance - 0.01 && boxes.length < 400) {
+    const amt = Math.min(onePct, balance - acc);
+    boxes.push(r2(amt)); acc += amt;
+  }
+  return boxes;
+}
+
+/** Installment box amounts — a stored custom plan, else default 1% boxes. */
+export function scheduleBoxes(r) {
+  const S = Number(r.sellingPrice) || 0;
+  const dp20 = Number(r.dp20) || (S ? S * 0.2 : 0);
+  const balance = Math.max(0, S - dp20);
+  const onePct = S * 0.01;
+  if (Array.isArray(r.installmentPlan) && r.installmentPlan.length)
+    return { boxes: r.installmentPlan.map(Number), onePct, balance };
+  return { boxes: genBoxes(balance, onePct), onePct, balance };
+}
+
+/** The 24% downpayment target = DP + DLD + Admin (falls back to a 24% estimate). */
+export function downpaymentTarget(r) {
+  const S = Number(r.sellingPrice) || 0;
+  const explicit = Number(r.dpTotal) || 0;
+  const parts = (Number(r.dp20) || 0) + (Number(r.dld) || 0) + (Number(r.adminFee) || 0);
+  return explicit || parts || r2(0.24 * S);
+}
+
 function buildSchedule(r) {
   const S = Number(r.sellingPrice) || 0;
   const R = Number(r.reflected) || 0;
-  const D = Number(r.dpTotal) || 0;                 // downpayment + DLD + admin (~24%)
-  const dp20 = Number(r.dp20) || (S ? S * 0.2 : 0); // 20% portion of the price
   if (!S) return null;
-  const onePct = S * 0.01;
-  // 1% monthly installments cover the price balance after the 20% downpayment
-  let instCount = Math.round((S - dp20) / onePct);
-  instCount = Math.max(0, Math.min(120, instCount));
+  const { boxes, onePct, balance } = scheduleBoxes(r);
+  const D = downpaymentTarget(r);
+  const isDp = r.category === "dp24";
+  const custom = Array.isArray(r.installmentPlan) && r.installmentPlan.length > 0;
 
-  const rows = [{ label: "Downpayment + DLD + Admin", amount: D, kind: "dp" }];
-  for (let i = 1; i <= instCount; i++) rows.push({ label: `Installment ${i} · 1%`, amount: onePct, kind: "inst" });
-
-  // allocate reflected cumulatively (downpayment must complete first)
-  let left = R;
-  for (const row of rows) {
-    const paid = Math.max(0, Math.min(left, row.amount));
-    left -= paid;
-    row.paid = paid;
-    row.status = paid >= row.amount - 0.01 && row.amount > 0 ? "paid" : paid > 0 ? "partial" : "due";
+  if (isDp) {
+    // Still paying the 24% downpayment — reflected all goes to it; installments haven't started.
+    const dpPaid = Math.min(R, D);
+    const dpDone = D > 0 && dpPaid >= D - 0.01;
+    const instRows = boxes.map((amt, i) => ({ label: `Installment ${i + 1}`, amount: amt, kind: "inst", idx: i, paid: 0, status: "due" }));
+    return { isDp: true, boxes, instRows, instCount: boxes.length, onePct, balance, custom,
+      dpTarget: D, dpPaid, dpDone, planTotal: D, paidTotal: dpPaid,
+      pct: D ? Math.round((dpPaid / D) * 100) : 0, transferReady: dpDone };
   }
-  const planTotal = rows.reduce((s, x) => s + x.amount, 0);
+
+  // Installment phase — downpayment already settled; reflected fills the boxes.
+  let left = R;
+  const instRows = boxes.map((amt, i) => {
+    const paid = Math.max(0, Math.min(left, amt)); left -= paid;
+    return { label: `Installment ${i + 1}`, amount: amt, kind: "inst", idx: i, paid,
+      status: paid >= amt - 0.01 && amt > 0 ? "paid" : paid > 0 ? "partial" : "due" };
+  });
+  const planTotal = boxes.reduce((a, b) => a + b, 0);
   const paidTotal = Math.min(R, planTotal);
-  return { rows, instCount, onePct, planTotal, paidTotal, dpTarget: D, dpPaid: rows[0].paid, dpDone: rows[0].status === "paid" };
+  return { isDp: false, boxes, instRows, instCount: boxes.length, onePct, balance, custom,
+    dpTarget: D, dpPaid: D, dpDone: true, planTotal, paidTotal,
+    pct: planTotal ? Math.round((paidTotal / planTotal) * 100) : 0, transferReady: false };
 }
 
 /* ------------------------------------------------ render */
@@ -137,15 +175,31 @@ function render() {
         ${r.remarks ? `<div class="info-remarks"><div class="info-label">Remarks</div><div>${esc(r.remarks)}</div></div>` : ""}
       </section>
       <section class="card">
-        <h2>Payment schedule</h2>
-        <div class="card-sub">Selling price broken into 1% monthly installments — downpayment (24%) settles first</div>
+        <div class="sched-head-row">
+          <div>
+            <h2>Payment schedule</h2>
+            <div class="card-sub">1% monthly installments — downpayment (24%) settles first · click a box to set a custom %</div>
+          </div>
+          ${sched ? `<button class="btn primary sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
+        </div>
         ${sched ? scheduleHTML(sched, r) : `<div class="empty" style="padding:26px"><div class="e-icon">🧾</div>
           <div class="e-title">No selling price on record</div>
           <div class="e-sub">Add a selling price to generate the 1% installment breakdown.</div></div>`}
       </section>
     </div>`;
 
-  if (sched) mountScheduleTips();
+  if (sched) {
+    mountScheduleTips();
+    document.getElementById("recordPayBtn")?.addEventListener("click", recordPayment);
+    document.getElementById("transferBtn")?.addEventListener("click", transferToInstallment);
+    document.getElementById("schedReset")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try { await db.updateRecord(record.id, { installmentPlan: null }); toast("Schedule reset to 1%"); await reloadAndRender(); }
+      catch (err) { toast("Failed — " + err.message); }
+    });
+    document.querySelectorAll(".sched-cell[data-idx]").forEach((el) =>
+      el.addEventListener("click", () => editBox(Number(el.dataset.idx))));
+  }
   document.getElementById("editBtn").addEventListener("click", () =>
     openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
       onSaved: async () => { const { records } = await db.loadAll(true); record = records.find((x) => x.id === recordId) || record; render(); } }));
@@ -159,18 +213,26 @@ function render() {
 }
 
 function scheduleHTML(s, r) {
-  const dpPct = s.planTotal ? Math.round((s.paidTotal / s.planTotal) * 100) : 0;
   const dpBar = s.dpTarget ? Math.min(100, Math.round((s.dpPaid / s.dpTarget) * 100)) : 100;
-  const paidCount = s.rows.filter((x) => x.kind === "inst" && x.status === "paid").length;
-  const partialCount = s.rows.filter((x) => x.kind === "inst" && x.status === "partial").length;
+  const paidCount = s.instRows.filter((x) => x.status === "paid").length;
+  const partialCount = s.instRows.filter((x) => x.status === "partial").length;
 
-  const cells = s.rows.filter((x) => x.kind === "inst").map((x, i) => `
-    <span class="sched-cell ${x.status}" data-tip="Installment ${i + 1} · ${fmtMoney(x.amount)}<br>${x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Outstanding"}"></span>`).join("");
+  const cells = s.instRows.map((x) => {
+    const pct = s.onePct ? Math.round((x.amount / s.onePct) * 100) / 100 : 1;
+    return `<span class="sched-cell ${x.status}" data-idx="${x.idx}"
+      data-tip="Installment ${x.idx + 1} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}<br><span style='opacity:.7'>click to set %</span>"></span>`;
+  }).join("");
+
+  const transfer = s.isDp
+    ? (s.transferReady
+        ? `<button class="btn primary sm sched-transfer" id="transferBtn"><i class="ti ti-arrow-right"></i> Transfer to Installment</button>`
+        : `<div class="sched-note"><i class="ti ti-info-circle"></i> Reflected payments go to the 24% downpayment. When it's complete, a <b>Transfer to Installment</b> button appears to start the 1% monthly plan.</div>`)
+    : "";
 
   return `
     <div class="sched-summary">
-      <div><div class="sched-big">${dpPct}%</div><div class="sched-cap">of plan settled</div></div>
-      <div class="sched-meter"><div class="sched-meter-fill" style="width:${dpPct}%"></div></div>
+      <div><div class="sched-big">${s.pct}%</div><div class="sched-cap">${s.isDp ? "of downpayment settled" : "of plan settled"}</div></div>
+      <div class="sched-meter"><div class="sched-meter-fill" style="width:${s.pct}%"></div></div>
     </div>
 
     <div class="sched-dp ${s.dpDone ? "done" : ""}">
@@ -179,18 +241,118 @@ function scheduleHTML(s, r) {
         <span class="${s.dpDone ? "money-good" : "money-bad"}">${s.dpDone ? "Completed" : fmtMoney(s.dpPaid) + " / " + fmtMoney(s.dpTarget)}</span>
       </div>
       <div class="sched-meter"><div class="sched-meter-fill" style="width:${dpBar}%"></div></div>
-      ${!s.dpDone ? `<div class="sched-note"><i class="ti ti-info-circle"></i> The 24% downpayment must be completed before the 1% monthly installments begin.</div>` : ""}
+      ${transfer}
     </div>
 
     <div class="sched-inst-head">
-      <span>${s.instCount} monthly installments · ${fmtMoney(s.onePct)} each (1%)</span>
+      <span>${s.instCount} installments · 1% = ${fmtMoney(s.onePct)}${s.custom ? ` · <a href="#" id="schedReset">reset</a>` : ""}${s.isDp ? " (starts after transfer)" : ""}</span>
       <span class="sched-legend">
         <span class="sched-cell paid"></span> ${paidCount} paid
         <span class="sched-cell partial"></span> ${partialCount} partial
         <span class="sched-cell due"></span> ${s.instCount - paidCount - partialCount} due
       </span>
     </div>
-    <div class="sched-grid">${cells || `<span class="muted">No installments — full payment plan.</span>`}</div>`;
+    <div class="sched-grid ${s.isDp ? "preview" : ""}">${cells || `<span class="muted">No installments.</span>`}</div>`;
+}
+
+/* ---- small prompt modal (green header) → resolves values or null ---- */
+function promptModal(opts) {
+  return new Promise((resolve) => {
+    const bd = document.createElement("div");
+    bd.className = "modal-backdrop";
+    bd.innerHTML = `<div class="modal" style="width:min(440px,100%)">
+      <div class="modal-header"><div class="modal-header-left">
+        <div class="modal-header-icon"><i class="ti ${opts.icon}"></i></div>
+        <div style="min-width:0"><div class="modal-header-title">${esc(opts.title)}</div>
+        ${opts.sub ? `<div class="modal-header-sub">${esc(opts.sub)}</div>` : ""}</div></div>
+        <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+      <form><div class="modal-body"><div class="form-grid" style="grid-template-columns:1fr">
+        ${opts.fields.map((f) => `<div class="field full"><label>${esc(f.label)}</label>
+          <input id="pm_${f.key}" type="${f.type || "text"}" ${f.step ? `step="${f.step}"` : ""} ${f.min != null ? `min="${f.min}"` : ""} value="${f.value ?? ""}" ${f.type === "number" ? 'inputmode="decimal"' : ""}>
+          ${f.hint ? `<div class="pm-hint">${esc(f.hint)}</div>` : ""}</div>`).join("")}
+      </div></div>
+      <div class="modal-actions"><button type="button" class="btn" data-x>Cancel</button>
+        <button type="submit" class="btn primary">${esc(opts.submitLabel || "Save")}</button></div></form></div>`;
+    document.body.appendChild(bd);
+    requestAnimationFrame(() => bd.classList.add("open"));
+    const done = (val) => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); resolve(val); };
+    bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", () => done(null)));
+    bd.addEventListener("click", (e) => { if (e.target === bd) done(null); });
+    bd.querySelector("form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const out = {};
+      opts.fields.forEach((f) => { out[f.key] = bd.querySelector("#pm_" + f.key).value; });
+      done(out);
+    });
+    setTimeout(() => bd.querySelector("input")?.focus(), 200);
+  });
+}
+
+async function reloadAndRender() {
+  const { records } = await db.loadAll(true);
+  record = records.find((x) => x.id === recordId) || record;
+  render();
+}
+
+async function recordPayment() {
+  const res = await promptModal({
+    title: `Record payment — Unit ${record.unitNo}`, icon: "ti-cash",
+    sub: record.buyerName || "", submitLabel: "Record payment",
+    fields: [{ key: "amount", label: "Payment amount (AED)", type: "number", step: "0.01", min: 0,
+      hint: "Added to reflected and deducted from outstanding." }],
+  });
+  if (!res) return;
+  const amt = Number(res.amount);
+  if (!(amt > 0)) { toast("Enter a valid amount"); return; }
+  try {
+    await db.updateRecord(record.id, {
+      reflected: r2((Number(record.reflected) || 0) + amt),
+      outstanding: Math.max(0, r2((Number(record.outstanding) || 0) - amt)),
+    });
+    toast(`Recorded ${fmtMoney(amt)}`);
+    await reloadAndRender();
+  } catch (e) { toast("Failed — " + e.message); }
+}
+
+async function editBox(idx) {
+  const { boxes, onePct, balance } = scheduleBoxes(record);
+  const cur = Number(boxes[idx]) || onePct;
+  const curPct = onePct ? r2(cur / onePct) : 1;
+  const res = await promptModal({
+    title: `Installment ${idx + 1}`, icon: "ti-percentage",
+    sub: `Default 1% = ${fmtMoney(onePct)}`, submitLabel: "Apply",
+    fields: [{ key: "pct", label: "Installment size (% of selling price)", type: "number", step: "0.01", min: 0, value: curPct,
+      hint: "Boxes after this recalculate so the plan still totals the balance." }],
+  });
+  if (!res) return;
+  const pct = Number(res.pct);
+  if (!(pct > 0)) { toast("Enter a valid %"); return; }
+  const newAmt = r2(onePct * pct);
+  const head = boxes.slice(0, idx).map(Number);
+  const rem = Math.max(0, r2(balance - head.reduce((a, b) => a + b, 0) - newAmt));
+  const plan = [...head, newAmt, ...genBoxes(rem, onePct)];
+  try {
+    await db.updateRecord(record.id, { installmentPlan: plan });
+    toast(`Installment ${idx + 1} set to ${pct}%`);
+    await reloadAndRender();
+  } catch (e) { toast("Failed — " + e.message); }
+}
+
+async function transferToInstallment() {
+  const D = downpaymentTarget(record);
+  const R = Number(record.reflected) || 0;
+  const excess = Math.max(0, r2(R - D));
+  const { balance } = scheduleBoxes(record);
+  if (!confirm(`Transfer unit ${record.unitNo} to Installment? The 24% downpayment is complete; the unit moves to the Installment tab and starts the 1% monthly plan${excess ? ` with ${fmtMoney(excess)} carried over` : ""}.`)) return;
+  try {
+    await db.updateRecord(record.id, {
+      category: "installment", reflected: excess,
+      outstanding: Math.max(0, r2(balance - excess)),
+      transferredAt: new Date().toISOString(),
+    });
+    toast("Transferred to Installment");
+    await reloadAndRender();
+  } catch (e) { toast("Failed — " + e.message); }
 }
 
 let tip = null;

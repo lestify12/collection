@@ -60,8 +60,20 @@ async function main() {
   });
 }
 
+/* natural sort by unit number: letter prefix, then numeric, then remainder */
+function unitKey(u) {
+  const m = String(u || "").trim().match(/^([A-Za-z]*)\s*(\d+)?(.*)$/);
+  return [(m?.[1] || "").toUpperCase(), m?.[2] ? parseInt(m[2], 10) : -1, m?.[3] || ""];
+}
+function byUnit(a, b) {
+  const ka = unitKey(a.unitNo), kb = unitKey(b.unitNo);
+  return ka[0] < kb[0] ? -1 : ka[0] > kb[0] ? 1
+    : ka[1] !== kb[1] ? ka[1] - kb[1]
+    : ka[2] < kb[2] ? -1 : ka[2] > kb[2] ? 1 : 0;
+}
+
 const myRecords = () => allRecords.filter((r) => r.projectId === project.id);
-const catRecords = (cat) => myRecords().filter((r) => r.category === cat);
+const catRecords = (cat) => myRecords().filter((r) => r.category === cat).sort(byUnit);
 const metrics = () => db.projectMetrics(project, allRecords);
 
 /* ------------------------------------------------ tabs */
