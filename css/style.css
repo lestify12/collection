@@ -187,8 +187,9 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 
 /* mode badge lives in the sidebar footer */
 .sidebar-foot {
+  display: none;   /* data-source status badge hidden per request */
   margin: 12px; padding: 11px 13px; background: var(--surface-2);
-  border-radius: 12px; display: flex; align-items: center; gap: 9px;
+  border-radius: 12px; align-items: center; gap: 9px;
 }
 .sidebar-foot .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex-shrink: 0; }
 .sidebar-foot.live .pulse { background: var(--good); animation: pulse 2s ease infinite; }
