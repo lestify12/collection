@@ -14,25 +14,25 @@
           "due": 0
         },
         "installment": {
-          "clients": 132.0,
-          "due": 1313555.93
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 12.0,
-          "due": 3760955.78
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 34.0,
-          "due": 3131557.4
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 1.0,
-          "due": 2194164.03
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 179.0,
-        "totalDue": 10400233.14,
-        "unsoldUnits": 1.0,
-        "projectUnits": 180.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -42,29 +42,29 @@
       "note": "2 RETAILS",
       "metrics": {
         "dp24": {
-          "clients": 2.0,
-          "due": 323976.32
+          "clients": 0,
+          "due": 0
         },
         "installment": {
-          "clients": 119.0,
-          "due": 3856989.56
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 12.0,
-          "due": 6893741.19
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 100.0,
-          "due": 13554978.08
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 3.0,
-          "due": 1769312.0
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 236.0,
-        "totalDue": 26398997.15,
-        "unsoldUnits": 3.0,
-        "projectUnits": 239.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -78,25 +78,25 @@
           "due": 0
         },
         "installment": {
-          "clients": 2.0,
-          "due": 145922.0
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 2.0,
-          "due": 3126817.0
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 24.0,
-          "due": 3491125.78
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
           "clients": 0,
           "due": 0
         },
-        "totalUnits": 28.0,
-        "totalDue": 6763864.78,
-        "unsoldUnits": 44.0,
-        "projectUnits": 72.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -106,29 +106,29 @@
       "note": "",
       "metrics": {
         "dp24": {
-          "clients": 1.0,
+          "clients": 0,
           "due": 0
         },
         "installment": {
-          "clients": 17.0,
-          "due": 2463091.0
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 7.0,
-          "due": 8547720.0
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 8.0,
-          "due": 6523994.0
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 2.0,
-          "due": 2784027.0
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 35.0,
-        "totalDue": 20318832.0,
-        "unsoldUnits": 15.0,
-        "projectUnits": 50.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -138,29 +138,29 @@
       "note": "",
       "metrics": {
         "dp24": {
-          "clients": 6.0,
-          "due": 578450.93
+          "clients": 0,
+          "due": 0
         },
         "installment": {
-          "clients": 408.0,
-          "due": 4428877.04
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 61.0,
-          "due": 6811913.77
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 12.0,
-          "due": 891078.0
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 2.0,
-          "due": 689742.68
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 489.0,
-        "totalDue": 13400062.42,
-        "unsoldUnits": 11.0,
-        "projectUnits": 500.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -170,29 +170,29 @@
       "note": "",
       "metrics": {
         "dp24": {
-          "clients": 1.0,
-          "due": 159600.0
+          "clients": 0,
+          "due": 0
         },
         "installment": {
-          "clients": 414.0,
-          "due": 5219397.0
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 35.0,
-          "due": 3750195.0
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 37.0,
-          "due": 1819337.0
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 3.0,
-          "due": 397853.0
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 490.0,
-        "totalDue": 11346382.0,
-        "unsoldUnits": 10.0,
-        "projectUnits": 500.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -206,25 +206,25 @@
           "due": 0
         },
         "installment": {
-          "clients": 228.0,
-          "due": 2352970.18
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 31.0,
-          "due": 3692493.44
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 133.0,
-          "due": 234026.55
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 4.0,
-          "due": 932281.92
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 396.0,
-        "totalDue": 7211772.09,
-        "unsoldUnits": 28.0,
-        "projectUnits": 424.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -234,29 +234,29 @@
       "note": "",
       "metrics": {
         "dp24": {
-          "clients": 1.0,
-          "due": 106950.5
+          "clients": 0,
+          "due": 0
         },
         "installment": {
-          "clients": 243.0,
-          "due": 2384586.03
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 30.0,
-          "due": 3497998.07
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 102.0,
-          "due": 72000.0
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 6.0,
-          "due": 1370902.77
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 382.0,
-        "totalDue": 7432437.37,
-        "unsoldUnits": 25.0,
-        "projectUnits": 407.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -266,29 +266,29 @@
       "note": "52 OFFICES, 9 RETAILS",
       "metrics": {
         "dp24": {
-          "clients": 61.0,
-          "due": 9935874.0
+          "clients": 0,
+          "due": 0
         },
         "installment": {
-          "clients": 170.0,
-          "due": 1588752.0
+          "clients": 0,
+          "due": 0
         },
         "legal": {
           "clients": 0,
           "due": 0
         },
         "dnc": {
-          "clients": 3.0,
+          "clients": 0,
           "due": 0
         },
         "cancelled": {
-          "clients": 59.0,
-          "due": 12785455.49
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 293.0,
-        "totalDue": 24310081.49,
-        "unsoldUnits": 272.0,
-        "projectUnits": 565.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     },
     {
@@ -298,29 +298,29 @@
       "note": "7 RETAILS",
       "metrics": {
         "dp24": {
-          "clients": 6.0,
-          "due": 330859.87
+          "clients": 0,
+          "due": 0
         },
         "installment": {
-          "clients": 126.0,
-          "due": 12117206.03
+          "clients": 0,
+          "due": 0
         },
         "legal": {
-          "clients": 7.0,
-          "due": 727042.95
+          "clients": 0,
+          "due": 0
         },
         "dnc": {
-          "clients": 12.0,
-          "due": 5116918.5
+          "clients": 0,
+          "due": 0
         },
         "cancelled": {
-          "clients": 5.0,
-          "due": 2027260.59
+          "clients": 0,
+          "due": 0
         },
-        "totalUnits": 156.0,
-        "totalDue": 20319287.94,
-        "unsoldUnits": 110.0,
-        "projectUnits": 266.0
+        "totalUnits": 0,
+        "totalDue": 0,
+        "unsoldUnits": 0,
+        "projectUnits": 0
       }
     }
   ]

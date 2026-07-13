@@ -12,8 +12,9 @@
       <h2>One-time Firestore import</h2>
       <div class="card-sub">Pushes the bundled Excel seed data (summary + client-wise records) into your Firebase project.</div>
       <div class="notice" id="status">Checking configuration…</div>
-      <div style="display:flex;gap:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn primary" id="runBtn" disabled>Import seed data</button>
+        <button class="btn danger" id="clearBtn" disabled>Clear all records</button>
         <a class="btn" href="index.html">← Back to dashboard</a>
       </div>
       <pre id="log" style="font-size:12px;color:var(--ink-2);margin-top:16px;white-space:pre-wrap"></pre>
@@ -36,12 +37,33 @@
       const fs = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`);
       const db = fs.getFirestore(initializeApp(cfg));
 
+      const clearBtn = document.getElementById("clearBtn");
       const existing = await fs.getCountFromServer(fs.collection(db, "records"));
       const n = existing.data().count;
       statusEl.innerHTML = n > 0
-        ? `<b>Warning:</b>&nbsp;the <code>records</code> collection already has ${n} documents. Importing again will create duplicates.`
+        ? `<b>Connected to ${cfg.projectId}.</b>&nbsp;The <code>records</code> collection has ${n} documents. Use <b>Clear all records</b> to wipe them, or importing again will create duplicates.`
         : `Connected to <b>${cfg.projectId}</b>. The records collection is empty — safe to import.`;
       btn.disabled = false;
+      clearBtn.disabled = n === 0;
+
+      clearBtn.addEventListener("click", async () => {
+        if (!confirm(`Delete ALL ${n} records from Firestore? This cannot be undone.`)) return;
+        clearBtn.disabled = true; btn.disabled = true;
+        try {
+          let removed = 0;
+          while (true) {
+            const snap = await fs.getDocs(fs.query(fs.collection(db, "records"), fs.limit(400)));
+            if (snap.empty) break;
+            const batch = fs.writeBatch(db);
+            snap.docs.forEach((d) => batch.delete(d.ref));
+            await batch.commit();
+            removed += snap.size;
+            log(`  deleted ${removed}…`);
+          }
+          log(`Done ✔ — removed ${removed} records. The app now shows an empty slate.`);
+          statusEl.innerHTML = `Connected to <b>${cfg.projectId}</b>. The records collection is empty — safe to import.`;
+        } catch (e) { console.error(e); log("CLEAR FAILED: " + e.message); clearBtn.disabled = false; }
+      });
 
       btn.addEventListener("click", async () => {
         btn.disabled = true;
