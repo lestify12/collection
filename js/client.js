@@ -5,7 +5,7 @@
 import * as db from "./db.js";
 import {
   catByKey, esc, fmtMoney, fmtInt, fmtDate, renderNav, initTheme,
-  initSidebar, setModeBadge, observeReveals, toast, visibleProjects,
+  initSidebar, setModeBadge, observeReveals, toast, visibleProjects, confirmModal,
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
 
@@ -156,7 +156,7 @@ function render() {
     openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
       onSaved: reloadAndRender }));
   document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!confirm(`Delete record for unit ${r.unitNo}? This cannot be undone.`)) return;
+    if (!(await confirmModal({ title: `Delete unit ${r.unitNo}?`, message: "This permanently deletes the record. This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
     try { await db.deleteRecord(r.id); toast("Record deleted");
       location.href = `project.html?id=${encodeURIComponent(project.id)}`;
     } catch (e) { toast("Delete failed — " + e.message); }
@@ -218,7 +218,7 @@ function renderClientTab() {
         <div class="card-head">
           <div class="card-head-t">
             <div class="card-head-title"><i class="ti ti-calendar-dollar"></i> Payment schedule</div>
-            <div class="card-head-sub">1% monthly · downpayment (24%) first · click a box to set %</div>
+            <div class="card-head-sub">1% monthly · click a box to edit %</div>
           </div>
           ${sched ? `<button class="btn head-btn sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
         </div>
@@ -287,7 +287,7 @@ async function deleteTxn(id) {
   const list = txns(record);
   const t = list.find((x) => x.id === id);
   if (!t) return;
-  if (!confirm(`Delete this ${fmtMoney(t.amount)} payment? Reflected decreases and outstanding increases by that amount.`)) return;
+  if (!(await confirmModal({ title: "Delete payment?", message: `Delete this ${fmtMoney(t.amount)} payment? Reflected decreases and outstanding increases by that amount.`, confirmLabel: "Delete payment", danger: true }))) return;
   const amt = Number(t.amount) || 0;
   try {
     await db.updateRecord(record.id, {
@@ -307,8 +307,9 @@ function scheduleHTML(s, r) {
 
   const cells = s.instRows.map((x) => {
     const pct = s.onePct ? Math.round((x.amount / s.onePct) * 100) / 100 : 1;
-    return `<span class="sched-cell ${x.status}" data-idx="${x.idx}"
-      data-tip="Installment ${x.idx + 1} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}<br><span style='opacity:.7'>click to set %</span>"></span>`;
+    const custom = Math.abs(pct - 1) > 0.001;
+    return `<span class="sched-cell ${x.status}${custom ? " custom" : ""}" data-idx="${x.idx}"
+      data-tip="Installment ${x.idx + 1} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}<br><span style='opacity:.7'>click to set %</span>">${custom ? pct + "%" : ""}</span>`;
   }).join("");
 
   const transfer = s.isDp
@@ -325,8 +326,8 @@ function scheduleHTML(s, r) {
 
     <div class="sched-dp ${s.dpDone ? "done" : ""}">
       <div class="sched-dp-head">
-        <span><i class="ti ti-${s.dpDone ? "circle-check" : "clock"}"></i> Downpayment (24%) — ${fmtMoney(s.dpTarget)}</span>
-        <span class="${s.dpDone ? "money-good" : "money-bad"}">${s.dpDone ? "Completed" : fmtMoney(s.dpPaid) + " / " + fmtMoney(s.dpTarget)}</span>
+        <span class="sched-dp-label"><i class="ti ti-${s.dpDone ? "circle-check" : "clock"}"></i> Downpayment (24%)</span>
+        <span class="sched-dp-amt ${s.dpDone ? "money-good" : "money-bad"}">${s.dpDone ? "Completed · " + fmtMoney(s.dpTarget) : fmtMoney(s.dpPaid) + " / " + fmtMoney(s.dpTarget)}</span>
       </div>
       <div class="sched-meter"><div class="sched-meter-fill" style="width:${dpBar}%"></div></div>
       ${transfer}
@@ -439,7 +440,9 @@ async function transferToInstallment() {
   const R = Number(record.reflected) || 0;
   const excess = Math.max(0, r2(R - D));
   const { balance } = scheduleBoxes(record);
-  if (!confirm(`Transfer unit ${record.unitNo} to Installment? The 24% downpayment is complete; the unit moves to the Installment tab and starts the 1% monthly plan${excess ? ` with ${fmtMoney(excess)} carried over` : ""}.`)) return;
+  if (!(await confirmModal({ title: "Transfer to Installment?", icon: "ti-arrow-right",
+    message: `The 24% downpayment is complete. Unit ${record.unitNo} moves to the Installment tab and starts the 1% monthly plan${excess ? ` with ${fmtMoney(excess)} carried over` : ""}.`,
+    confirmLabel: "Transfer" }))) return;
   try {
     await db.updateRecord(record.id, {
       category: "installment", reflected: excess,

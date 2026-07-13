@@ -163,6 +163,32 @@ export function attachTips(root = document) {
   });
 }
 
+/* ------------------------------------------------ confirm modal */
+/** Styled replacement for window.confirm → resolves true/false. */
+export function confirmModal({ title = "Are you sure?", message = "", confirmLabel = "Confirm", danger = false, icon } = {}) {
+  return new Promise((resolve) => {
+    const bd = document.createElement("div");
+    bd.className = "modal-backdrop";
+    bd.innerHTML = `<div class="modal" style="width:min(430px,100%)">
+      <div class="modal-header"><div class="modal-header-left">
+        <div class="modal-header-icon"><i class="ti ${icon || (danger ? "ti-alert-triangle" : "ti-help-circle")}"></i></div>
+        <div style="min-width:0"><div class="modal-header-title">${esc(title)}</div></div></div>
+        <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+      <div class="modal-body"><p style="margin:0;font-size:14px;line-height:1.55;color:var(--ink-2)">${esc(message)}</p></div>
+      <div class="modal-actions"><button class="btn" data-x>Cancel</button>
+        <button class="btn ${danger ? "danger-solid" : "primary"}" data-ok>${esc(confirmLabel)}</button></div></div>`;
+    document.body.appendChild(bd);
+    requestAnimationFrame(() => bd.classList.add("open"));
+    const done = (v) => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); document.removeEventListener("keydown", onKey); resolve(v); };
+    const onKey = (e) => { if (e.key === "Escape") done(false); };
+    bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", () => done(false)));
+    bd.querySelector("[data-ok]").addEventListener("click", () => done(true));
+    bd.addEventListener("click", (e) => { if (e.target === bd) done(false); });
+    document.addEventListener("keydown", onKey);
+    setTimeout(() => bd.querySelector("[data-ok]").focus(), 200);
+  });
+}
+
 /* ------------------------------------------------ toast */
 let toastTimer = null;
 export function toast(msg) {
