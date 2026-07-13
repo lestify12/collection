@@ -1,15 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 26 1016 192" role="img" aria-label="Peace Homes Development">
-  <g fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
-    <!-- monogram: circle + interlocking P with echoed descenders -->
-    <circle cx="98" cy="112" r="74"/>
-    <path d="M70 176 V64 h40 a32 32 0 0 1 0 64 H70"/>
-    <path d="M90 176 V96"/>
-    <path d="M110 176 V116"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220">
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M70 175 V70
+             A45 45 0 1 1 115 115
+             V175"/>
+    <path d="M92 175 V92"/>
+    <path d="M104 168 V104"/>
+    <path d="M116 156 V116"/>
   </g>
-  <g fill="none" stroke="#ffffff" stroke-linejoin="round">
-    <text x="210" y="130" font-family="Georgia, 'Times New Roman', serif" font-size="108"
-          font-weight="700" letter-spacing="2" stroke-width="3.4">PEACE HOMES</text>
-    <text x="214" y="200" font-family="Georgia, 'Times New Roman', serif" font-size="46"
-          font-weight="600" letter-spacing="15" stroke-width="2">DEVELOPMENT</text>
-  </g>
+
+  <text x="155" y="108"
+        fill="#FFFFFF"
+        font-family="Georgia, Times New Roman, serif"
+        font-size="56"
+        font-weight="700">
+        PEACE HOMES
+  </text>
+
+  <text x="155" y="165"
+        fill="#FFFFFF"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="34"
+        font-weight="700"
+        letter-spacing="10">
+        DEVELOPMENT
+  </text>
 </svg>
