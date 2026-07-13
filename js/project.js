@@ -49,7 +49,6 @@ async function main() {
 
   document.getElementById("sidebarAdd")?.addEventListener("click", () =>
     openAdd(activeTab === "overview" ? "installment" : activeTab));
-  document.getElementById("exportAllBtn")?.addEventListener("click", exportAllExcel);
   const importFile = document.getElementById("importFile");
   document.getElementById("importBtn")?.addEventListener("click", () => importFile.click());
   importFile?.addEventListener("change", async (e) => {
