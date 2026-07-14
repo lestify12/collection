@@ -67,6 +67,7 @@ export function scheduleBoxes(r) {
   const p = planOf(r);
   const onePct = p.onePct;
   const balance = p.dcAmount;
+  if (p.mode === "cash") return { boxes: [], onePct, balance: 0 };
   if (Array.isArray(r.installmentPlan) && r.installmentPlan.length)
     return { boxes: r.installmentPlan.map(Number), onePct, balance };
   const n = Math.max(0, Math.round(p.dcPct));
@@ -92,6 +93,14 @@ function buildSchedule(r) {
   const plan = planOf(r);
   const months = flowMonths(r, boxes.length);
   const needsFlexi = flexiNeedsSetup(r);
+
+  if (plan.mode === "cash") {
+    // Paid in full — no installment schedule; track against the selling price.
+    const paidTotal = Math.min(R, S);
+    return { isCash: true, boxes: [], instRows: [], instCount: 0, onePct, balance: 0, custom: false,
+      plan, needsFlexi: false, dpTarget: 0, dpPaid: 0, dpDone: true, planTotal: S, paidTotal,
+      pct: S ? Math.round((paidTotal / S) * 100) : 0, transferReady: false };
+  }
 
   if (isDp) {
     // Still paying the 24% downpayment — reflected all goes to it; installments haven't started.
@@ -133,7 +142,7 @@ const INFO = [
 
 function infoVal(r, k, kind) {
   // computed plan fields
-  if (k === "planType") { const p = planOf(r); return `${p.dpPct}% DP · ${p.dcPct}% DC · ${p.mode === "flexi" ? "Flexi" : "1% Monthly"}`; }
+  if (k === "planType") { const p = planOf(r); return p.mode === "cash" ? "100% Cash" : `${p.dpPct}% DP · ${p.dcPct}% DC · ${p.mode === "flexi" ? "Flexi" : "1% Monthly"}`; }
   if (k === "dpAmountCalc") return fmtMoney(planOf(r).dpAmount);
   if (k === "dcAmountCalc") return fmtMoney(planOf(r).dcAmount);
   const v = r[k];
@@ -249,7 +258,7 @@ function renderClientTab() {
         <div class="card-head">
           <div class="card-head-t">
             <div class="card-head-title"><i class="ti ti-calendar-dollar"></i> Payment schedule</div>
-            <div class="card-head-sub">${sched ? (sched.plan.mode === "flexi" ? "Flexi" : "1% monthly") : ""}${canEdit ? " · click a box to set month / %" : ""}</div>
+            <div class="card-head-sub">${sched ? (sched.plan.mode === "cash" ? "100% Cash" : sched.plan.mode === "flexi" ? "Flexi" : "1% monthly") : ""}${canEdit && sched && sched.plan.mode !== "cash" ? " · click a box to set month / %" : ""}</div>
           </div>
           <div class="card-head-actions">
             ${canEdit ? `<button class="btn head-btn sm" id="editPlanBtn"><i class="ti ti-adjustments"></i> Edit plan</button>` : ""}
@@ -341,6 +350,25 @@ async function deleteTxn(id) {
 
 function scheduleHTML(s, r, canEdit = true) {
   const p = s.plan;
+
+  if (s.isCash) {
+    const done = s.pct >= 100;
+    return `
+      <div class="plan-strip"><span class="plan-chip cash">100% Cash</span></div>
+      <div class="sched-summary">
+        <div><div class="sched-big">${s.pct}%</div><div class="sched-cap">paid of selling price</div></div>
+        <div class="sched-meter"><div class="sched-meter-fill" style="width:${s.pct}%"></div></div>
+      </div>
+      <div class="sched-dp ${done ? "done" : ""}">
+        <div class="sched-dp-head">
+          <span class="sched-dp-label"><i class="ti ti-${done ? "circle-check" : "cash"}"></i> 100% Cash payment</span>
+          <span class="sched-dp-amt ${done ? "money-good" : "money-bad"}">${done ? "Paid in full · " + fmtMoney(s.planTotal) : fmtMoney(s.paidTotal) + " / " + fmtMoney(s.planTotal)}</span>
+        </div>
+        <div class="sched-meter"><div class="sched-meter-fill" style="width:${s.pct}%"></div></div>
+        <div class="sched-note"><i class="ti ti-info-circle"></i> Paid in full in cash — no installment schedule.</div>
+      </div>`;
+  }
+
   const dpBar = s.dpTarget ? Math.min(100, Math.round((s.dpPaid / s.dpTarget) * 100)) : 100;
   const paidCount = s.instRows.filter((x) => x.status === "paid").length;
   const partialCount = s.instRows.filter((x) => x.status === "partial").length;
@@ -476,8 +504,9 @@ async function openPlanEditor() {
       <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
       <label class="fld"><span>Plan type</span>
-        <select id="plMode"><option value="monthly" ${p.mode !== "flexi" ? "selected" : ""}>1% Monthly</option>
-        <option value="flexi" ${p.mode === "flexi" ? "selected" : ""}>Flexi (custom % per box)</option></select></label>
+        <select id="plMode"><option value="monthly" ${p.mode === "monthly" ? "selected" : ""}>1% Monthly</option>
+        <option value="flexi" ${p.mode === "flexi" ? "selected" : ""}>Flexi (custom % per box)</option>
+        <option value="cash" ${p.mode === "cash" ? "selected" : ""}>100% Cash (no installments)</option></select></label>
       <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <label class="fld"><span>DP % (down + DLD + admin)</span><input id="plDpPct" type="number" step="0.01" value="${p.dpPct}"></label>
         <label class="fld"><span>DP amount (AED)</span><input id="plDpAmt" type="number" step="0.01" value="${r2(p.dpAmount)}"></label>
@@ -508,10 +537,11 @@ async function openPlanEditor() {
     const dpAmount = r2(Number(bd.querySelector("#plDpAmt").value) || 0);
     const dcAmount = r2(Number(bd.querySelector("#plDcAmt").value) || 0);
     const patch = { planMode: mode, dpPct, dcPct, dpAmount, dcAmount,
-      paymentPlan: `${dpPct}% DP • ${dcPct}% DC (${mode === "flexi" ? "FLEXI" : "1% Monthly"})` };
-    // Monthly regenerates the default 1% boxes. Flexi leaves the boxes
-    // un-set (red ⚠ until the officer sets each box's %).
-    if (mode === "monthly") patch.installmentPlan = null;
+      paymentPlan: mode === "cash" ? "100% Cash"
+        : `${dpPct}% DP • ${dcPct}% DC (${mode === "flexi" ? "FLEXI" : "1% Monthly"})` };
+    // Monthly & cash regenerate/clear the boxes. Flexi leaves them un-set
+    // (red ⚠ only once the officer edits a box and the totals don't match).
+    if (mode !== "flexi") patch.installmentPlan = null;
     try { await db.updateRecord(record.id, patch); close(); toast("Payment plan saved"); await reloadAndRender(); }
     catch (e) { toast("Failed — " + e.message); }
   });

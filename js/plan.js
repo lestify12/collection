@@ -21,7 +21,7 @@ export function planOf(r) {
   let mode = r.planMode || "";
   if (!dpPct) { const m = str.match(/(\d+(?:\.\d+)?)\s*%?\s*DP/i); dpPct = m ? +m[1] : 20; }
   if (!dcPct) { const m = str.match(/(\d+(?:\.\d+)?)\s*%?\s*(?:DC|PH)/i); dcPct = m ? +m[1] : Math.max(0, 100 - dpPct); }
-  if (!mode) mode = /flex/i.test(str) ? "flexi" : "monthly";
+  if (!mode) mode = /cash/i.test(str) ? "cash" : /flex/i.test(str) ? "flexi" : "monthly";
   const onePct = S * 0.01;
   // DP amount = downpayment + DLD + admin (the "Downpayment + DLD + admin" total).
   const dpParts = (Number(r.dp20) || 0) + (Number(r.dld) || 0) + (Number(r.adminFee) || 0);
@@ -30,10 +30,12 @@ export function planOf(r) {
   return { S, dpPct, dcPct, mode, dpAmount, dcAmount, onePct };
 }
 
-/** The number of installment boxes a plan should have. */
+/** The number of installment boxes a plan should have (cash = none). */
 export function boxCount(r) {
+  const p = planOf(r);
+  if (p.mode === "cash") return 0;
   if (Array.isArray(r.installmentPlan) && r.installmentPlan.length) return r.installmentPlan.length;
-  return Math.max(0, Math.round(planOf(r).dcPct));
+  return Math.max(0, Math.round(p.dcPct));
 }
 
 /** True when a Flexi plan has been edited (at least one box changed) but the

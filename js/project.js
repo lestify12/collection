@@ -12,7 +12,11 @@ import { openRecordForm } from "./record-form.js";
 import { importWorkbook } from "./import-xlsx.js";
 import { flexiNeedsSetup, planOf } from "./plan.js";
 
-const planLabel = (r) => { const p = planOf(r); return `${p.dpPct}% DP · ${p.dcPct}% DC · ${p.mode === "flexi" ? "Flexi" : "1% Monthly"}`; };
+const planLabel = (r) => {
+  const p = planOf(r);
+  if (p.mode === "cash") return "100% Cash";
+  return `${p.dpPct}% DP · ${p.dcPct}% DC · ${p.mode === "flexi" ? "Flexi" : "1% Monthly"}`;
+};
 
 initTheme();
 initSidebar();
