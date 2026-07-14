@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assign units to officers — Collection Tracker</title>
+  <link rel="stylesheet" href="fonts/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="photos/peacehomeslogo.png">
+</head>
+<body>
+  <main class="main" style="max-width:760px;margin:0 auto;padding:40px 20px">
+    <div class="card">
+      <h2 style="margin-top:0"><i class="ti ti-map-pin-cog"></i> Assign units to their collection officers</h2>
+      <div class="card-sub">Reads the officer written on each unit in the workbook (column&nbsp;B) and assigns that unit to the matching account.</div>
+
+      <label class="fld" style="margin-top:16px"><span>Project</span>
+        <select id="mapSel" class="role-select"><option value="">Loading…</option></select></label>
+
+      <div id="match" style="margin:18px 0;display:none">
+        <div class="you-label">Match each officer to their account</div>
+        <div id="matchRows" style="display:flex;flex-direction:column;gap:12px;margin-top:8px"></div>
+      </div>
+
+      <div id="status" style="margin:14px 0"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" id="runBtn" disabled><i class="ti ti-check"></i> Apply assignments</button>
+        <a class="btn" href="team.html">Back to team</a>
+      </div>
+      <pre id="log" style="margin-top:16px;font-size:12px;color:var(--ink-2);white-space:pre-wrap;max-height:320px;overflow:auto"></pre>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script type="module">
+    import * as auth from "./js/auth.js";
+    import * as db from "./js/db.js";
+    import { esc } from "./js/ui.js";
+
+    const me = await auth.requireAuth({ min: "lead" });   // Manager / TL / Admin
+    if (!me) throw new Error("redirecting");
+
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+    const btn = document.getElementById("runBtn");
+    const matchWrap = document.getElementById("match");
+    const matchRows = document.getElementById("matchRows");
+    const mapSel = document.getElementById("mapSel");
+    const log = (m) => { logEl.textContent += m + "\n"; };
+    const norm = (u) => String(u ?? "").trim().toUpperCase().replace(/\s+/g, "");
+
+    const users = await auth.listUsers();
+    const guess = (officer) => {
+      const key = officer.toLowerCase();
+      return users.find((u) => String(u.name || "").toLowerCase().includes(key)
+        || String(u.email || "").toLowerCase().includes(key));
+    };
+
+    // populate the project dropdown from the manifest
+    const manifest = await (await fetch("data/officer-maps.json")).json();
+    mapSel.innerHTML = `<option value="">— choose a project —</option>` +
+      manifest.maps.map((m) => `<option value="${esc(m.file)}">${esc(m.label)}</option>`).join("");
+
+    let map = null, recs = [];
+    mapSel.addEventListener("change", loadMap);
+
+    async function loadMap() {
+      matchWrap.style.display = "none"; statusEl.textContent = ""; logEl.textContent = ""; btn.disabled = true;
+      if (!mapSel.value) return;
+      map = await (await fetch(mapSel.value)).json();
+      const { projectId, officers, byUnit } = map;
+
+      const opts = (selUid) => `<option value="">— choose account —</option>` +
+        users.map((u) => `<option value="${esc(u.uid)}" ${u.uid === selUid ? "selected" : ""}>${esc(u.name || u.email)} · ${esc(u.email)}</option>`).join("");
+      const counts = officers.reduce((a, o) => (a[o] = 0, a), {});
+      for (const o of Object.values(byUnit)) counts[o]++;
+
+      matchRows.innerHTML = officers.map((o) => {
+        const g = guess(o);
+        return `<div style="display:flex;align-items:center;gap:12px">
+          <div style="min-width:150px"><b>${esc(o)}</b> <span class="muted">· ${counts[o]} units</span></div>
+          <select class="role-select" data-officer="${esc(o)}" style="flex:1">${opts(g?.uid)}</select>
+        </div>`;
+      }).join("");
+      matchWrap.style.display = "block";
+
+      const { records } = await db.loadAll(true);
+      recs = records.filter((r) => r.projectId === projectId);
+      preview();
+    }
+
+    const chosen = () => {
+      const pick = {};
+      matchRows.querySelectorAll("[data-officer]").forEach((s) => { pick[s.dataset.officer] = s.value; });
+      return pick;
+    };
+    function preview() {
+      if (!map) return { pick: {}, uidName: {} };
+      const pick = chosen();
+      const uidName = Object.fromEntries(users.map((u) => [u.uid, u.name || u.email]));
+      let todo = 0, already = 0, unmatched = 0, noacct = 0;
+      for (const r of recs) {
+        const officer = map.byUnit[norm(r.unitNo)];
+        if (!officer) { unmatched++; continue; }
+        const uid = pick[officer];
+        if (!uid) { noacct++; continue; }
+        if (r.assignedTo === uid) already++; else todo++;
+      }
+      statusEl.innerHTML = `<b>${recs.length}</b> units loaded · <b>${todo}</b> to assign · ${already} already correct · ${unmatched} not in the sheet · ${noacct} with no account chosen.`;
+      btn.disabled = todo === 0;
+      return { pick, uidName };
+    }
+    matchRows.addEventListener("change", preview);
+
+    btn.addEventListener("click", async () => {
+      const { pick, uidName } = preview();
+      btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Applying…`;
+      let done = 0, fail = 0;
+      for (const r of recs) {
+        const officer = map.byUnit[norm(r.unitNo)];
+        if (!officer) continue;
+        const uid = pick[officer];
+        if (!uid || r.assignedTo === uid) continue;
+        try {
+          await db.updateRecord(r.id, { assignedTo: uid, assignedToName: uidName[uid] });
+          done++; log(`✓ ${r.unitNo} → ${officer} (${uidName[uid]})`);
+        } catch (e) { fail++; log(`✗ ${r.unitNo} — ${e.message}`); }
+      }
+      btn.innerHTML = `<i class="ti ti-check"></i> Done (${done} assigned${fail ? `, ${fail} failed` : ""})`;
+      log(`\nFinished — assigned ${done} units${fail ? `, ${fail} failed` : ""}.`);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "maps": [
+    { "file": "data/pl-a-officers.json", "label": "Peace Lagoons - Tower A" },
+    { "file": "data/pl-b-officers.json", "label": "Peace Lagoons - Tower B" }
+  ]
+}
