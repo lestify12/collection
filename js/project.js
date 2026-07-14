@@ -209,6 +209,11 @@ function renderCategory(cat) {
   const isAvail = cat === "available";
   const body = document.getElementById("tabBody");
 
+  // Managers/TL/Admin can always add & export; an officer only on projects
+  // assigned to them. Officers viewing someone else's project see neither.
+  const canWork = auth.canViewAll(ME)
+    || allRecords.some((r) => r.projectId === project.id && r.assignedTo === ME.uid);
+
   const toolbar = `
     <div class="toolbar">
       <label class="search">
@@ -219,8 +224,8 @@ function renderCategory(cat) {
         ${fmtInt(rows.length)} record${rows.length === 1 ? "" : "s"}${isAvail ? "" : ` · ${fmtMoney(totalDue, { compact: true })} outstanding`}
       </span>
       <div style="flex:1"></div>
-      <button class="btn sm" id="exportBtn" ${rows.length ? "" : "disabled"}><i class="ti ti-download"></i> Export CSV</button>
-      <button class="btn primary sm" id="addBtn"><i class="ti ti-plus"></i> Add record</button>
+      ${canWork ? `<button class="btn sm" id="exportBtn" ${rows.length ? "" : "disabled"}><i class="ti ti-download"></i> Export CSV</button>
+      <button class="btn primary sm" id="addBtn"><i class="ti ti-plus"></i> Add record</button>` : ""}
     </div>`;
 
   if (!all.length) {
@@ -270,7 +275,7 @@ function renderCategory(cat) {
     renderCategory(cat);
     const n = document.getElementById("searchInput"); n.focus(); n.setSelectionRange(pos, pos);
   });
-  document.getElementById("addBtn").addEventListener("click", () => openAdd(cat));
+  document.getElementById("addBtn")?.addEventListener("click", () => openAdd(cat));
   document.getElementById("exportBtn")?.addEventListener("click", () => exportCSV(rows, cat));
   body.querySelectorAll("tr.clickable").forEach((tr) =>
     tr.addEventListener("click", () =>
