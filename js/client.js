@@ -9,6 +9,7 @@ import {
   initSidebar, setModeBadge, observeReveals, toast, visibleProjects, confirmModal,
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
+import { parseSOA } from "./soa.js";
 import { r2, planOf, flexiNeedsSetup, flowMonths, parseYM, addMonths, ymKey, fmtYM, MONTHS } from "./plan.js";
 
 initTheme();
@@ -188,7 +189,9 @@ function render() {
         <div class="page-subtitle"><i class="ti ti-building"></i> Unit ${esc(r.unitNo)}${r.type ? " · " + esc(r.type) : ""} · ${esc(project?.name || "")}</div>
       </div>
       <div class="page-header-actions">
-        ${auth.canEdit(r, ME) ? `<button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>` : ""}
+        ${auth.canEdit(r, ME) ? `<button class="btn" id="soaBtn"><i class="ti ti-file-upload"></i> Upload SOA</button>
+        <input type="file" id="soaFile" accept="application/pdf,.pdf" hidden>
+        <button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>` : ""}
         ${auth.canViewAll(ME) ? `<button class="btn" id="assignBtn"><i class="ti ti-user-cog"></i> Assign</button>
         <button class="btn" id="editBtn"><i class="ti ti-pencil"></i> Edit</button>
         <button class="btn danger" id="deleteBtn"><i class="ti ti-trash"></i> Delete</button>` : ""}
@@ -203,6 +206,9 @@ function render() {
 
   if (auth.canEdit(r, ME)) {
     document.getElementById("moveBtn").addEventListener("click", () => openMoveCategory(r));
+    const soaFile = document.getElementById("soaFile");
+    document.getElementById("soaBtn").addEventListener("click", () => soaFile.click());
+    soaFile.addEventListener("change", handleSOAUpload);
   }
   if (auth.canViewAll(ME)) {
     document.getElementById("assignBtn").addEventListener("click", () => openAssign(r));
@@ -290,7 +296,8 @@ function renderClientTab() {
             <div class="e-sub">Add a selling price to generate the 1% installment breakdown.</div></div>`}
         </div>
       </section>
-    </div>`;
+    </div>
+    ${soaCardHTML(r, canEdit)}`;
 
   if (sched) {
     mountScheduleTips();
@@ -309,6 +316,7 @@ function renderClientTab() {
   } else if (canEdit) {
     document.getElementById("editPlanBtn")?.addEventListener("click", openPlanEditor);
   }
+  if (canEdit) document.getElementById("soaBtn2")?.addEventListener("click", () => document.getElementById("soaFile")?.click());
 }
 
 function historyHTML(r, canEdit = true) {
@@ -442,6 +450,49 @@ function scheduleHTML(s, r, canEdit = true) {
       </span>
     </div>
     <div class="sched-grid ${s.isDp ? "preview" : ""}">${cells || `<span class="muted">No installments.</span>`}</div>`;
+}
+
+/* ---- SOA (Statement of Account) — Payment Installment Breakdown ---- */
+function soaCardHTML(r, canEdit) {
+  const b = r.soaBreakdown;
+  const empty = !b || !Array.isArray(b.items) || !b.items.length;
+  const startLbl = (!empty && b.start) ? fmtDate(b.start) : "—";
+  const chips = empty ? "" : b.items.map((it) => `
+    <div class="soa-chip ${Number(it.pct) !== 1 ? "hi" : ""} ${it.n === 1 ? "first" : ""}">
+      <span class="soa-chip-n">#${it.n}${it.n === 1 ? " · start" : ""}</span>
+      <span class="soa-chip-pct">${esc(String(it.pct))}%</span>
+      <span class="soa-chip-date">${it.date ? esc(fmtDate(it.date)) : "—"}</span>
+    </div>`).join("");
+  return `<section class="card card--framed soa-card">
+    <div class="card-head"><div class="card-head-t">
+      <div class="card-head-title"><i class="ti ti-file-invoice"></i> Payment Installment Breakdown</div>
+      <div class="card-head-sub">${empty ? "Upload the client's SOA (PDF) to load their installment schedule"
+        : `${b.items.length} installments${b.ref ? " · " + esc(b.ref) : ""} · 1st installment ${esc(startLbl)}`}</div>
+    </div>${canEdit ? `<div class="card-head-actions">
+      <button class="btn head-btn sm" id="soaBtn2"><i class="ti ti-file-upload"></i> ${empty ? "Upload SOA" : "Replace"}</button>
+    </div>` : ""}</div>
+    <div class="card-pad">
+      ${empty ? `<div class="empty" style="padding:22px"><div class="e-icon">📄</div>
+        <div class="e-title">No SOA uploaded yet</div>
+        <div class="e-sub">Upload the Statement of Account PDF — we read the “Payment Installment Breakdown”
+          (every installment, its percentage and due date, and the 1st installment start).</div></div>`
+        : `<div class="soa-list">${chips}</div>`}
+    </div></section>`;
+}
+
+async function handleSOAUpload(e) {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  toast("Reading SOA…");
+  try {
+    const res = await parseSOA(f);
+    if (!res.items.length) { toast("Couldn’t find a Payment Installment Breakdown in that PDF."); return; }
+    const patch = { soaBreakdown: { ...res, uploadedAt: new Date().toISOString(), fileName: f.name } };
+    if (res.start) patch.installmentStart = res.start.slice(0, 7);   // feed the schedule anchor
+    await db.updateRecord(record.id, patch);
+    toast(`Loaded ${res.items.length} installments from the SOA`);
+    await reloadAndRender();
+  } catch (err) { console.error(err); toast("Could not read the SOA — " + err.message); }
 }
 
 /* ---- move a client's record to a different category (e.g. Legal → Installment) ---- */
