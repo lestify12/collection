@@ -77,7 +77,7 @@ function render(rows, tot, catTot, summary) {
   const maxInst = Math.max(...byInst.map((r) => r.m.installment?.due || 0), 1);
 
   // category tabs (installment has its own section above)
-  const TAB_CATS = ["dp24", "legal", "dnc", "cancelled"].map((k) => catByKey[k]).filter(Boolean);
+  const TAB_CATS = ["dp24", "legal", "dnc", "cancelled", "others"].map((k) => catByKey[k]).filter(Boolean);
 
   // per-project bars for one category — re-rendered when a tab is clicked
   function renderCatBars(catKey) {
