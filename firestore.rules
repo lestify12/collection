@@ -57,6 +57,14 @@ service cloud.firestore {
       allow write: if isBoss();
     }
 
+    // Project-level assignments (records-independent) so a project with no
+    // imported units yet can still be assigned. Any signed-in user reads
+    // (officers need to see their assignment); Manager + Team Leader write.
+    match /assignments/{doc} {
+      allow read:  if signedIn();
+      allow write: if canViewAll();
+    }
+
     // Unit records. Everyone signed in may READ every record (officers see
     // all projects). Writing is restricted: Manager + Team Leader may change
     // anything; a Collection Officer may update only their own assigned units

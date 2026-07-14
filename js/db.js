@@ -102,6 +102,41 @@ export async function setProjectAssignee(projectId, uid, name = "") {
   return touched;
 }
 
+/* ---- project-level assignment (records-independent) ----------------------
+   Whole-project assignment is ALSO stored in a small doc so a project with
+   no imported units yet (summary-only, e.g. Sky Livings) can still be
+   assigned to an officer. Shape: { [projectId]: { uid, name } }. When the
+   project's units exist they are additionally stamped via setProjectAssignee
+   so filtering and officer edit-rights keep working. */
+async function loadAssignments() {
+  if (LIVE) {
+    try {
+      const d = await fs.getDoc(fs.doc(db, "assignments", "projects"));
+      return d.exists() ? d.data() : {};
+    } catch (e) { console.warn("assignments doc unavailable", e); return {}; }
+  }
+  return loadLocal().assignments || {};
+}
+
+export async function setProjectAssignment(projectId, uid, name = "") {
+  const entry = { uid: uid || "", name: uid ? (name || "") : "" };
+  if (LIVE) {
+    await fs.setDoc(fs.doc(db, "assignments", "projects"), { [projectId]: entry }, { merge: true });
+    invalidate();
+    return;
+  }
+  const local = loadLocal();
+  local.assignments = { ...(local.assignments || {}), [projectId]: entry };
+  saveLocal(local);
+  invalidate();
+}
+
+/** The officer a whole project is assigned to ({uid,name}) or null. */
+export function projectAssignee(assignments, projectId) {
+  const a = assignments && assignments[projectId];
+  return a && a.uid ? a : null;
+}
+
 /* ------------------------------------------------ local overlay */
 function loadLocal() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || { added: [], overrides: {} }; }
@@ -125,6 +160,7 @@ export async function loadAll(force = false, scope = null) {
   if (cache && !force) return cache;
 
   const summary = await loadSummary();
+  const assignments = await loadAssignments();
   let records;
 
   if (LIVE) {
@@ -140,7 +176,7 @@ export async function loadAll(force = false, scope = null) {
     records = records.concat(local.added);
   }
 
-  cache = { summary, records };
+  cache = { summary, records, assignments };
   return cache;
 }
 

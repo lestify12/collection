@@ -23,6 +23,7 @@ initTheme();
 initSidebar();
 
 let ME = null;
+let ASSIGN = {};   // project-level assignment doc { projectId: {uid,name} }
 
 /* Tab order for the project page (Overview first, then 24% DP, …) */
 const CAT_ORDER = ["dp24", "installment", "legal", "dnc", "cancelled", "others", "available"];
@@ -44,7 +45,9 @@ async function main() {
   if (!ME) return;
   auth.renderChrome(ME);
 
-  const { summary, records } = auth.scopeData(await db.loadAll(false, auth.loadScope(ME)), ME);
+  const raw = await db.loadAll(false, auth.loadScope(ME));
+  const { summary, records } = auth.scopeData(raw, ME);
+  ASSIGN = raw.assignments || {};
   setModeBadge(db.LIVE);
 
   const projects = visibleProjects(summary.projects);
@@ -67,7 +70,10 @@ async function main() {
     (await auth.listUsers().catch(() => [])).map((u) => [u.uid, u.name || u.email]));
   usersById[ME.uid] = ME.name || ME.email;
   const arecs = allRecords.filter((r) => r.projectId === project.id && r.assignedTo);
-  const anames = [...new Set(arecs.map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"))].sort();
+  const nameSet = new Set(arecs.map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"));
+  const docA = db.projectAssignee(ASSIGN, project.id);   // whole-project assignment (works with 0 units)
+  if (docA) nameSet.add(docA.name || usersById[docA.uid] || "Assigned");
+  const anames = [...nameSet].sort();
   const assignee = anames.length
     ? (anames.length === 1 ? anames[0]
         : anames.slice(0, -1).join(", ") + " & " + anames[anames.length - 1])
@@ -85,7 +91,15 @@ async function main() {
   importFile?.addEventListener("change", async (e) => {
     const f = e.target.files[0]; e.target.value = "";
     if (!f) return;
-    try { await importWorkbook(f, project, refresh); }
+    try {
+      await importWorkbook(f, project, async () => {
+        // If the whole project is assigned to an officer, stamp the freshly
+        // imported units so they inherit that assignment.
+        const a = db.projectAssignee(ASSIGN, project.id);
+        if (a) await db.setProjectAssignee(project.id, a.uid, a.name);
+        await refresh();
+      });
+    }
     catch (err) { console.error(err); toast("Import failed — " + err.message); }
   });
 }
@@ -249,7 +263,8 @@ function renderCategory(cat) {
   // Managers/TL/Admin can always add & export; an officer only on projects
   // assigned to them. Officers viewing someone else's project see neither.
   const canWork = auth.canViewAll(ME)
-    || allRecords.some((r) => r.projectId === project.id && r.assignedTo === ME.uid);
+    || allRecords.some((r) => r.projectId === project.id && r.assignedTo === ME.uid)
+    || db.projectAssignee(ASSIGN, project.id)?.uid === ME.uid;
 
   const toolbar = `
     <div class="toolbar">

@@ -15,6 +15,15 @@ initSidebar();
 let ME = null;
 let PROJECTS = [];   // assignable projects (config-scoped)
 let RECORDS = [];    // all records (boss view) — used to derive current assignment
+let ASSIGN = {};     // project-level assignment doc { projectId: {uid,name} }
+
+/* Projects an officer owns: whole-project doc assignments + any project where
+   they hold at least one assigned unit. */
+function agentProjectIds(uid) {
+  const ids = auth.assignedProjectIds(RECORDS, uid);
+  for (const [pid, a] of Object.entries(ASSIGN)) if (a && a.uid === uid) ids.add(pid);
+  return ids;
+}
 
 async function main() {
   ME = await auth.requireAuth({ min: "lead" });   // Manager + Team Leader
@@ -23,6 +32,7 @@ async function main() {
 
   const data = await db.loadAll(false, auth.loadScope(ME));
   RECORDS = data.records;
+  ASSIGN = data.assignments || {};
   PROJECTS = visibleProjects(data.summary.projects);
   renderNav(PROJECTS, null);
 
@@ -51,7 +61,7 @@ async function render() {
 
   const rowsHtml = others.map((u) => {
     const viewsAll = u.role !== "agent";   // Manager + TL see everything
-    const assigned = viewsAll ? null : [...auth.assignedProjectIds(RECORDS, u.uid)];
+    const assigned = viewsAll ? null : [...agentProjectIds(u.uid)];
     const chips = viewsAll
       ? `<span class="chip chip-all">All projects</span>`
       : (assigned.length
@@ -146,10 +156,12 @@ async function removeUser(uid) {
     confirmLabel: "Remove", danger: true, icon: "ti-user-minus",
   });
   if (!ok) return;
-  // clear their project assignments first
+  // clear their project assignments first (record stamps + project-level doc)
   for (const pid of auth.assignedProjectIds(RECORDS, uid)) await db.setProjectAssignee(pid, "");
+  for (const [pid, a] of Object.entries(ASSIGN)) if (a?.uid === uid) await db.setProjectAssignment(pid, "");
   await auth.deleteUser(uid);
-  RECORDS = (await db.loadAll(true, auth.loadScope(ME))).records;
+  const fresh = await db.loadAll(true, auth.loadScope(ME));
+  RECORDS = fresh.records; ASSIGN = fresh.assignments || {};
   toast("Teammate removed");
   render();
 }
@@ -206,7 +218,7 @@ async function openAssign(uid) {
   const users = await auth.listUsers();
   const u = users.find((x) => x.uid === uid);
   const name = u.name || u.email;
-  const current = auth.assignedProjectIds(RECORDS, uid);
+  const current = agentProjectIds(uid);
   const withRecs = PROJECTS.filter((p) => RECORDS.some((r) => r.projectId === p.id));
 
   const cards = PROJECTS.map((p) => `
@@ -292,8 +304,14 @@ async function openAssign(uid) {
     try {
       if (panel === "proj") {
         const checked = new Set([...bd.querySelectorAll('[data-p="proj"] input:checked')].map((c) => c.value));
-        for (const id of [...checked].filter((id) => !current.has(id))) await db.setProjectAssignee(id, uid, name);
-        for (const id of [...current].filter((id) => !checked.has(id))) await db.setProjectAssignee(id, "");
+        for (const id of [...checked].filter((id) => !current.has(id))) {
+          await db.setProjectAssignment(id, uid, name);   // records-independent (works with 0 units)
+          await db.setProjectAssignee(id, uid, name);       // stamp any existing units
+        }
+        for (const id of [...current].filter((id) => !checked.has(id))) {
+          await db.setProjectAssignment(id, "");
+          await db.setProjectAssignee(id, "");
+        }
       } else {
         for (const r of projectUnits()) {
           const mine = r.assignedTo === uid, want = selected.has(r.id);
@@ -301,7 +319,8 @@ async function openAssign(uid) {
           else if (!want && mine) await db.updateRecord(r.id, { assignedTo: "", assignedToName: "" });
         }
       }
-      RECORDS = (await db.loadAll(true, auth.loadScope(ME))).records;
+      const fresh = await db.loadAll(true, auth.loadScope(ME));
+      RECORDS = fresh.records; ASSIGN = fresh.assignments || {};
       close(bd); toast("Assignments updated"); render();
     } catch (e) { toast("Failed — " + e.message); btn.disabled = false; btn.innerHTML = `<i class="ti ti-check"></i> Save`; }
   });

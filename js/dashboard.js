@@ -18,9 +18,11 @@ async function main() {
   if (!user) return;
   auth.renderChrome(user);
 
-  let data;
+  let data, ASSIGN = {};
   try {
-    data = auth.scopeData(await db.loadAll(false, auth.loadScope(user)), user);
+    const raw = await db.loadAll(false, auth.loadScope(user));
+    ASSIGN = raw.assignments || {};
+    data = auth.scopeData(raw, user);
   } catch (e) {
     console.error(e);
     document.getElementById("dashboard").innerHTML =
@@ -46,10 +48,13 @@ async function main() {
     (await auth.listUsers().catch(() => [])).map((u) => [u.uid, u.name || u.email]));
   usersById[user.uid] = user.name || user.email;
   const projectAssignee = (pid) => {
-    const recs = records.filter((r) => r.projectId === pid && r.assignedTo);
-    if (!recs.length) return null;
-    const names = [...new Set(recs.map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"))];
-    return names.length <= 1 ? names[0] : `${names[0]} +${names.length - 1}`;
+    const set = new Set(records.filter((r) => r.projectId === pid && r.assignedTo)
+      .map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"));
+    const docA = db.projectAssignee(ASSIGN, pid);   // whole-project assignment (works with 0 units)
+    if (docA) set.add(docA.name || usersById[docA.uid] || "Assigned");
+    if (!set.size) return null;
+    const names = [...set].sort();
+    return names.length === 1 ? names[0] : names.slice(0, -1).join(", ") + " & " + names[names.length - 1];
   };
 
   // per-project metrics: live from unit records where present, else the seeded workbook figures
