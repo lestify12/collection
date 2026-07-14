@@ -782,6 +782,10 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .role-badge { font-size: 11px; font-weight: 650; padding: 3px 10px; border-radius: 999px; }
 .role-badge.boss { color: var(--brand); background: rgba(20,67,47,.1); }
 .role-badge.agent { color: #2563eb; background: rgba(37,99,235,.1); }
+.role-select { font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 5px 9px; cursor: pointer; outline: none; transition: border-color .15s; }
+.role-select:hover, .role-select:focus { border-color: var(--brand-accent); color: var(--ink); }
 .proj-cell { max-width: 320px; }
 .proj-cell .chip { display: inline-block; font-size: 11px; font-weight: 550; color: var(--ink-2);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 2px 8px; margin: 2px 3px 2px 0; }

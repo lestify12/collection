@@ -53,7 +53,12 @@ async function render() {
             <div class="u-email">${esc(u.email)}</div></div>
           </div>
         </td>
-        <td><span class="role-badge ${boss ? "boss" : "agent"}">${boss ? "Collection TL" : "Collection Officer"}</span></td>
+        <td>${u.uid === ME.uid
+          ? `<span class="role-badge boss">Collection TL</span>`
+          : `<select class="role-select" data-role="${u.uid}">
+               <option value="agent" ${boss ? "" : "selected"}>Collection Officer</option>
+               <option value="boss" ${boss ? "selected" : ""}>Collection TL</option>
+             </select>`}</td>
         <td class="proj-cell">${chips}</td>
         <td><span class="status-dot ${disabled ? "off" : "on"}"></span>${disabled ? "Disabled" : "Active"}</td>
         <td class="num act-cell">
@@ -75,6 +80,8 @@ async function render() {
       </div>
     </section>`;
 
+  body.querySelectorAll("[data-role]").forEach((sel) =>
+    sel.addEventListener("change", () => changeRole(sel.dataset.role, sel.value)));
   body.querySelectorAll("[data-assign]").forEach((b) =>
     b.addEventListener("click", () => openAssign(b.dataset.assign)));
   body.querySelectorAll("[data-toggle]").forEach((b) =>
@@ -86,6 +93,12 @@ async function render() {
 }
 
 /* ------------------------------------------------ actions */
+async function changeRole(uid, role) {
+  await auth.updateUser(uid, { role });
+  toast(role === "boss" ? "Promoted to Collection TL" : "Set to Collection Officer");
+  render();
+}
+
 async function toggleUser(uid) {
   const users = await auth.listUsers();
   const u = users.find((x) => x.uid === uid);
