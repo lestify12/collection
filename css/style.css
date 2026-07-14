@@ -579,10 +579,11 @@ table.data tfoot td {
 .page-subtitle i { font-size: 14px; vertical-align: -2px; opacity: .8; }
 
 /* stat cards (Luxe style) */
-.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .stat-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-  padding: 11px 15px; display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow);
+  padding: 18px 18px 20px; min-height: 118px; display: flex; flex-direction: column;
+  justify-content: space-between; gap: 12px; box-shadow: var(--shadow);
 }
 .stat-icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
 .stat-icon.navy  { background: rgba(47,143,91,.14);  color: #2f8f5b; }
@@ -590,7 +591,7 @@ table.data tfoot td {
 .stat-icon.amber { background: rgba(201,133,0,.16);  color: #c98500; }
 .stat-icon.red   { background: rgba(220,38,38,.13);  color: #dc2626; }
 .stat-icon.slate { background: rgba(100,116,139,.15); color: #64748b; }
-.stat-value { font-size: 20px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+.stat-value { font-size: 21px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .stat-value.big { font-size: 26px; }
 .stat-label { font-size: 12.5px; color: var(--ink-2); font-weight: 550; margin-top: 1px; }
 .stat-foot { font-size: 11px; color: var(--ink-3); margin-top: 1px; }
@@ -613,7 +614,8 @@ td.money-good { font-variant-numeric: tabular-nums; }
   background: rgba(255,255,255,.16); color: #fff;
 }
 .hero-label { font-size: 13px; font-weight: 550; letter-spacing: .02em; color: rgba(255,255,255,.82); }
-.hero-value { font-size: 34px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin: 2px 0; }
+.hero-value { font-size: 33px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin: 2px 0; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .hero-value { font-size: 25px; } }
 .hero-foot { font-size: 12.5px; color: rgba(255,255,255,.78); }
 .hero-meter { height: 7px; border-radius: 6px; background: rgba(255,255,255,.2); margin-top: 16px; overflow: hidden; }
 .hero-meter-fill { height: 100%; width: 0; border-radius: 6px; background: #7fe0a8; transition: width 1s cubic-bezier(.2,.7,.2,1); }

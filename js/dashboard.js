@@ -179,11 +179,11 @@ function render(rows, tot, catTot, summary) {
       </div>
     </section>`;
 
-  countUp(document.getElementById("kpiInst"), inst.due, { money: true });
-  countUp(document.getElementById("kpiDp24"), catTot.dp24.due, { money: true });
-  countUp(document.getElementById("kpiLegal"), catTot.legal.due, { money: true });
-  countUp(document.getElementById("kpiDnc"), catTot.dnc.due, { money: true });
-  countUp(document.getElementById("kpiCancelled"), catTot.cancelled.due, { money: true });
+  countUp(document.getElementById("kpiInst"), inst.due, { money: true, compact: false });
+  countUp(document.getElementById("kpiDp24"), catTot.dp24.due, { money: true, compact: false });
+  countUp(document.getElementById("kpiLegal"), catTot.legal.due, { money: true, compact: false });
+  countUp(document.getElementById("kpiDnc"), catTot.dnc.due, { money: true, compact: false });
+  countUp(document.getElementById("kpiCancelled"), catTot.cancelled.due, { money: true, compact: false });
   countUp(document.getElementById("kpiUnits"), tot.projectUnits);
 
   requestAnimationFrame(() => requestAnimationFrame(() =>
