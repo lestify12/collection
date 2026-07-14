@@ -589,6 +589,7 @@ table.data tfoot td {
 .stat-icon.green { background: rgba(22,163,74,.14);  color: #16a34a; }
 .stat-icon.amber { background: rgba(201,133,0,.16);  color: #c98500; }
 .stat-icon.red   { background: rgba(220,38,38,.13);  color: #dc2626; }
+.stat-icon.slate { background: rgba(100,116,139,.15); color: #64748b; }
 .stat-value { font-size: 20px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
 .stat-value.big { font-size: 26px; }
 .stat-label { font-size: 12.5px; color: var(--ink-2); font-weight: 550; margin-top: 1px; }
@@ -616,6 +617,18 @@ td.money-good { font-variant-numeric: tabular-nums; }
 .hero-foot { font-size: 12.5px; color: rgba(255,255,255,.78); }
 .hero-meter { height: 7px; border-radius: 6px; background: rgba(255,255,255,.2); margin-top: 16px; overflow: hidden; }
 .hero-meter-fill { height: 100%; width: 0; border-radius: 6px; background: #7fe0a8; transition: width 1s cubic-bezier(.2,.7,.2,1); }
+
+/* category pill tabs */
+.cat-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.cat-tab {
+  display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; transition: all .15s;
+}
+.cat-tab:hover { border-color: var(--brand-accent); color: var(--ink); }
+.cat-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.cat-tab.active .cat-dot { box-shadow: 0 0 0 2px rgba(255,255,255,.4); }
+.cat-tab .cat-dot { margin-right: 0; }
 
 /* simple sorted bars — one row per project/category */
 .simple-bars { display: flex; flex-direction: column; gap: 11px; }

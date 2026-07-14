@@ -76,9 +76,28 @@ function render(rows, tot, catTot, summary) {
   const byInst = [...rows].sort((a, b) => (b.m.installment?.due || 0) - (a.m.installment?.due || 0));
   const maxInst = Math.max(...byInst.map((r) => r.m.installment?.due || 0), 1);
 
-  const cats = DUE_CATS.map((c) => ({ ...c, due: catTot[c.key].due, clients: catTot[c.key].clients }))
-    .sort((a, b) => b.due - a.due);
-  const maxCat = Math.max(...cats.map((c) => c.due), 1);
+  // category tabs (installment has its own section above)
+  const TAB_CATS = ["dp24", "legal", "dnc", "cancelled"].map((k) => catByKey[k]).filter(Boolean);
+
+  // per-project bars for one category — re-rendered when a tab is clicked
+  function renderCatBars(catKey) {
+    const c = catByKey[catKey];
+    const list = rows
+      .map((r) => ({ id: r.id, name: r.name, due: r.m[catKey]?.due || 0, clients: r.m[catKey]?.clients || 0 }))
+      .sort((a, b) => b.due - a.due);
+    const max = Math.max(...list.map((x) => x.due), 1);
+    const box = document.getElementById("catBars");
+    box.innerHTML = list.map((x) => `
+      <a class="sbar-row" href="project.html?id=${encodeURIComponent(x.id)}"
+         data-tip="${esc(x.name)}<br><b>${fmtMoney(x.due)}</b> · ${fmtInt(x.clients)} account(s)">
+        <div class="sbar-name">${esc(x.name)}</div>
+        <div class="sbar-track"><div class="sbar-fill" data-w="${(x.due / max * 100).toFixed(1)}" style="background:${c.color}"></div></div>
+        <div class="sbar-val">${fmtMoney(x.due, { compact: true })}<span class="sbar-sub"> · ${fmtInt(x.clients)}</span></div>
+      </a>`).join("");
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      box.querySelectorAll(".sbar-fill").forEach((f) => { f.style.width = f.dataset.w + "%"; })));
+    attachTips(box);
+  }
 
   el.innerHTML = `
     <section class="hero-card reveal">
@@ -94,15 +113,21 @@ function render(rows, tot, catTot, summary) {
     </section>
 
     <div class="stat-grid">
-      <div class="stat-card reveal"><div class="stat-icon navy"><i class="ti ti-users-group"></i></div>
-        <div><div class="stat-value" id="kpiUnits">0</div><div class="stat-label">Units with dues</div>
-        <div class="stat-foot">of ${fmtInt(tot.projectUnits)} total units</div></div></div>
+      <div class="stat-card reveal"><div class="stat-icon green"><i class="ti ti-cash"></i></div>
+        <div><div class="stat-value" id="kpiDp24">0</div><div class="stat-label">24% downpayment due</div>
+        <div class="stat-foot">${fmtInt(catTot.dp24.clients)} account${catTot.dp24.clients === 1 ? "" : "s"}</div></div></div>
       <div class="stat-card reveal"><div class="stat-icon red"><i class="ti ti-gavel"></i></div>
-        <div><div class="stat-value" id="kpiLegal">0</div><div class="stat-label">Legal exposure</div>
-        <div class="stat-foot">${fmtInt(catTot.legal.clients)} legal cases</div></div></div>
-      <div class="stat-card reveal"><div class="stat-icon amber"><i class="ti ti-home"></i></div>
-        <div><div class="stat-value" id="kpiUnsold">0</div><div class="stat-label">Unsold units</div>
-        <div class="stat-foot">available / hold / blocked</div></div></div>
+        <div><div class="stat-value" id="kpiLegal">0</div><div class="stat-label">Legal case due</div>
+        <div class="stat-foot">${fmtInt(catTot.legal.clients)} case${catTot.legal.clients === 1 ? "" : "s"}</div></div></div>
+      <div class="stat-card reveal"><div class="stat-icon amber"><i class="ti ti-user-x"></i></div>
+        <div><div class="stat-value" id="kpiDnc">0</div><div class="stat-label">DNC clients due</div>
+        <div class="stat-foot">${fmtInt(catTot.dnc.clients)} client${catTot.dnc.clients === 1 ? "" : "s"}</div></div></div>
+      <div class="stat-card reveal"><div class="stat-icon slate"><i class="ti ti-ban"></i></div>
+        <div><div class="stat-value" id="kpiCancelled">0</div><div class="stat-label">Cancelled due</div>
+        <div class="stat-foot">${fmtInt(catTot.cancelled.clients)} unit${catTot.cancelled.clients === 1 ? "" : "s"}</div></div></div>
+      <div class="stat-card reveal"><div class="stat-icon navy"><i class="ti ti-building-community"></i></div>
+        <div><div class="stat-value" id="kpiUnits">0</div><div class="stat-label">Total units</div>
+        <div class="stat-foot">across ${rows.length} project${rows.length === 1 ? "" : "s"}</div></div></div>
     </div>
 
     <section class="card section reveal">
@@ -110,7 +135,8 @@ function render(rows, tot, catTot, summary) {
       <div class="card-sub">1% monthly collection to chase, largest first — click to open</div>
       <div class="simple-bars">
         ${byInst.map((r) => `
-          <a class="sbar-row" href="project.html?id=${encodeURIComponent(r.id)}">
+          <a class="sbar-row" href="project.html?id=${encodeURIComponent(r.id)}"
+             data-tip="${esc(r.name)}<br><b>${fmtMoney(r.m.installment?.due || 0)}</b> · ${fmtInt(r.m.installment?.clients || 0)} account(s)">
             <div class="sbar-name">${esc(r.name)}</div>
             <div class="sbar-track"><div class="sbar-fill" data-w="${((r.m.installment?.due || 0) / maxInst * 100).toFixed(1)}"></div></div>
             <div class="sbar-val">${fmtMoney(r.m.installment?.due || 0, { compact: true })}<span class="sbar-sub"> · ${fmtInt(r.m.installment?.clients || 0)}</span></div>
@@ -120,15 +146,12 @@ function render(rows, tot, catTot, summary) {
 
     <section class="card section reveal">
       <h2>Outstanding by category</h2>
-      <div class="card-sub">Where the ${fmtMoney(tot.totalDue, { compact: true })} to collect sits</div>
-      <div class="simple-bars">
-        ${cats.map((c) => `
-          <div class="sbar-row${c.key === "installment" ? " focus" : ""}">
-            <div class="sbar-name"><span class="cat-dot" style="background:${c.color}"></span>${esc(c.label)}</div>
-            <div class="sbar-track"><div class="sbar-fill" data-w="${(c.due / maxCat * 100).toFixed(1)}" style="background:${c.color}"></div></div>
-            <div class="sbar-val">${fmtMoney(c.due, { compact: true })}<span class="sbar-sub"> · ${fmtInt(c.clients)}</span></div>
-          </div>`).join("")}
+      <div class="card-sub">Pick a category to see each project's share — hover a bar for the exact amount</div>
+      <div class="cat-tabs">
+        ${TAB_CATS.map((c, i) => `<button class="cat-tab${i === 0 ? " active" : ""}" data-cat="${c.key}">
+          <span class="cat-dot" style="background:${c.color}"></span>${esc(c.short)}</button>`).join("")}
       </div>
+      <div class="simple-bars" id="catBars"></div>
     </section>
 
     <section class="card section reveal">
@@ -157,12 +180,23 @@ function render(rows, tot, catTot, summary) {
     </section>`;
 
   countUp(document.getElementById("kpiInst"), inst.due, { money: true });
-  countUp(document.getElementById("kpiUnits"), tot.totalUnits);
+  countUp(document.getElementById("kpiDp24"), catTot.dp24.due, { money: true });
   countUp(document.getElementById("kpiLegal"), catTot.legal.due, { money: true });
-  countUp(document.getElementById("kpiUnsold"), tot.unsoldUnits);
+  countUp(document.getElementById("kpiDnc"), catTot.dnc.due, { money: true });
+  countUp(document.getElementById("kpiCancelled"), catTot.cancelled.due, { money: true });
+  countUp(document.getElementById("kpiUnits"), tot.projectUnits);
 
   requestAnimationFrame(() => requestAnimationFrame(() =>
     el.querySelectorAll(".sbar-fill, .hero-meter-fill").forEach((f) => { f.style.width = f.dataset.w + "%"; })));
+
+  // category tabs — switch the per-project bars
+  el.querySelectorAll(".cat-tab").forEach((btn) => btn.addEventListener("click", () => {
+    el.querySelectorAll(".cat-tab").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderCatBars(btn.dataset.cat);
+  }));
+  renderCatBars(TAB_CATS[0].key);
+  attachTips(el);   // tooltips for the installment-by-project bars
 
   el.querySelectorAll("tr.clickable").forEach((tr) =>
     tr.addEventListener("click", () => (location.href = tr.dataset.href)));
