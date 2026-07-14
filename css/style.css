@@ -171,6 +171,10 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
   width: 3px; background: var(--brand); border-radius: 0 3px 3px 0;
 }
+/* dark mode: dark-green text/bar on a dark surface is unreadable — use light green */
+:root[data-theme="dark"] .sidebar-item.active { color: #7fe0a8; background: rgba(47,143,91,.16); }
+:root[data-theme="dark"] .sidebar-item.active::before { background: var(--brand-accent); }
+:root[data-theme="dark"] .sidebar-item:hover { color: #7fe0a8; }
 .sidebar-item span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sidebar-item i { flex-shrink: 0; opacity: 0.6; font-size: 17px; }
 /* per-row loading shimmer (matches a nav item's shape) */
