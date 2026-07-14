@@ -66,12 +66,31 @@ function matchField(h) {
 
 const OUT_PATTERNS = ["outstanding", "balance payment as of now", "balance payment as of",
   "balance receivable", "24% balance", "total balance payable", "total due as on", "total due", "receivable"];
-function outColIndex(header) {
-  for (const pat of OUT_PATTERNS) {
-    const idx = header.findIndex((h) => norm(h).includes(pat));
-    if (idx >= 0) return idx;
+/* Pick the outstanding-dues column. Prefer a labelled column (in priority
+   order) that actually carries data. Some workbooks (Sky Line → Cancelled)
+   blank out the "Total Balance Payable" header while a labelled but all-zero
+   "Balance Payment as of…" column sits nearby — so when no labelled column has
+   data, fall back to the richest unmapped money column sitting after the
+   Reflected-amount column (never the earlier price/downpayment columns). */
+function outColIndex(header, data = [], col = {}) {
+  const cands = [];
+  for (const pat of OUT_PATTERNS)
+    header.forEach((h, idx) => { if (norm(h).includes(pat) && !cands.includes(idx)) cands.push(idx); });
+  const hasData = (idx) => data.some((r) => { const v = num(idx < r.length ? r[idx] : null); return v !== null && v !== 0; });
+  for (const idx of cands) if (hasData(idx)) return idx;   // labelled + carries data → best
+
+  const refl = col.reflected;
+  if (refl >= 0) {
+    const known = new Set(Object.values(col));
+    let best = -1, bestCount = 0;
+    for (let j = refl + 1; j < header.length; j++) {
+      if (known.has(j)) continue;   // skip monthly-installment, unsettled-months, etc.
+      const cnt = data.reduce((n, r) => { const v = num(j < r.length ? r[j] : null); return n + (v !== null && v !== 0 ? 1 : 0); }, 0);
+      if (cnt > bestCount) { bestCount = cnt; best = j; }
+    }
+    if (bestCount > 0) return best;
   }
-  return -1;
+  return cands.length ? cands[0] : -1;   // last resort: first labelled candidate (even if empty)
 }
 
 function sheetCategory(name) {
@@ -131,7 +150,7 @@ function extractRows(aoa, cat, projectId) {
   // (handles the blank/mislabelled Unit header seen in some workbooks).
   const ucol = "unitNo" in col ? col.unitNo : unitCol(header, data);
   if (ucol < 0) return [];
-  const ocol = outColIndex(header);
+  const ocol = outColIndex(header, data, col);
 
   const out = [];
   for (const r of data) {
