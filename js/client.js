@@ -50,6 +50,20 @@ const fitStat = (s) => (STAT_TIERS.find(([m]) => s.length <= m) || STAT_TIERS[ST
 
 /* ------------------------------------------------ payment schedule */
 
+/** Keep existing (possibly custom) boxes, then trim/extend with 1% boxes so
+    the plan totals the new DC amount — preserves the officer's edits. */
+function rebalanceBoxes(boxes, dcAmount, onePct) {
+  const kept = []; let sum = 0;
+  for (const bx of boxes.map(Number)) {
+    if (!(bx > 0)) continue;
+    if (sum + bx <= dcAmount + 0.01) { kept.push(r2(bx)); sum = r2(sum + bx); }
+    else { const rem = r2(dcAmount - sum); if (rem > 0.01) { kept.push(rem); sum = dcAmount; } break; }
+  }
+  const rem = r2(dcAmount - sum);
+  if (rem > 0.01) kept.push(...genBoxes(rem, onePct));
+  return kept;
+}
+
 /** Fill `balance` with `onePct` boxes; last box is the remainder. */
 function genBoxes(balance, onePct) {
   const boxes = [];
@@ -552,9 +566,13 @@ async function openPlanEditor() {
       installmentStart: sm && sy ? `${sy}-${String(Number(sm)).padStart(2, "0")}` : "",
       paymentPlan: mode === "cash" ? "100% Cash"
         : `${dpPct}% DP • ${dcPct}% DC (${mode === "flexi" ? "FLEXI" : "1% Monthly"})` };
-    // Monthly & cash regenerate/clear the boxes. Flexi leaves them un-set
-    // (red ⚠ only once the officer edits a box and the totals don't match).
-    if (mode !== "flexi") patch.installmentPlan = null;
+    // Cash has no boxes. Otherwise, if the officer already customised boxes,
+    // KEEP them and just rebalance to the new DC amount (don't wipe their %s).
+    // With no custom boxes, leave installmentPlan null so it regenerates as
+    // dcPct × 1% boxes.
+    if (mode === "cash") patch.installmentPlan = null;
+    else if (Array.isArray(record.installmentPlan) && record.installmentPlan.length)
+      patch.installmentPlan = rebalanceBoxes(record.installmentPlan, dcAmount, p.onePct);
     try { await db.updateRecord(record.id, patch); close(); toast("Payment plan saved"); await reloadAndRender(); }
     catch (e) { toast("Failed — " + e.message); }
   });
