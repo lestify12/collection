@@ -33,13 +33,14 @@ window.APP_CONFIG = {
 
   /* Which projects to show across the whole app (dashboard, nav, totals).
      Leave as an empty array [] to show ALL projects from the summary.
-     Listed here are the projects we have client-wise data loaded for.
-     Sky Suites and Peace Lagoons Tower B are not yet loaded. To show every
-     project (including those still on summary figures only), empty this array. */
+     Listed here are the projects we have client-wise data loaded for. To show
+     every project (including those still on summary figures only), empty this
+     array. */
   onlyProjects: [
     "peace-lagoons-ii-tower-a", "peace-lagoons-ii-tower-b",
     "natuzzi-harmony-residences", "sky-vista", "peace-avenue",
     "peace-lagoons-tower-a", "peace-lagoons-tower-b", "sky-line", "sky-livings",
+    "sky-suites",
   ],
 
   /* Category registry — colors are fixed identity slots from the
