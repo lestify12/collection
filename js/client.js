@@ -5,7 +5,7 @@
 import * as db from "./db.js";
 import * as auth from "./auth.js";
 import {
-  catByKey, esc, fmtMoney, fmtInt, fmtDate, renderNav, initTheme,
+  CATS, catByKey, esc, fmtMoney, fmtInt, fmtDate, renderNav, initTheme,
   initSidebar, setModeBadge, observeReveals, toast, visibleProjects, confirmModal,
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
@@ -189,6 +189,7 @@ function render() {
       </div>
       <div class="page-header-actions">
         ${auth.canViewAll(ME) ? `<button class="btn" id="assignBtn"><i class="ti ti-user-cog"></i> Assign</button>
+        <button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>
         <button class="btn" id="editBtn"><i class="ti ti-pencil"></i> Edit</button>
         <button class="btn danger" id="deleteBtn"><i class="ti ti-trash"></i> Delete</button>` : ""}
       </div>
@@ -202,6 +203,7 @@ function render() {
 
   if (auth.canViewAll(ME)) {
     document.getElementById("assignBtn").addEventListener("click", () => openAssign(r));
+    document.getElementById("moveBtn").addEventListener("click", () => openMoveCategory(r));
     document.getElementById("editBtn").addEventListener("click", () =>
       openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
         onSaved: reloadAndRender }));
@@ -438,6 +440,46 @@ function scheduleHTML(s, r, canEdit = true) {
       </span>
     </div>
     <div class="sched-grid ${s.isDp ? "preview" : ""}">${cells || `<span class="muted">No installments.</span>`}</div>`;
+}
+
+/* ---- move a client's record to a different category (e.g. Legal → Installment) ---- */
+function openMoveCategory(r) {
+  const cur = catByKey[r.category];
+  const opts = CATS.filter((c) => c.key !== r.category)
+    .map((c) => `<option value="${c.key}">${esc(c.label)}</option>`).join("");
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal" style="width:min(440px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-arrows-exchange"></i></div>
+      <div style="min-width:0"><div class="modal-header-title">Move to another category</div>
+      <div class="modal-header-sub">Unit ${esc(r.unitNo)}${r.buyerName ? " · " + esc(r.buyerName) : ""}</div></div></div>
+      <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+    <form><div class="modal-body">
+      <div style="margin-bottom:14px;font-size:13px;color:var(--ink-2)">Currently in
+        <span class="status-badge" style="--sb:${cur.color};margin-left:4px">${esc(cur.short)}</span></div>
+      <div class="field full"><label>Move to</label>
+        <select id="mvCat" class="role-select" style="width:100%">${opts}</select></div>
+      <div class="pm-hint">The record keeps its buyer, amounts, payment plan and history — only its category changes.</div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn" data-x>Cancel</button>
+      <button type="submit" class="btn primary"><i class="ti ti-arrows-exchange"></i> Move</button></div></form></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+  bd.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const cat = bd.querySelector("#mvCat").value;
+    const btn = bd.querySelector("button[type=submit]"); btn.disabled = true;
+    try {
+      await db.updateRecord(r.id, { category: cat });
+      close();
+      toast(`Moved to ${catByKey[cat].label}`);
+      await reloadAndRender();
+    } catch (err) { toast("Move failed — " + err.message); btn.disabled = false; }
+  });
 }
 
 /* ---- small prompt modal (green header) → resolves values or null ---- */
