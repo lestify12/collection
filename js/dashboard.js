@@ -114,7 +114,7 @@ function render(rows, tot, catTot, summary) {
 
     <div class="stat-grid">
       <div class="stat-card reveal"><div class="stat-icon green"><i class="ti ti-cash"></i></div>
-        <div><div class="stat-value" id="kpiDp24">0</div><div class="stat-label">24% downpayment due</div>
+        <div><div class="stat-value" id="kpiDp24">0</div><div class="stat-label">24% DP due</div>
         <div class="stat-foot">${fmtInt(catTot.dp24.clients)} account${catTot.dp24.clients === 1 ? "" : "s"}</div></div></div>
       <div class="stat-card reveal"><div class="stat-icon red"><i class="ti ti-gavel"></i></div>
         <div><div class="stat-value" id="kpiLegal">0</div><div class="stat-label">Legal case due</div>
@@ -179,11 +179,23 @@ function render(rows, tot, catTot, summary) {
       </div>
     </section>`;
 
-  countUp(document.getElementById("kpiInst"), inst.due, { money: true, compact: false });
-  countUp(document.getElementById("kpiDp24"), catTot.dp24.due, { money: true, compact: false });
-  countUp(document.getElementById("kpiLegal"), catTot.legal.due, { money: true, compact: false });
-  countUp(document.getElementById("kpiDnc"), catTot.dnc.due, { money: true, compact: false });
-  countUp(document.getElementById("kpiCancelled"), catTot.cancelled.due, { money: true, compact: false });
+  const money = { money: true, compact: false };
+  // shrink the value font as the amount gets longer so big figures never overflow
+  const fit = (id, amount, tiers) => {
+    const el = document.getElementById(id);
+    if (!el) return el;
+    const len = fmtMoney(amount, { compact: false }).length;
+    el.style.fontSize = (tiers.find(([max]) => len <= max) || tiers[tiers.length - 1])[1] + "px";
+    return el;
+  };
+  const CARD = [[12, 21], [14, 19], [16, 17.5], [18, 16], [Infinity, 14.5]];
+  const HERO = [[13, 34], [16, 31], [19, 27], [Infinity, 23]];
+
+  countUp(fit("kpiInst", inst.due, HERO), inst.due, money);
+  countUp(fit("kpiDp24", catTot.dp24.due, CARD), catTot.dp24.due, money);
+  countUp(fit("kpiLegal", catTot.legal.due, CARD), catTot.legal.due, money);
+  countUp(fit("kpiDnc", catTot.dnc.due, CARD), catTot.dnc.due, money);
+  countUp(fit("kpiCancelled", catTot.cancelled.due, CARD), catTot.cancelled.due, money);
   countUp(document.getElementById("kpiUnits"), tot.projectUnits);
 
   requestAnimationFrame(() => requestAnimationFrame(() =>
