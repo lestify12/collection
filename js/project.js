@@ -19,6 +19,28 @@ const planLabel = (r) => {
 };
 const startLabel = (r) => { const ym = parseYM(r.installmentStart); return ym ? `${MONTHS[ym.m - 1]} ${ym.y}` : "—"; };
 
+/* Payment progress — how much of the unit's total price (incl. DLD + admin)
+   the buyer has paid so far. Returns 0–100, or null when there's no price. */
+function paidPct(r) {
+  const paid = Number(r.reflected) || 0;
+  const total = (Number(r.sellingPrice) || 0) + (Number(r.dld) || 0) + (Number(r.adminFee) || 0);
+  if (!(total > 0)) return null;
+  return Math.max(0, Math.min(100, (paid / total) * 100));
+}
+
+/* Buyer name + a slim payment-progress meter underneath it. */
+function buyerCell(r) {
+  const name = esc(r.buyerName) || "<span style='color:var(--ink-3)'>—</span>";
+  const pct = paidPct(r);
+  if (pct == null) return `<div class="buyer-cell"><span>${name}</span></div>`;
+  const p = Math.round(pct);
+  return `<div class="buyer-cell"><span>${name}</span>
+    <div class="pmeter-row" title="Paid ${p}% of total price">
+      <span class="pmeter"><span class="pmeter-fill" style="width:${pct.toFixed(1)}%"></span></span>
+      <span class="pmeter-pct">${p}%</span>
+    </div></div>`;
+}
+
 initTheme();
 initSidebar();
 
@@ -56,9 +78,11 @@ async function main() {
   renderNav(projects, project.id);
   allRecords = records;
 
-  // Structural actions (import) — Manager + Team Leader only.
-  if (!auth.canViewAll(ME)) {
-    document.getElementById("importBtn")?.style.setProperty("display", "none");
+  // Structural actions (import) — Manager + Team Leader only. The button is
+  // hidden by default in the HTML (so officers never even see a flash of it);
+  // reveal it only for those who can manage data.
+  if (auth.canViewAll(ME)) {
+    document.getElementById("importBtn")?.style.removeProperty("display");
   }
 
   document.title = `${project.name} — Collection Tracker`;
@@ -307,7 +331,7 @@ function renderCategory(cat) {
         <tbody>${rows.map((r) => `
           <tr class="clickable" data-id="${esc(r.id)}">
             <td><span class="unit-chip">${esc(r.unitNo)}</span>${flexiNeedsSetup(r) ? ` <i class="ti ti-alert-triangle flexi-flag" title="Flexi plan needs fixing — boxes don't total the DC amount"></i>` : ""}</td>
-            <td class="strong">${esc(r.buyerName) || "<span style='color:var(--ink-3)'>—</span>"}</td>
+            <td class="strong">${buyerCell(r)}</td>
             <td style="white-space:nowrap;color:var(--ink-2);font-size:12.5px">${esc(planLabel(r))}</td>
             <td style="white-space:nowrap;color:${r.installmentStart ? "var(--ink-2)" : "var(--ink-3)"};font-size:12.5px">${esc(startLabel(r))}</td>
             <td class="num money-good">${fmtMoney(r.reflected, { currency: false })}</td>

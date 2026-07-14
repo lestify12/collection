@@ -918,6 +918,16 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .ro-banner b { color: var(--ink); }
 .sched-cell.ro { cursor: default; }
 
+/* ---- buyer payment-progress meter (project category tables) ---- */
+.buyer-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pmeter-row { display: flex; align-items: center; gap: 7px; }
+.pmeter { position: relative; width: 84px; height: 6px; flex: 0 0 auto;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.pmeter-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand-accent), #3fae74); min-width: 2px; }
+.pmeter-pct { font-size: 11px; font-weight: 700; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+
 /* ---- "Show only my units" toggle (project header) ---- */
 .only-mine { display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
   padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 10px;
