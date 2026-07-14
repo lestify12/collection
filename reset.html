@@ -22,8 +22,10 @@
       <div class="reset-note"><i class="ti ti-shield-lock"></i> For your security, set your own password before using the app.</div>
 
       <form id="resetForm" class="login-form" autocomplete="off">
+        <label class="fld"><span>Your name</span>
+          <input type="text" id="fullName" placeholder="e.g. Reyshel Cruz" required autofocus></label>
         <label class="fld"><span>New password</span>
-          <input type="password" id="pw1" placeholder="At least 6 characters" required autofocus></label>
+          <input type="password" id="pw1" placeholder="At least 6 characters" required></label>
         <label class="fld"><span>Confirm new password</span>
           <input type="password" id="pw2" placeholder="Re-enter password" required></label>
         <div class="login-error" id="resetError"></div>
@@ -44,6 +46,7 @@
     else if (!user.mustChangePassword) { location.replace("index.html"); }
     else {
       document.getElementById("whoSub").textContent = `Signed in as ${user.email}`;
+      document.getElementById("fullName").value = user.name || "";
     }
 
     document.getElementById("signOutLink").addEventListener("click", () => auth.signOut());
@@ -54,8 +57,10 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       err.classList.remove("show");
+      const name = document.getElementById("fullName").value.trim();
       const p1 = document.getElementById("pw1").value;
       const p2 = document.getElementById("pw2").value;
+      if (!name) { err.textContent = "Please enter your name."; err.classList.add("show"); return; }
       if (p1.length < 6) { err.textContent = "Password must be at least 6 characters."; err.classList.add("show"); return; }
       if (p1 !== p2) { err.textContent = "The two passwords don't match."; err.classList.add("show"); return; }
       btn.disabled = true;
@@ -63,7 +68,7 @@
       btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Saving…`;
       try {
         await auth.changePassword(p1);
-        await auth.updateUser(user.uid, { mustChangePassword: false });
+        await auth.updateUser(user.uid, { name, mustChangePassword: false });
         location.replace("index.html");
       } catch (e2) {
         err.textContent = e2.message || "Could not set password."; err.classList.add("show");
