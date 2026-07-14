@@ -296,8 +296,7 @@ function renderClientTab() {
             <div class="e-sub">Add a selling price to generate the 1% installment breakdown.</div></div>`}
         </div>
       </section>
-    </div>
-    ${soaCardHTML(r, canEdit)}`;
+    </div>`;
 
   if (sched) {
     mountScheduleTips();
@@ -316,7 +315,6 @@ function renderClientTab() {
   } else if (canEdit) {
     document.getElementById("editPlanBtn")?.addEventListener("click", openPlanEditor);
   }
-  if (canEdit) document.getElementById("soaBtn2")?.addEventListener("click", () => document.getElementById("soaFile")?.click());
 }
 
 function historyHTML(r, canEdit = true) {
@@ -450,34 +448,6 @@ function scheduleHTML(s, r, canEdit = true) {
       </span>
     </div>
     <div class="sched-grid ${s.isDp ? "preview" : ""}">${cells || `<span class="muted">No installments.</span>`}</div>`;
-}
-
-/* ---- SOA (Statement of Account) — Payment Installment Breakdown ---- */
-function soaCardHTML(r, canEdit) {
-  const b = r.soaBreakdown;
-  const empty = !b || !Array.isArray(b.items) || !b.items.length;
-  const startLbl = (!empty && b.start) ? fmtDate(b.start) : "—";
-  const chips = empty ? "" : b.items.map((it) => `
-    <div class="soa-chip ${Number(it.pct) !== 1 ? "hi" : ""} ${it.n === 1 ? "first" : ""}">
-      <span class="soa-chip-n">#${it.n}${it.n === 1 ? " · start" : ""}</span>
-      <span class="soa-chip-pct">${esc(String(it.pct))}%</span>
-      <span class="soa-chip-date">${it.date ? esc(fmtDate(it.date)) : "—"}</span>
-    </div>`).join("");
-  return `<section class="card card--framed soa-card">
-    <div class="card-head"><div class="card-head-t">
-      <div class="card-head-title"><i class="ti ti-file-invoice"></i> Payment Installment Breakdown</div>
-      <div class="card-head-sub">${empty ? "Upload the client's SOA (PDF) to load their installment schedule"
-        : `${b.items.length} installments${b.ref ? " · " + esc(b.ref) : ""} · 1st installment ${esc(startLbl)}`}</div>
-    </div>${canEdit ? `<div class="card-head-actions">
-      <button class="btn head-btn sm" id="soaBtn2"><i class="ti ti-file-upload"></i> ${empty ? "Upload SOA" : "Replace"}</button>
-    </div>` : ""}</div>
-    <div class="card-pad">
-      ${empty ? `<div class="empty" style="padding:22px"><div class="e-icon">📄</div>
-        <div class="e-title">No SOA uploaded yet</div>
-        <div class="e-sub">Upload the Statement of Account PDF — we read the “Payment Installment Breakdown”
-          (every installment, its percentage and due date, and the 1st installment start).</div></div>`
-        : `<div class="soa-list">${chips}</div>`}
-    </div></section>`;
 }
 
 async function handleSOAUpload(e) {

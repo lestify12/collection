@@ -918,19 +918,6 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .ro-banner b { color: var(--ink); }
 .sched-cell.ro { cursor: default; }
 
-/* ---- SOA payment-installment breakdown (client page) ---- */
-.soa-card { margin-top: 18px; }
-.soa-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 8px; max-height: 440px; overflow: auto; padding: 2px; }
-.soa-chip { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
-  border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
-.soa-chip-n { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--ink-3); }
-.soa-chip-pct { font-size: 16px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
-.soa-chip-date { font-size: 11.5px; color: var(--ink-2); }
-.soa-chip.hi { border-color: var(--brand-accent); background: rgba(47,143,91,.09); }
-.soa-chip.hi .soa-chip-pct { color: var(--brand-accent); }
-.soa-chip.first { outline: 2px solid var(--brand-accent); outline-offset: -1px; }
-
 /* ---- buyer payment-progress meter (project category tables) ---- */
 .buyer-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .pmeter-row { display: flex; align-items: center; gap: 7px; }
