@@ -49,9 +49,11 @@ function matchField(h) {
   if (n.includes("payment plan")) return "paymentPlan";
   if (["selling price", "unit price"].includes(n)) return "sellingPrice";
   if (n === "dld" || n === "dld fees" || n.startsWith("dld")) return "dld";
+  // "Down Payment + DLD (& Admin)" is the downpayment total — check it BEFORE
+  // the plain "admin fee" rule, otherwise it gets misread as the admin fee.
+  if (n.includes("downpayment + dld") || n.includes("down payment + dld") || n.includes("total 20% and dld") || n.includes("dp + dld")) return "dpTotal";
   if (n.includes("admin fee")) return "adminFee";
   if (n.includes("20% dp") || n.includes("20% down payment") || n.includes("20% downpayment")) return "dp20";
-  if (n.includes("downpayment + dld") || n.includes("down payment + dld") || n.includes("total 20% and dld") || n.includes("dp + dld")) return "dpTotal";
   if (n.includes("reflected") || n.includes("total amount paid")) return "reflected";
   if (n.includes("monthly installment")) return "monthlyInstallment";
   if (n.includes("how many months") || n.includes("unsettled")) return "unsettledMonths";
