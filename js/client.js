@@ -6,7 +6,7 @@ import * as db from "./db.js";
 import * as auth from "./auth.js";
 import {
   CATS, catByKey, esc, fmtMoney, fmtInt, fmtDate, renderNav, initTheme,
-  initSidebar, setModeBadge, observeReveals, toast, visibleProjects, confirmModal,
+  initSidebar, setModeBadge, observeReveals, toast, visibleProjects, confirmModal, alertModal,
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
 import { parseSOA } from "./soa.js";
@@ -454,28 +454,48 @@ async function handleSOAUpload(e) {
   const f = e.target.files[0]; e.target.value = "";
   if (!f) return;
   toast("Reading SOA…");
+  let res;
   try {
-    const res = await parseSOA(f);
-    if (!res.items.length) { toast("Couldn’t find a Payment Installment Breakdown in that PDF."); return; }
-    // The SOA must belong to THIS unit. Block a definite mismatch; if the
-    // unit number can't be read, ask before proceeding.
-    const norm = (u) => String(u || "").toUpperCase().replace(/[\s\-]/g, "");
-    if (res.unit && norm(res.unit) !== norm(record.unitNo)) {
-      await confirmModal({
-        title: "Wrong unit — upload blocked",
-        message: `This SOA is for unit ${res.unit}, but you're on unit ${record.unitNo}. Upload the SOA that belongs to this unit.`,
-        confirmLabel: "OK", icon: "ti-alert-triangle",
-      });
-      return;
-    }
-    if (!res.unit) {
-      const ok = await confirmModal({
-        title: "Couldn’t verify the unit",
-        message: `We couldn't read a unit number from this PDF to confirm it belongs to unit ${record.unitNo}. Upload anyway?`,
-        confirmLabel: "Upload anyway", icon: "ti-help-circle",
-      });
-      if (!ok) return;
-    }
+    res = await parseSOA(f);
+  } catch (err) {
+    console.error(err);
+    await alertModal({
+      title: "Couldn’t read the SOA",
+      message: /PDF reader/i.test(err.message)
+        ? "The PDF reader didn’t load. Please refresh the page and try again — if it keeps happening, check your connection."
+        : `We couldn’t read that PDF: ${err.message}`,
+      danger: true, icon: "ti-file-alert",
+    });
+    return;
+  }
+  if (!res.items.length) {
+    await alertModal({
+      title: "No installment breakdown found",
+      message: "This PDF doesn’t contain a “Payment Installment Breakdown” section. Please upload the client’s full Statement of Account.",
+      danger: true, icon: "ti-file-alert",
+    });
+    return;
+  }
+  // The SOA must belong to THIS unit. Block a definite mismatch; if the unit
+  // number can't be read, ask before proceeding.
+  const norm = (u) => String(u || "").toUpperCase().replace(/[\s\-]/g, "");
+  if (res.unit && norm(res.unit) !== norm(record.unitNo)) {
+    await alertModal({
+      title: "Wrong unit — upload blocked",
+      message: `This SOA is for unit ${res.unit}, but this record is unit ${record.unitNo}. Please upload the Statement of Account for unit ${record.unitNo}.`,
+      danger: true, icon: "ti-alert-triangle", okLabel: "Got it",
+    });
+    return;
+  }
+  if (!res.unit) {
+    const ok = await confirmModal({
+      title: "Couldn’t verify the unit",
+      message: `We couldn't read a unit number from this PDF to confirm it belongs to unit ${record.unitNo}. Upload anyway?`,
+      confirmLabel: "Upload anyway", icon: "ti-help-circle",
+    });
+    if (!ok) return;
+  }
+  try {
     const patch = { soaBreakdown: { ...res, uploadedAt: new Date().toISOString(), fileName: f.name } };
     if (res.start) patch.installmentStart = res.start.slice(0, 7);   // feed the schedule anchor
     // Drive the payment-schedule boxes from the SOA: each installment's
@@ -489,7 +509,10 @@ async function handleSOAUpload(e) {
     await db.updateRecord(record.id, patch);
     toast(`Loaded ${res.items.length} installments from the SOA`);
     await reloadAndRender();
-  } catch (err) { console.error(err); toast("Could not read the SOA — " + err.message); }
+  } catch (err) {
+    console.error(err);
+    await alertModal({ title: "Couldn’t save the SOA", message: `The installments were read but saving failed: ${err.message}`, danger: true, icon: "ti-file-alert" });
+  }
 }
 
 /* ---- move a client's record to a different category (e.g. Legal → Installment) ---- */

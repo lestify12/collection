@@ -189,6 +189,29 @@ export function confirmModal({ title = "Are you sure?", message = "", confirmLab
   });
 }
 
+/** A dismiss-only modal for errors / notices (single OK button). */
+export function alertModal({ title = "Notice", message = "", okLabel = "OK", icon, danger = false } = {}) {
+  return new Promise((resolve) => {
+    const bd = document.createElement("div");
+    bd.className = "modal-backdrop";
+    bd.innerHTML = `<div class="modal" style="width:min(430px,100%)">
+      <div class="modal-header"><div class="modal-header-left">
+        <div class="modal-header-icon"><i class="ti ${icon || (danger ? "ti-alert-triangle" : "ti-info-circle")}"></i></div>
+        <div style="min-width:0"><div class="modal-header-title">${esc(title)}</div></div></div>
+        <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+      <div class="modal-body"><p style="margin:0;font-size:14px;line-height:1.55;color:var(--ink-2)">${esc(message)}</p></div>
+      <div class="modal-actions"><button class="btn ${danger ? "danger-solid" : "primary"}" data-ok>${esc(okLabel)}</button></div></div>`;
+    document.body.appendChild(bd);
+    requestAnimationFrame(() => bd.classList.add("open"));
+    const done = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); document.removeEventListener("keydown", onKey); resolve(true); };
+    const onKey = (e) => { if (e.key === "Escape" || e.key === "Enter") done(); };
+    bd.querySelectorAll("[data-x],[data-ok]").forEach((b) => b.addEventListener("click", done));
+    bd.addEventListener("click", (e) => { if (e.target === bd) done(); });
+    document.addEventListener("keydown", onKey);
+    setTimeout(() => bd.querySelector("[data-ok]").focus(), 200);
+  });
+}
+
 /* ------------------------------------------------ toast */
 let toastTimer = null;
 export function toast(msg) {
