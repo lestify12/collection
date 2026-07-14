@@ -53,9 +53,17 @@ async function main() {
   document.title = `${project.name} — Collection Tracker`;
   document.getElementById("bcName").textContent = project.name;
   document.getElementById("projTitle").textContent = project.name;
-  document.getElementById("projSub").innerHTML =
-    project.handler ? `<i class="ti ti-user-circle"></i> Assigned to <b>${esc(project.handler)}</b>`
-                    : "Unassigned";
+  // Assigned-to comes from the Team & access assignment (records' assignedTo),
+  // not the static workbook handler.
+  const usersById = Object.fromEntries(
+    (await auth.listUsers().catch(() => [])).map((u) => [u.uid, u.name || u.email]));
+  usersById[ME.uid] = ME.name || ME.email;
+  const arecs = allRecords.filter((r) => r.projectId === project.id && r.assignedTo);
+  const anames = [...new Set(arecs.map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"))];
+  const assignee = anames.length ? (anames.length <= 1 ? anames[0] : `${anames[0]} +${anames.length - 1}`) : null;
+  document.getElementById("projSub").innerHTML = assignee
+    ? `<i class="ti ti-user-circle"></i> Assigned to <b>${esc(assignee)}</b>`
+    : `<i class="ti ti-user-circle"></i> <span style="font-style:italic;color:var(--ink-3)">Not Assigned</span>`;
 
   renderTabs();
   renderTab();
