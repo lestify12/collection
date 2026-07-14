@@ -105,22 +105,26 @@ function renderOverview() {
   const body = document.getElementById("tabBody");
   const inst = m.installment || { clients: 0, due: 0 };
 
+  // show full amounts; shrink the font as the figure gets longer so it fits the card
+  const CARD_TIERS = [[12, 21], [14, 19], [16, 17.5], [18, 16], [Infinity, 14.5]];
+  const fitPx = (s) => (CARD_TIERS.find(([mx]) => s.length <= mx) || CARD_TIERS[CARD_TIERS.length - 1])[1];
+
   const cards = [
     { label: "Total units", value: fmtInt(m.projectUnits), icon: "ti-building-community", tint: "navy",
       foot: `${fmtInt(m.totalUnits)} with dues · ${fmtInt(m.unsoldUnits)} unsold` },
-    { label: "Installment to collect", value: fmtMoney(inst.due, { compact: true }), icon: "ti-calendar-repeat",
-      tint: "amber", foot: `${fmtInt(inst.clients)} active installment clients`, big: true },
-    { label: "Legal exposure", value: fmtMoney(m.legal?.due || 0, { compact: true }), icon: "ti-gavel", tint: "red",
-      foot: `${fmtInt(m.legal?.clients || 0)} legal cases` },
-    { label: "Total outstanding", value: fmtMoney(m.totalDue, { compact: true }), icon: "ti-report-money",
-      tint: "green", foot: "across all due categories" },
+    { label: "Installment to collect", value: fmtMoney(inst.due, { compact: false }), icon: "ti-calendar-repeat",
+      tint: "amber", foot: `${fmtInt(inst.clients)} active installment clients`, money: true },
+    { label: "Legal exposure", value: fmtMoney(m.legal?.due || 0, { compact: false }), icon: "ti-gavel", tint: "red",
+      foot: `${fmtInt(m.legal?.clients || 0)} legal cases`, money: true },
+    { label: "Total outstanding", value: fmtMoney(m.totalDue, { compact: false }), icon: "ti-report-money",
+      tint: "green", foot: "across all due categories", money: true },
   ];
 
   const statCards = cards.map((c, i) => `
     <div class="stat-card reveal" style="--d:${i * 0.05}s">
       <div class="stat-icon ${c.tint}"><i class="ti ${c.icon}"></i></div>
       <div>
-        <div class="stat-value ${c.big ? "big" : ""}">${c.value}</div>
+        <div class="stat-value"${c.money ? ` style="font-size:${fitPx(c.value)}px"` : ""}>${c.value}</div>
         <div class="stat-label">${c.label}</div>
         <div class="stat-foot">${c.foot}</div>
       </div>
