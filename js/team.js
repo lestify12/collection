@@ -73,12 +73,7 @@ async function render() {
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>
-    </section>
-    <div class="card-sub" style="margin-top:12px">
-      ${auth.isLive()
-        ? "Collection officers sign in with the email &amp; password you set here. Removing a teammate deletes their access profile; delete the login itself in the Firebase console."
-        : "Preview mode — accounts and sessions live in this browser only. Switch on Firebase Auth to make them real."}
-    </div>`;
+    </section>`;
 
   body.querySelectorAll("[data-assign]").forEach((b) =>
     b.addEventListener("click", () => openAssign(b.dataset.assign)));
