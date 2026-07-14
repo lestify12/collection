@@ -42,6 +42,11 @@ async function main() {
   render();
 }
 
+/* Shrink the stat-card value font as the amount gets longer so full,
+   non-shortened figures always fit inside the card. */
+const STAT_TIERS = [[12, 21], [14, 19], [16, 17.5], [18, 16], [Infinity, 14.5]];
+const fitStat = (s) => (STAT_TIERS.find(([m]) => s.length <= m) || STAT_TIERS[STAT_TIERS.length - 1])[1];
+
 /* ------------------------------------------------ payment schedule */
 const r2 = (n) => Math.round(n * 100) / 100;
 
@@ -200,16 +205,17 @@ function renderClientTab() {
         <div class="info-value ${k === "reflected" ? "money-good" : k === "outstanding" && outstanding > 0 ? "money-bad" : ""}">${infoVal(r, k, kind)}</div>
       </div>`).join("");
 
+  const refS = fmtMoney(reflected), outS = fmtMoney(outstanding), spS = fmtMoney(r.sellingPrice);
   body.innerHTML = `
-    <div class="stat-grid">
+    <div class="stat-grid client-stats">
       <div class="stat-card"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div>
-        <div><div class="stat-value money-good">${fmtMoney(reflected, { compact: true })}</div>
+        <div><div class="stat-value money-good" style="font-size:${fitStat(refS)}px">${refS}</div>
         <div class="stat-label">Reflected (paid)</div></div></div>
       <div class="stat-card"><div class="stat-icon red"><i class="ti ti-alert-circle"></i></div>
-        <div><div class="stat-value ${outstanding > 0 ? "money-bad" : ""}">${fmtMoney(outstanding, { compact: true })}</div>
+        <div><div class="stat-value ${outstanding > 0 ? "money-bad" : ""}" style="font-size:${fitStat(outS)}px">${outS}</div>
         <div class="stat-label">Outstanding due</div></div></div>
       <div class="stat-card"><div class="stat-icon navy"><i class="ti ti-tag"></i></div>
-        <div><div class="stat-value">${fmtMoney(r.sellingPrice, { compact: true })}</div>
+        <div><div class="stat-value" style="font-size:${fitStat(spS)}px">${spS}</div>
         <div class="stat-label">Selling price</div></div></div>
     </div>
 
