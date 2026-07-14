@@ -41,8 +41,18 @@ async function main() {
   document.getElementById("reportDate").textContent =
     `Report date ${summary.reportDate || ""} · ${projects.length} project${projects.length === 1 ? "" : "s"}`;
 
+  // who is assigned to each project, derived from the records' assignedTo
+  const usersById = Object.fromEntries(
+    (await auth.listUsers().catch(() => [])).map((u) => [u.uid, u.name || u.email]));
+  const projectAssignee = (pid) => {
+    const uids = [...new Set(records.filter((r) => r.projectId === pid && r.assignedTo).map((r) => r.assignedTo))];
+    if (!uids.length) return null;
+    const names = uids.map((u) => usersById[u] || "Unknown");
+    return names.length <= 1 ? names[0] : `${names[0]} +${names.length - 1}`;
+  };
+
   // per-project metrics: live from unit records where present, else the seeded workbook figures
-  const rows = projects.map((p) => ({ ...p, m: db.projectMetrics(p, records) }));
+  const rows = projects.map((p) => ({ ...p, m: db.projectMetrics(p, records), assignee: projectAssignee(p.id) }));
 
   const tot = { totalDue: 0, totalUnits: 0, unsoldUnits: 0, projectUnits: 0 };
   const catTot = {};
@@ -172,7 +182,7 @@ function render(rows, tot, catTot, summary) {
             ${byInst.map((r) => `
               <tr class="clickable" data-href="project.html?id=${encodeURIComponent(r.id)}">
                 <td class="strong">${esc(r.name)}</td>
-                <td style="white-space:nowrap;color:var(--ink-2)">${esc(r.handler || "—")}</td>
+                <td style="white-space:nowrap;${r.assignee ? "color:var(--ink-2)" : "color:var(--ink-3);font-style:italic"}">${esc(r.assignee || "Not Assigned")}</td>
                 <td class="num strong">${fmtMoney(r.m.installment?.due || 0, { currency: false })}</td>
                 <td class="num">${fmtMoney(r.m.totalDue, { currency: false })}</td>
                 <td class="num"><i class="ti ti-chevron-right" style="color:var(--ink-3)"></i></td>
