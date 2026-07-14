@@ -9,6 +9,7 @@ import {
   initSidebar, setModeBadge, observeReveals, toast, visibleProjects, confirmModal,
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
+import { r2, planOf, flexiNeedsSetup, flowMonths, parseYM, addMonths, ymKey, fmtYM, MONTHS } from "./plan.js";
 
 initTheme();
 initSidebar();
@@ -48,7 +49,6 @@ const STAT_TIERS = [[12, 21], [14, 19], [16, 17.5], [18, 16], [Infinity, 14.5]];
 const fitStat = (s) => (STAT_TIERS.find(([m]) => s.length <= m) || STAT_TIERS[STAT_TIERS.length - 1])[1];
 
 /* ------------------------------------------------ payment schedule */
-const r2 = (n) => Math.round(n * 100) / 100;
 
 /** Fill `balance` with `onePct` boxes; last box is the remainder. */
 function genBoxes(balance, onePct) {
@@ -61,15 +61,16 @@ function genBoxes(balance, onePct) {
   return boxes;
 }
 
-/** Installment box amounts — a stored custom plan, else default 1% boxes. */
+/** Installment box amounts. A stored custom plan (Flexi) wins; otherwise
+    the DC% drives the count — one 1%-of-selling-price box per DC point. */
 export function scheduleBoxes(r) {
-  const S = Number(r.sellingPrice) || 0;
-  const dp20 = Number(r.dp20) || (S ? S * 0.2 : 0);
-  const balance = Math.max(0, S - dp20);
-  const onePct = S * 0.01;
+  const p = planOf(r);
+  const onePct = p.onePct;
+  const balance = p.dcAmount;
   if (Array.isArray(r.installmentPlan) && r.installmentPlan.length)
     return { boxes: r.installmentPlan.map(Number), onePct, balance };
-  return { boxes: genBoxes(balance, onePct), onePct, balance };
+  const n = Math.max(0, Math.round(p.dcPct));
+  return { boxes: Array(n).fill(r2(onePct)), onePct, balance };
 }
 
 /** The 24% downpayment target = DP + DLD + Admin (falls back to a 24% estimate). */
@@ -88,27 +89,34 @@ function buildSchedule(r) {
   const D = downpaymentTarget(r);
   const isDp = r.category === "dp24";
   const custom = Array.isArray(r.installmentPlan) && r.installmentPlan.length > 0;
+  const plan = planOf(r);
+  const months = flowMonths(r, boxes.length);
+  const needsFlexi = flexiNeedsSetup(r);
 
   if (isDp) {
     // Still paying the 24% downpayment — reflected all goes to it; installments haven't started.
     const dpPaid = Math.min(R, D);
     const dpDone = D > 0 && dpPaid >= D - 0.01;
-    const instRows = boxes.map((amt, i) => ({ label: `Installment ${i + 1}`, amount: amt, kind: "inst", idx: i, paid: 0, status: "due" }));
-    return { isDp: true, boxes, instRows, instCount: boxes.length, onePct, balance, custom,
+    const instRows = boxes.map((amt, i) => ({ label: `Installment ${i + 1}`, amount: amt, kind: "inst", idx: i, paid: 0,
+      status: months[i]?.skip ? "skip" : "due", month: months[i]?.label, skip: !!months[i]?.skip }));
+    return { isDp: true, boxes, instRows, instCount: boxes.length, onePct, balance, custom, plan, needsFlexi,
       dpTarget: D, dpPaid, dpDone, planTotal: D, paidTotal: dpPaid,
       pct: D ? Math.round((dpPaid / D) * 100) : 0, transferReady: dpDone };
   }
 
   // Installment phase — downpayment already settled; reflected fills the boxes.
+  // "No collection" boxes are skipped by the fill (nothing is expected there).
   let left = R;
   const instRows = boxes.map((amt, i) => {
-    const paid = Math.max(0, Math.min(left, amt)); left -= paid;
-    return { label: `Installment ${i + 1}`, amount: amt, kind: "inst", idx: i, paid,
-      status: paid >= amt - 0.01 && amt > 0 ? "paid" : paid > 0 ? "partial" : "due" };
+    const skip = !!months[i]?.skip;
+    const paid = skip ? 0 : Math.max(0, Math.min(left, amt));
+    if (!skip) left -= paid;
+    return { label: `Installment ${i + 1}`, amount: amt, kind: "inst", idx: i, paid, month: months[i]?.label, skip,
+      status: skip ? "skip" : paid >= amt - 0.01 && amt > 0 ? "paid" : paid > 0 ? "partial" : "due" };
   });
-  const planTotal = boxes.reduce((a, b) => a + b, 0);
+  const planTotal = boxes.reduce((a, b, i) => a + (months[i]?.skip ? 0 : b), 0);
   const paidTotal = Math.min(R, planTotal);
-  return { isDp: false, boxes, instRows, instCount: boxes.length, onePct, balance, custom,
+  return { isDp: false, boxes, instRows, instCount: boxes.length, onePct, balance, custom, plan, needsFlexi,
     dpTarget: D, dpPaid: D, dpDone: true, planTotal, paidTotal,
     pct: planTotal ? Math.round((paidTotal / planTotal) * 100) : 0, transferReady: false };
 }
@@ -116,14 +124,18 @@ function buildSchedule(r) {
 /* ------------------------------------------------ render */
 const INFO = [
   ["unitNo", "Unit no"], ["bookingDate", "Booking date", "date"], ["agent", "Internal agent"],
-  ["type", "Type"], ["buyerName", "Buyer name"], ["paymentPlan", "Payment plan"],
+  ["type", "Type"], ["buyerName", "Buyer name"], ["planType", "Plan type"],
   ["sellingPrice", "Selling price", "money"], ["dld", "DLD (4%)", "money"], ["adminFee", "Admin fee", "money"],
-  ["dp20", "20% downpayment", "money"], ["dpTotal", "Downpayment + DLD + admin", "money"],
-  ["reflected", "Reflected (paid)", "money"], ["monthlyInstallment", "Monthly installment", "money"],
-  ["outstanding", "Outstanding dues", "money"], ["unsettledMonths", "Unsettled months"],
+  ["dp20", "20% downpayment", "money"], ["dpAmountCalc", "DP total (DP + DLD + admin)", "money"],
+  ["dcAmountCalc", "DC amount", "money"], ["monthlyInstallment", "Monthly installment", "money"],
+  ["reflected", "Reflected (paid)", "money"], ["outstanding", "Outstanding dues", "money"],
 ];
 
 function infoVal(r, k, kind) {
+  // computed plan fields
+  if (k === "planType") { const p = planOf(r); return `${p.dpPct}% DP · ${p.dcPct}% DC · ${p.mode === "flexi" ? "Flexi" : "1% Monthly"}`; }
+  if (k === "dpAmountCalc") return fmtMoney(planOf(r).dpAmount);
+  if (k === "dcAmountCalc") return fmtMoney(planOf(r).dcAmount);
   const v = r[k];
   if (v === null || v === undefined || v === "") return `<span class="muted">—</span>`;
   if (kind === "money") return fmtMoney(v);
@@ -199,7 +211,8 @@ function renderClientTab() {
   const sched = buildSchedule(r);
   const reflected = Number(r.reflected) || 0;
   const outstanding = Number(r.outstanding) || 0;
-  const infoRows = INFO.filter(([k]) => r[k] !== undefined && r[k] !== null && r[k] !== "" || ["sellingPrice", "reflected", "outstanding", "dpTotal"].includes(k))
+  const alwaysShow = ["sellingPrice", "reflected", "outstanding", "planType", "dpAmountCalc", "dcAmountCalc"];
+  const infoRows = INFO.filter(([k]) => (r[k] !== undefined && r[k] !== null && r[k] !== "") || alwaysShow.includes(k))
     .map(([k, label, kind]) => `
       <div class="info-item">
         <div class="info-label">${label}</div>
@@ -236,9 +249,12 @@ function renderClientTab() {
         <div class="card-head">
           <div class="card-head-t">
             <div class="card-head-title"><i class="ti ti-calendar-dollar"></i> Payment schedule</div>
-            <div class="card-head-sub">1% monthly${canEdit ? " · click a box to edit %" : ""}</div>
+            <div class="card-head-sub">${sched ? (sched.plan.mode === "flexi" ? "Flexi" : "1% monthly") : ""}${canEdit ? " · click a box to set month / %" : ""}</div>
           </div>
-          ${sched && canEdit ? `<button class="btn head-btn sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
+          <div class="card-head-actions">
+            ${canEdit ? `<button class="btn head-btn sm" id="editPlanBtn"><i class="ti ti-adjustments"></i> Edit plan</button>` : ""}
+            ${sched && canEdit ? `<button class="btn head-btn sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
+          </div>
         </div>
         <div class="card-pad">
           ${sched ? scheduleHTML(sched, r, canEdit) : `<div class="empty" style="padding:26px"><div class="e-icon">🧾</div>
@@ -252,6 +268,7 @@ function renderClientTab() {
     mountScheduleTips();
     if (canEdit) {
       document.getElementById("recordPayBtn")?.addEventListener("click", recordPayment);
+      document.getElementById("editPlanBtn")?.addEventListener("click", openPlanEditor);
       document.getElementById("transferBtn")?.addEventListener("click", transferToInstallment);
       document.getElementById("schedReset")?.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -259,8 +276,10 @@ function renderClientTab() {
         catch (err) { toast("Failed — " + err.message); }
       });
       document.querySelectorAll(".sched-cell[data-idx]").forEach((el) =>
-        el.addEventListener("click", () => editBox(Number(el.dataset.idx))));
+        el.addEventListener("click", () => openBoxEditor(Number(el.dataset.idx))));
     }
+  } else if (canEdit) {
+    document.getElementById("editPlanBtn")?.addEventListener("click", openPlanEditor);
   }
 }
 
@@ -321,6 +340,7 @@ async function deleteTxn(id) {
 }
 
 function scheduleHTML(s, r, canEdit = true) {
+  const p = s.plan;
   const dpBar = s.dpTarget ? Math.min(100, Math.round((s.dpPaid / s.dpTarget) * 100)) : 100;
   const paidCount = s.instRows.filter((x) => x.status === "paid").length;
   const partialCount = s.instRows.filter((x) => x.status === "partial").length;
@@ -328,9 +348,20 @@ function scheduleHTML(s, r, canEdit = true) {
   const cells = s.instRows.map((x) => {
     const pct = s.onePct ? Math.round((x.amount / s.onePct) * 100) / 100 : 1;
     const custom = Math.abs(pct - 1) > 0.001;
-    return `<span class="sched-cell ${x.status}${custom ? " custom" : ""}${canEdit ? "" : " ro"}" ${canEdit ? `data-idx="${x.idx}"` : ""}
-      data-tip="Installment ${x.idx + 1} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}${canEdit ? "<br><span style='opacity:.7'>click to set %</span>" : ""}">${custom ? pct + "%" : ""}</span>`;
+    const cls = x.skip ? "skip" : x.status;
+    const face = x.skip ? '<i class="ti ti-ban"></i>' : custom ? pct + "%" : "";
+    return `<span class="sched-cell ${cls}${custom && !x.skip ? " custom" : ""}${canEdit ? "" : " ro"}" ${canEdit ? `data-idx="${x.idx}"` : ""}
+      data-tip="Installment ${x.idx + 1}${x.month ? " · " + x.month : ""} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.skip ? "No collection this month" : x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}${canEdit ? "<br><span style='opacity:.7'>click to set month / %</span>" : ""}">
+      <span class="sc-face">${face}</span><span class="sc-mon">${x.month || ""}</span></span>`;
   }).join("");
+
+  const planStrip = `
+    <div class="plan-strip">
+      <span class="plan-chip"><b>${p.dpPct}%</b> DP · ${fmtMoney(p.dpAmount, { compact: true })}</span>
+      <span class="plan-chip"><b>${p.dcPct}%</b> DC · ${fmtMoney(p.dcAmount, { compact: true })}</span>
+      <span class="plan-chip ${p.mode === "flexi" ? "flexi" : "monthly"}">${p.mode === "flexi" ? "Flexi" : "1% Monthly"}</span>
+    </div>
+    ${s.needsFlexi ? `<div class="flexi-warn"><i class="ti ti-alert-triangle"></i> Flexi boxes total ${fmtMoney(s.boxes.reduce((a, b) => a + (Number(b) || 0), 0))} but should total ${fmtMoney(p.dcAmount)} — adjust the boxes so they add up.</div>` : ""}`;
 
   const transfer = s.isDp
     ? (s.transferReady
@@ -339,6 +370,7 @@ function scheduleHTML(s, r, canEdit = true) {
     : "";
 
   return `
+    ${planStrip}
     <div class="sched-summary">
       <div><div class="sched-big">${s.pct}%</div><div class="sched-cap">${s.isDp ? "of downpayment settled" : "of plan settled"}</div></div>
       <div class="sched-meter"><div class="sched-meter-fill" style="width:${s.pct}%"></div></div>
@@ -431,28 +463,138 @@ async function recordPayment() {
   } catch (e) { toast("Failed — " + e.message); }
 }
 
-async function editBox(idx) {
-  const { boxes, onePct, balance } = scheduleBoxes(record);
-  const cur = Number(boxes[idx]) || onePct;
-  const curPct = onePct ? r2(cur / onePct) : 1;
-  const res = await promptModal({
-    title: `Installment ${idx + 1}`, icon: "ti-percentage",
-    sub: `Default 1% = ${fmtMoney(onePct)}`, submitLabel: "Apply",
-    fields: [{ key: "pct", label: "Installment size (% of selling price)", type: "number", step: "0.01", min: 0, value: curPct,
-      hint: "Boxes after this recalculate so the plan still totals the balance." }],
+/* ---- Payment plan editor: DP amount, DC amount / %, and mode ---- */
+async function openPlanEditor() {
+  const p = planOf(record);
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal" style="width:min(460px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-adjustments"></i></div>
+      <div><div class="modal-header-title">Payment plan</div>
+      <div class="modal-header-sub">Unit ${esc(record.unitNo)} · ${fmtMoney(p.S, { compact: true })} selling price</div></div></div>
+      <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <label class="fld"><span>Plan type</span>
+        <select id="plMode"><option value="monthly" ${p.mode !== "flexi" ? "selected" : ""}>1% Monthly</option>
+        <option value="flexi" ${p.mode === "flexi" ? "selected" : ""}>Flexi (custom % per box)</option></select></label>
+      <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label class="fld"><span>DP % (down + DLD + admin)</span><input id="plDpPct" type="number" step="0.01" value="${p.dpPct}"></label>
+        <label class="fld"><span>DP amount (AED)</span><input id="plDpAmt" type="number" step="0.01" value="${r2(p.dpAmount)}"></label>
+        <label class="fld"><span>DC %</span><input id="plDcPct" type="number" step="0.01" value="${p.dcPct}"></label>
+        <label class="fld"><span>DC amount (AED)</span><input id="plDcAmt" type="number" step="0.01" value="${r2(p.dcAmount)}"></label>
+      </div>
+      <div class="assign-note"><i class="ti ti-info-circle"></i> The DC % sets how many 1% boxes appear (e.g. 80% → 80 boxes). Flexi lets you set each box's % individually.</div>
+    </div>
+    <div class="modal-actions"><button class="btn" data-x>Cancel</button>
+      <button class="btn primary" id="plSave"><i class="ti ti-check"></i> Save plan</button></div></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+  // keep % and amount loosely in sync
+  const S = p.S;
+  const sync = (pctEl, amtEl) => {
+    bd.querySelector(pctEl).addEventListener("input", (e) => { if (S) bd.querySelector(amtEl).value = r2((Number(e.target.value) || 0) / 100 * S); });
+    bd.querySelector(amtEl).addEventListener("input", (e) => { if (S) bd.querySelector(pctEl).value = r2((Number(e.target.value) || 0) / S * 100); });
+  };
+  sync("#plDpPct", "#plDpAmt"); sync("#plDcPct", "#plDcAmt");
+
+  bd.querySelector("#plSave").addEventListener("click", async () => {
+    const mode = bd.querySelector("#plMode").value;
+    const dpPct = Number(bd.querySelector("#plDpPct").value) || 0;
+    const dcPct = Number(bd.querySelector("#plDcPct").value) || 0;
+    const dpAmount = r2(Number(bd.querySelector("#plDpAmt").value) || 0);
+    const dcAmount = r2(Number(bd.querySelector("#plDcAmt").value) || 0);
+    const patch = { planMode: mode, dpPct, dcPct, dpAmount, dcAmount,
+      paymentPlan: `${dpPct}% DP • ${dcPct}% DC (${mode === "flexi" ? "FLEXI" : "1% Monthly"})` };
+    // Monthly regenerates the default 1% boxes. Flexi leaves the boxes
+    // un-set (red ⚠ until the officer sets each box's %).
+    if (mode === "monthly") patch.installmentPlan = null;
+    try { await db.updateRecord(record.id, patch); close(); toast("Payment plan saved"); await reloadAndRender(); }
+    catch (e) { toast("Failed — " + e.message); }
   });
-  if (!res) return;
-  const pct = Number(res.pct);
-  if (!(pct > 0)) { toast("Enter a valid %"); return; }
-  const newAmt = r2(onePct * pct);
-  const head = boxes.slice(0, idx).map(Number);
-  const rem = Math.max(0, r2(balance - head.reduce((a, b) => a + b, 0) - newAmt));
-  const plan = [...head, newAmt, ...genBoxes(rem, onePct)];
-  try {
-    await db.updateRecord(record.id, { installmentPlan: plan });
-    toast(`Installment ${idx + 1} set to ${pct}%`);
-    await reloadAndRender();
-  } catch (e) { toast("Failed — " + e.message); }
+}
+
+/* ---- Box editor: set the month/year, mark "no collection", and (Flexi) % ---- */
+async function openBoxEditor(idx) {
+  const s = buildSchedule(record);
+  if (!s) return;
+  const p = s.plan, flexi = p.mode === "flexi";
+  const box = s.instRows[idx];
+  const curPct = s.onePct ? r2((box.amount || s.onePct) / s.onePct) : 1;
+  const curYM = box.month ? parseYMLabel(box.month) : null;
+  const nowY = new Date().getFullYear();
+  const years = [];
+  for (let y = Math.min(nowY - 1, 2023); y <= nowY + 10; y++) years.push(y);
+  const selY = curYM?.y || nowY, selM = curYM?.m || 1;
+
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal" style="width:min(430px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-calendar-month"></i></div>
+      <div><div class="modal-header-title">Installment ${idx + 1}</div>
+      <div class="modal-header-sub">${fmtMoney(box.amount)} · setting the month cascades to later boxes</div></div></div>
+      <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label class="fld"><span>Month</span><select id="bxMon">${MONTHS.map((m, i) => `<option value="${i + 1}" ${i + 1 === selM ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+        <label class="fld"><span>Year</span><select id="bxYear">${years.map((y) => `<option value="${y}" ${y === selY ? "selected" : ""}>${y}</option>`).join("")}</select></label>
+      </div>
+      <label class="assign-row" style="margin-top:2px"><input type="checkbox" id="bxSkip" ${box.skip ? "checked" : ""}>
+        <span>No collection this month (skipped)</span></label>
+      ${flexi ? `<label class="fld" style="margin-top:10px"><span>Installment size (% of selling price)</span>
+        <input id="bxPct" type="number" step="0.01" min="0" value="${curPct}"></label>` : ""}
+      <div class="assign-note"><i class="ti ti-info-circle"></i> Later boxes auto-fill the next months. Mark odd months as “No collection”.</div>
+    </div>
+    <div class="modal-actions">${box.month || box.skip ? `<button class="btn" id="bxClear">Clear month</button>` : `<button class="btn" data-x>Cancel</button>`}
+      <button class="btn primary" id="bxSave"><i class="ti ti-check"></i> Apply</button></div></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+
+  const saveBoxMonths = (entry) => {
+    const bms = Array.isArray(record.boxMonths) ? record.boxMonths.map((x) => (x ? { ...x } : x)) : [];
+    while (bms.length <= idx) bms.push(null);
+    bms[idx] = entry;
+    return bms;
+  };
+
+  bd.querySelector("#bxClear")?.addEventListener("click", async () => {
+    try { await db.updateRecord(record.id, { boxMonths: saveBoxMonths(null) }); close(); toast("Month cleared"); await reloadAndRender(); }
+    catch (e) { toast("Failed — " + e.message); }
+  });
+
+  bd.querySelector("#bxSave").addEventListener("click", async () => {
+    const m = Number(bd.querySelector("#bxMon").value);
+    const y = Number(bd.querySelector("#bxYear").value);
+    const skip = bd.querySelector("#bxSkip").checked;
+    const patch = { boxMonths: saveBoxMonths({ m: ymKey({ y, m }), manual: true, skip }) };
+    if (flexi) {
+      const pct = Number(bd.querySelector("#bxPct").value);
+      if (pct > 0) {
+        const plan = (Array.isArray(record.installmentPlan) && record.installmentPlan.length)
+          ? record.installmentPlan.map(Number) : s.boxes.slice();
+        while (plan.length <= idx) plan.push(r2(s.onePct));
+        plan[idx] = r2(s.onePct * pct);
+        patch.installmentPlan = plan;
+      }
+    }
+    try { await db.updateRecord(record.id, patch); close(); toast(`Installment ${idx + 1} updated`); await reloadAndRender(); }
+    catch (e) { toast("Failed — " + e.message); }
+  });
+}
+
+/** "Apr 25" → { y, m }. */
+function parseYMLabel(label) {
+  const [mon, yy] = String(label).split(" ");
+  const m = MONTHS.indexOf(mon) + 1;
+  if (!m || !yy) return null;
+  return { y: 2000 + Number(yy), m };
 }
 
 async function transferToInstallment() {

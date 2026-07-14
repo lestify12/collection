@@ -699,25 +699,40 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .sched-note { font-size: 11.5px; color: var(--ink-3); margin-top: 8px; display: flex; gap: 6px; align-items: flex-start; }
 .sched-inst-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 10px; }
 .sched-legend { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-3); font-weight: 500; }
-.sched-legend .sched-cell { margin-left: 8px; }
-.sched-grid { display: flex; flex-wrap: wrap; gap: 4px; }
-.sched-cell { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
-/* boxes with a non-1% custom amount show their percentage */
-.sched-cell.custom {
-  width: auto; min-width: 24px; padding: 0 5px; display: inline-flex;
-  align-items: center; justify-content: center; font-size: 9px; font-weight: 800; line-height: 1;
-  color: rgba(0,0,0,.6);
-}
-.sched-cell.custom.paid { color: #fff; }
-.sched-cell.custom.partial { color: #5a3d00; }
-.sched-cell.custom.due { color: #b3201f; }
-.sched-cell.paid { background: var(--good); }
-.sched-cell.partial { background: #f0a500; }
-.sched-cell.due { background: rgba(239,68,68,.22); }
-:root[data-theme="dark"] .sched-cell.due { background: rgba(248,113,113,.22); }
-.sched-cell[data-idx] { cursor: pointer; transition: outline .1s; }
-.sched-cell[data-idx]:hover { outline: 2px solid var(--brand-accent); outline-offset: 1px; }
+.sched-grid { display: flex; flex-wrap: wrap; gap: 7px 5px; }
+/* each box = a coloured face (status/%) with an optional month caption below */
+.sched-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.sc-face { width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center;
+  font-size: 8px; font-weight: 800; line-height: 1; color: rgba(0,0,0,.55); }
+.sc-mon { font-size: 8px; font-weight: 600; color: var(--ink-3); line-height: 1; white-space: nowrap; }
+.sched-cell.custom .sc-face { width: auto; min-width: 24px; padding: 0 4px; }
+.sched-cell.paid .sc-face { background: var(--good); color: #fff; }
+.sched-cell.partial .sc-face { background: #f0a500; color: #5a3d00; }
+.sched-cell.due .sc-face { background: rgba(239,68,68,.22); color: #b3201f; }
+.sched-cell.skip .sc-face { color: var(--ink-3); font-size: 10px;
+  background: repeating-linear-gradient(45deg, var(--surface-2), var(--surface-2) 3px, var(--border) 3px, var(--border) 5px); }
+:root[data-theme="dark"] .sched-cell.due .sc-face { background: rgba(248,113,113,.22); }
+.sched-cell[data-idx] { cursor: pointer; }
+.sched-cell[data-idx]:hover .sc-face { outline: 2px solid var(--brand-accent); outline-offset: 1px; }
 .sched-grid.preview .sched-cell { opacity: .85; }
+/* legend chips are plain coloured squares (no face/month) */
+.sched-legend .sched-cell { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 8px; }
+.sched-legend .sched-cell.paid { background: var(--good); }
+.sched-legend .sched-cell.partial { background: #f0a500; }
+.sched-legend .sched-cell.due { background: rgba(239,68,68,.22); }
+
+/* plan strip + flexi warning + card-head action group */
+.card-head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.plan-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.plan-chip { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; }
+.plan-chip b { color: var(--ink); }
+.plan-chip.flexi { color: #b45309; background: rgba(201,133,0,.12); border-color: rgba(201,133,0,.3); }
+.plan-chip.monthly { color: var(--brand-accent); background: rgba(47,143,91,.1); border-color: rgba(47,143,91,.3); }
+.flexi-warn { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: #b45309; line-height: 1.4;
+  background: rgba(201,133,0,.1); border: 1px solid rgba(201,133,0,.28); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
+.flexi-warn i { color: #c98500; flex-shrink: 0; }
+.flexi-flag { color: #dc2626; font-size: 14px; vertical-align: middle; }
 .sched-head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
 .sched-head-row h2 { margin: 0; }
 .sched-transfer { margin-top: 12px; width: 100%; justify-content: center; }
