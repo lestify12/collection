@@ -73,6 +73,7 @@ async function main() {
     ? `<i class="ti ti-user-circle"></i> Assigned to <b>${esc(assignee)}</b>`
     : `<i class="ti ti-user-circle"></i> <span style="font-style:italic;color:var(--ink-3)">Not Assigned</span>`;
 
+  setupOnlyMine();
   renderTabs();
   renderTab();
 
@@ -83,6 +84,29 @@ async function main() {
     if (!f) return;
     try { await importWorkbook(f, project, refresh); }
     catch (err) { console.error(err); toast("Import failed — " + err.message); }
+  });
+}
+
+/* ---- "Show only my units" switch (officers sharing a project) ---- */
+function setupOnlyMine() {
+  const actions = document.querySelector(".page-header-actions");
+  if (!actions || !iOwnHere()) return;   // only for officers with units here
+
+  showMine = auth.getPref("onlyMine", {})[project.id] === true;
+
+  const wrap = document.createElement("label");
+  wrap.className = "only-mine";
+  wrap.innerHTML = `<span class="only-mine-txt"><i class="ti ti-user-check"></i> Show only my units</span>
+    <span class="switch"><input type="checkbox" id="onlyMineChk" ${showMine ? "checked" : ""}><span class="slider"></span></span>`;
+  actions.insertBefore(wrap, actions.firstChild);
+
+  wrap.querySelector("#onlyMineChk").addEventListener("change", async (e) => {
+    showMine = e.target.checked;
+    const map = { ...(auth.getPref("onlyMine", {}) || {}), [project.id]: showMine };
+    try { await auth.setPref("onlyMine", map); }
+    catch (err) { console.error("Could not save preference", err); }
+    renderTabs();
+    renderTab();
   });
 }
 
@@ -98,9 +122,18 @@ function byUnit(a, b) {
     : ka[2] < kb[2] ? -1 : ka[2] > kb[2] ? 1 : 0;
 }
 
-const myRecords = () => allRecords.filter((r) => r.projectId === project.id);
-const catRecords = (cat) => myRecords().filter((r) => r.category === cat).sort(byUnit);
-const metrics = () => db.projectMetrics(project, allRecords);
+// "Show only my units": when on, the project view (overview + tables + tab
+// counts) is filtered to records assigned to the signed-in officer. The
+// preference is stored per-project on the user's profile, so it persists
+// across refresh and sign-out.
+let showMine = false;
+const iOwnHere = () => allRecords.some((r) => r.projectId === project.id && r.assignedTo === ME.uid);
+const projRecords = () => {
+  const recs = allRecords.filter((r) => r.projectId === project.id);
+  return showMine ? recs.filter((r) => r.assignedTo === ME.uid) : recs;
+};
+const catRecords = (cat) => projRecords().filter((r) => r.category === cat).sort(byUnit);
+const metrics = () => db.projectMetrics(project, showMine ? projRecords() : allRecords);
 
 /* ------------------------------------------------ tabs */
 function renderTabs() {

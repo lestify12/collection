@@ -204,6 +204,21 @@ export async function updateUser(uid, patch) {
   if (i >= 0) { list[i] = { ...list[i], ...patch }; saveUsers(list); if (_user?.uid === uid) _user = { ..._user, ...patch }; }
 }
 
+/* ------------------------------------------------ per-user preferences
+   Small personal settings stored on the user's own profile so they follow
+   the account across devices and survive sign-out (e.g. "show only my units"
+   per project). Writing `prefs` leaves role/active untouched, so the
+   self-update Firestore rule allows it. */
+export function getPref(key, fallback = undefined) {
+  const p = _user?.prefs;
+  return p && p[key] !== undefined ? p[key] : fallback;
+}
+export async function setPref(key, value) {
+  if (!_user) return;
+  const prefs = { ...(_user.prefs || {}), [key]: value };
+  await updateUser(_user.uid, { prefs });
+}
+
 export async function changePassword(newPassword) {
   if (db.LIVE) {
     const u = db.authInst.currentUser;

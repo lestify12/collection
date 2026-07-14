@@ -917,3 +917,25 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .ro-banner i { font-size: 18px; color: var(--ink-3); flex-shrink: 0; }
 .ro-banner b { color: var(--ink); }
 .sched-cell.ro { cursor: default; }
+
+/* ---- "Show only my units" toggle (project header) ---- */
+.only-mine { display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--surface); user-select: none; }
+.only-mine:hover { border-color: var(--brand-accent); }
+.only-mine-txt { display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.only-mine-txt i { font-size: 15px; color: var(--ink-3); }
+.only-mine:has(input:checked) { border-color: var(--brand-accent); background: rgba(47,143,91,.08); }
+.only-mine:has(input:checked) .only-mine-txt,
+.only-mine:has(input:checked) .only-mine-txt i { color: var(--brand-accent); }
+/* the switch itself */
+.switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .slider { position: absolute; inset: 0; background: rgba(125,135,130,.45);
+  border-radius: 999px; transition: background .18s; }
+.switch .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px;
+  background: #fff; border-radius: 50%; transition: transform .18s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch input:checked + .slider { background: var(--brand-accent); }
+.switch input:checked + .slider::before { transform: translateX(16px); }
+.switch input:focus-visible + .slider { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
