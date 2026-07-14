@@ -60,7 +60,7 @@ assignments live in a Firestore `users` collection.
 1. **Build → Authentication → Get started → Email/Password → Enable.**
 2. **Authentication → Users → Add user** — create the first account with
    *your* email. The first person to sign in is auto-bootstrapped as the
-   **Collection TL** (team lead / admin) and lands on the full dashboard.
+   **Manager** (admin) and lands on the full dashboard.
 3. Sign in at **`/login.html`**, open **Team & access** (sidebar) and:
    - **Add teammate** — creates a collection officer's login + profile in one
      step.
@@ -69,7 +69,7 @@ assignments live in a Firestore `users` collection.
    - Per-unit override: open any client and use **Assign** to move a single
      unit to a different officer.
 4. What each role sees:
-   - **Collection TL** — every project, the Team page, seed/import.
+   - **Manager** — every project, the Team page, seed/import.
    - **Collection Officer** — only the projects/units assigned to them; no
      Team or import.
 

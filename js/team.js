@@ -54,10 +54,10 @@ async function render() {
           </div>
         </td>
         <td>${u.uid === ME.uid
-          ? `<span class="role-badge boss">Collection TL</span>`
+          ? `<span class="role-badge boss">Manager</span>`
           : `<select class="role-select" data-role="${u.uid}">
                <option value="agent" ${boss ? "" : "selected"}>Collection Officer</option>
-               <option value="boss" ${boss ? "selected" : ""}>Collection TL</option>
+               <option value="boss" ${boss ? "selected" : ""}>Manager</option>
              </select>`}</td>
         <td class="proj-cell">${chips}</td>
         <td><span class="status-dot ${disabled ? "off" : "on"}"></span>${disabled ? "Disabled" : "Active"}</td>
@@ -95,7 +95,7 @@ async function render() {
 /* ------------------------------------------------ actions */
 async function changeRole(uid, role) {
   await auth.updateUser(uid, { role });
-  toast(role === "boss" ? "Promoted to Collection TL" : "Set to Collection Officer");
+  toast(role === "boss" ? "Promoted to Manager" : "Set to Collection Officer");
   render();
 }
 
@@ -138,7 +138,7 @@ function openUserForm() {
       <label class="fld"><span>Temporary password</span><input id="fPass" type="text" placeholder="at least 6 characters"></label>
       <label class="fld"><span>Role</span>
         <select id="fRole"><option value="agent">Collection Officer — sees only assigned projects</option>
-        <option value="boss">Collection TL — full access</option></select></label>
+        <option value="boss">Manager — full access</option></select></label>
       <div class="login-error" id="fErr"></div>
     </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>

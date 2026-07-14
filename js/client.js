@@ -483,7 +483,7 @@ function mountScheduleTips() {
 /* ------------------------------------------------ assign this unit (boss) */
 async function openAssign(r) {
   const users = (await auth.listUsers()).filter((u) => u.role === "agent" && u.active !== false);
-  const opts = [`<option value="">Unassigned — only the Collection TL sees it</option>`]
+  const opts = [`<option value="">Unassigned — only the Manager sees it</option>`]
     .concat(users.map((u) => `<option value="${esc(u.uid)}" ${r.assignedTo === u.uid ? "selected" : ""}>${esc(u.name || u.email)}</option>`))
     .join("");
 

@@ -213,7 +213,7 @@ export function renderChrome(user) {
   const roleEl = document.querySelector(".user-role");
   const avEl = document.querySelector(".user-avatar");
   if (nameEl) nameEl.textContent = user.name || "User";
-  if (roleEl) roleEl.textContent = user.role === "boss" ? "Collection TL" : "Collection Officer";
+  if (roleEl) roleEl.textContent = user.role === "boss" ? "Manager" : "Collection Officer";
   if (avEl) avEl.textContent = initials(user.name || user.email);
 
   const right = document.querySelector(".navbar-right");
