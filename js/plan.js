@@ -63,6 +63,9 @@ export function flowMonths(r, count) {
   const bm = Array.isArray(r.boxMonths) ? r.boxMonths : [];
   const out = [];
   let cur = null;
+  // seed the calendar from the record's installmentStart unless box 0 is
+  // manually set — so setting a start month cascades the whole schedule.
+  if (r.installmentStart && !(bm[0] && bm[0].manual)) cur = parseYM(r.installmentStart);
   for (let i = 0; i < count; i++) {
     const b = bm[i];
     if (b && b.manual && b.m) cur = parseYM(b.m);

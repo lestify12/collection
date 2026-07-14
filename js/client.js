@@ -133,7 +133,7 @@ function buildSchedule(r) {
 /* ------------------------------------------------ render */
 const INFO = [
   ["unitNo", "Unit no"], ["bookingDate", "Booking date", "date"], ["agent", "Internal agent"],
-  ["type", "Type"], ["buyerName", "Buyer name"], ["planType", "Plan type"],
+  ["type", "Type"], ["buyerName", "Buyer name"], ["planType", "Plan type"], ["installmentStart", "Installment start"],
   ["sellingPrice", "Selling price", "money"], ["dld", "DLD (4%)", "money"], ["adminFee", "Admin fee", "money"],
   ["dp20", "20% downpayment", "money"], ["dpAmountCalc", "DP total (DP + DLD + admin)", "money"],
   ["dcAmountCalc", "DC amount", "money"], ["monthlyInstallment", "Monthly installment", "money"],
@@ -143,6 +143,7 @@ const INFO = [
 function infoVal(r, k, kind) {
   // computed plan fields
   if (k === "planType") { const p = planOf(r); return p.mode === "cash" ? "100% Cash" : `${p.dpPct}% DP · ${p.dcPct}% DC · ${p.mode === "flexi" ? "Flexi" : "1% Monthly"}`; }
+  if (k === "installmentStart") { const ym = parseYM(r.installmentStart); return ym ? `${MONTHS[ym.m - 1]} ${ym.y}` : `<span class="muted">—</span>`; }
   if (k === "dpAmountCalc") return fmtMoney(planOf(r).dpAmount);
   if (k === "dcAmountCalc") return fmtMoney(planOf(r).dcAmount);
   const v = r[k];
@@ -494,6 +495,10 @@ async function recordPayment() {
 /* ---- Payment plan editor: DP amount, DC amount / %, and mode ---- */
 async function openPlanEditor() {
   const p = planOf(record);
+  const startYM = parseYM(record.installmentStart);
+  const nowY = new Date().getFullYear();
+  const startYears = [];
+  for (let y = Math.min(nowY - 1, 2023); y <= nowY + 10; y++) startYears.push(y);
   const bd = document.createElement("div");
   bd.className = "modal-backdrop";
   bd.innerHTML = `<div class="modal" style="width:min(460px,100%)">
@@ -513,7 +518,12 @@ async function openPlanEditor() {
         <label class="fld"><span>DC %</span><input id="plDcPct" type="number" step="0.01" value="${p.dcPct}"></label>
         <label class="fld"><span>DC amount (AED)</span><input id="plDcAmt" type="number" step="0.01" value="${r2(p.dcAmount)}"></label>
       </div>
-      <div class="assign-note"><i class="ti ti-info-circle"></i> The DC % sets how many 1% boxes appear (e.g. 80% → 80 boxes). Flexi lets you set each box's % individually.</div>
+      <label class="fld"><span>Installment start (first box month)</span>
+        <div style="display:flex;gap:10px">
+          <select id="plStartMon" style="flex:1"><option value="">—</option>${MONTHS.map((m, i) => `<option value="${i + 1}" ${startYM && startYM.m === i + 1 ? "selected" : ""}>${m}</option>`).join("")}</select>
+          <select id="plStartYear" style="flex:1"><option value="">—</option>${startYears.map((y) => `<option value="${y}" ${startYM && startYM.y === y ? "selected" : ""}>${y}</option>`).join("")}</select>
+        </div></label>
+      <div class="assign-note"><i class="ti ti-info-circle"></i> The DC % sets how many 1% boxes appear (e.g. 80% → 80 boxes). The installment start anchors the first box's month and cascades the rest.</div>
     </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
       <button class="btn primary" id="plSave"><i class="ti ti-check"></i> Save plan</button></div></div>`;
@@ -536,7 +546,9 @@ async function openPlanEditor() {
     const dcPct = Number(bd.querySelector("#plDcPct").value) || 0;
     const dpAmount = r2(Number(bd.querySelector("#plDpAmt").value) || 0);
     const dcAmount = r2(Number(bd.querySelector("#plDcAmt").value) || 0);
+    const sm = bd.querySelector("#plStartMon").value, sy = bd.querySelector("#plStartYear").value;
     const patch = { planMode: mode, dpPct, dcPct, dpAmount, dcAmount,
+      installmentStart: sm && sy ? `${sy}-${String(Number(sm)).padStart(2, "0")}` : "",
       paymentPlan: mode === "cash" ? "100% Cash"
         : `${dpPct}% DP • ${dcPct}% DC (${mode === "flexi" ? "FLEXI" : "1% Monthly"})` };
     // Monthly & cash regenerate/clear the boxes. Flexi leaves them un-set

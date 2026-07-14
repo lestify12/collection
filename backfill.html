@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backfill installment starts — Collection Tracker</title>
+  <link rel="stylesheet" href="fonts/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="photos/peacehomeslogo.png">
+</head>
+<body>
+  <main class="main" style="max-width:760px;margin:0 auto;padding:40px 20px">
+    <div class="card">
+      <h2 style="margin-top:0"><i class="ti ti-calendar-up"></i> Backfill installment starts</h2>
+      <div class="card-sub" id="lead">Loading…</div>
+      <div id="status" style="margin:14px 0"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn primary" id="runBtn" disabled><i class="ti ti-check"></i> Apply installment starts</button>
+        <a class="btn" href="index.html">Back to app</a>
+      </div>
+      <pre id="log" style="margin-top:16px;font-size:12px;color:var(--ink-2);white-space:pre-wrap;max-height:320px;overflow:auto"></pre>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script type="module">
+    import * as auth from "./js/auth.js";
+    import * as db from "./js/db.js";
+
+    const me = await auth.requireAuth({ min: "boss" });   // Manager / Admin only
+    if (!me) throw new Error("redirecting");
+
+    const statusEl = document.getElementById("status");
+    const leadEl = document.getElementById("lead");
+    const logEl = document.getElementById("log");
+    const btn = document.getElementById("runBtn");
+    const log = (m) => { logEl.textContent += m + "\n"; };
+    const norm = (u) => String(u ?? "").trim().toUpperCase().replace(/\s+/g, "");
+
+    const map = await (await fetch("data/plii-a-installment-start.json")).json();
+    const { projectId, field, byUnit } = map;
+    leadEl.innerHTML = `Sets <b>${field}</b> on <b>${Object.keys(byUnit).length}</b> units of project <b>${projectId}</b>, matched by unit number (column D → column Z from the workbook).`;
+
+    const { records } = await db.loadAll(true);
+    const recs = records.filter((r) => r.projectId === projectId);
+    const todo = [];
+    let already = 0, unmatched = 0;
+    for (const r of recs) {
+      const start = byUnit[norm(r.unitNo)];
+      if (!start) { unmatched++; continue; }
+      if (r.installmentStart === start) { already++; continue; }
+      todo.push({ id: r.id, unitNo: r.unitNo, start });
+    }
+    statusEl.innerHTML = `<b>${recs.length}</b> ${projectId} records loaded · <b>${todo.length}</b> to update · ${already} already set · ${unmatched} no start in the sheet.`;
+    if (!todo.length) { btn.textContent = "Nothing to update"; log("Everything is already up to date."); }
+    else btn.disabled = false;
+
+    btn.addEventListener("click", async () => {
+      btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Applying…`;
+      let done = 0;
+      for (const t of todo) {
+        try { await db.updateRecord(t.id, { installmentStart: t.start }); done++; log(`✓ ${t.unitNo} → ${t.start}`); }
+        catch (e) { log(`✗ ${t.unitNo} — ${e.message}`); }
+      }
+      btn.innerHTML = `<i class="ti ti-check"></i> Done (${done}/${todo.length})`;
+      log(`\nFinished — updated ${done} of ${todo.length}.`);
+    });
+  </script>
+</body>
+</html>
