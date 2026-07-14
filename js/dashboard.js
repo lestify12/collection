@@ -94,9 +94,6 @@ function render(rows, tot, catTot, summary) {
     </section>
 
     <div class="stat-grid">
-      <div class="stat-card reveal"><div class="stat-icon green"><i class="ti ti-report-money"></i></div>
-        <div><div class="stat-value" id="kpiDue">0</div><div class="stat-label">Total outstanding</div>
-        <div class="stat-foot">all categories · ${rows.length} project${rows.length === 1 ? "" : "s"}</div></div></div>
       <div class="stat-card reveal"><div class="stat-icon navy"><i class="ti ti-users-group"></i></div>
         <div><div class="stat-value" id="kpiUnits">0</div><div class="stat-label">Units with dues</div>
         <div class="stat-foot">of ${fmtInt(tot.projectUnits)} total units</div></div></div>
@@ -160,7 +157,6 @@ function render(rows, tot, catTot, summary) {
     </section>`;
 
   countUp(document.getElementById("kpiInst"), inst.due, { money: true });
-  countUp(document.getElementById("kpiDue"), tot.totalDue, { money: true });
   countUp(document.getElementById("kpiUnits"), tot.totalUnits);
   countUp(document.getElementById("kpiLegal"), catTot.legal.due, { money: true });
   countUp(document.getElementById("kpiUnsold"), tot.unsoldUnits);
