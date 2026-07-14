@@ -283,7 +283,7 @@ function renderClientTab() {
         <div class="card-head">
           <div class="card-head-t">
             <div class="card-head-title"><i class="ti ti-calendar-dollar"></i> Payment schedule</div>
-            <div class="card-head-sub">${sched ? (sched.plan.mode === "cash" ? "100% Cash" : sched.plan.mode === "flexi" ? "Flexi" : "1% monthly") : ""}${canEdit && sched && sched.plan.mode !== "cash" ? " · click a box to set month / %" : ""}</div>
+            <div class="card-head-sub">${r.soaBreakdown?.items?.length ? `From SOA${r.soaBreakdown.ref ? " · " + esc(r.soaBreakdown.ref) : ""}` : (sched ? (sched.plan.mode === "cash" ? "100% Cash" : sched.plan.mode === "flexi" ? "Flexi" : "1% monthly") : "")}${canEdit && sched && sched.plan.mode !== "cash" ? " · click a box to set month / %" : ""}</div>
           </div>
           <div class="card-head-actions">
             ${canEdit ? `<button class="btn head-btn sm" id="editPlanBtn"><i class="ti ti-adjustments"></i> Edit plan</button>` : ""}
@@ -489,6 +489,14 @@ async function handleSOAUpload(e) {
     if (!res.items.length) { toast("Couldn’t find a Payment Installment Breakdown in that PDF."); return; }
     const patch = { soaBreakdown: { ...res, uploadedAt: new Date().toISOString(), fileName: f.name } };
     if (res.start) patch.installmentStart = res.start.slice(0, 7);   // feed the schedule anchor
+    // Drive the payment-schedule boxes from the SOA: each installment's
+    // percentage becomes a box (amount = % × selling price) on its exact month,
+    // so the schedule mirrors the official statement (incl. the 2% boxes).
+    const S = Number(record.sellingPrice) || 0;
+    if (S > 0) {
+      patch.installmentPlan = res.items.map((it) => r2(((Number(it.pct) || 0) / 100) * S));
+      patch.boxMonths = res.items.map((it) => (it.date ? { m: it.date.slice(0, 7), manual: true } : null));
+    }
     await db.updateRecord(record.id, patch);
     toast(`Loaded ${res.items.length} installments from the SOA`);
     await reloadAndRender();
