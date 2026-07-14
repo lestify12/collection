@@ -575,8 +575,8 @@ async function openBoxEditor(idx) {
       </div>
       <label class="assign-row" style="margin-top:2px"><input type="checkbox" id="bxSkip" ${box.skip ? "checked" : ""}>
         <span>No collection this month (skipped)</span></label>
-      ${flexi ? `<label class="fld" style="margin-top:10px"><span>Installment size (% of selling price)</span>
-        <input id="bxPct" type="number" step="0.01" min="0" value="${curPct}"></label>` : ""}
+      <label class="fld" style="margin-top:10px"><span>Installment size (% of selling price) · default 1% = ${fmtMoney(s.onePct)}</span>
+        <input id="bxPct" type="number" step="0.01" min="0" value="${curPct}"></label>
       <div class="assign-note"><i class="ti ti-info-circle"></i> Later boxes auto-fill the next months. Mark odd months as “No collection”.</div>
     </div>
     <div class="modal-actions">${box.month || box.skip ? `<button class="btn" id="bxClear">Clear month</button>` : `<button class="btn" data-x>Cancel</button>`}
@@ -604,15 +604,16 @@ async function openBoxEditor(idx) {
     const y = Number(bd.querySelector("#bxYear").value);
     const skip = bd.querySelector("#bxSkip").checked;
     const patch = { boxMonths: saveBoxMonths({ m: ymKey({ y, m }), manual: true, skip }) };
-    if (flexi) {
-      const pct = Number(bd.querySelector("#bxPct").value);
-      if (pct > 0) {
-        const plan = (Array.isArray(record.installmentPlan) && record.installmentPlan.length)
-          ? record.installmentPlan.map(Number) : s.boxes.slice();
-        while (plan.length <= idx) plan.push(r2(s.onePct));
-        plan[idx] = r2(s.onePct * pct);
-        patch.installmentPlan = plan;
-      }
+    const pct = Number(bd.querySelector("#bxPct").value);
+    // Works in any mode. Setting a box's % keeps the boxes before it, sets
+    // this box, then rebuilds the boxes after it as 1% each to fill the rest
+    // of the DC amount — so the later boxes auto-adjust and the plan stays
+    // balanced to the DC total.
+    if (pct > 0 && Math.abs(pct * s.onePct - box.amount) > 0.01) {
+      const newAmt = r2(s.onePct * pct);
+      const head = s.boxes.slice(0, idx).map(Number);
+      const rem = Math.max(0, r2(s.balance - head.reduce((a, b) => a + b, 0) - newAmt));
+      patch.installmentPlan = [...head, newAmt, ...genBoxes(rem, s.onePct)];
     }
     try { await db.updateRecord(record.id, patch); close(); toast(`Installment ${idx + 1} updated`); await reloadAndRender(); }
     catch (e) { toast("Failed — " + e.message); }
