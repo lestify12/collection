@@ -95,20 +95,35 @@ function unitCol(header, data) {
   return best;
 }
 
+/* Score a row as a possible header. A real header carries several known
+   column titles. We don't *require* a "Unit" title because some workbooks
+   (e.g. Peace Lagoons Tower B → INSTALLMENT) leave that header cell blank —
+   in that case the unit column is recovered from the data by pattern. */
+function headerScore(fields) {
+  const set = new Set(fields.filter(Boolean));
+  // strongest signal: an explicit Unit column plus a buyer/price column
+  if (set.has("unitNo") && (set.has("buyerName") || set.has("sellingPrice"))) return 3;
+  const known = ["buyerName", "sellingPrice", "paymentPlan", "dld", "adminFee",
+    "dpTotal", "bookingDate", "type", "reflected", "monthlyInstallment", "agent"]
+    .reduce((n, k) => n + (set.has(k) ? 1 : 0), 0);
+  if (set.has("unitNo")) return 2;
+  if (known >= 3) return 2;   // header whose Unit cell is blank/mislabelled
+  return 0;
+}
+
 function extractRows(aoa, cat, projectId) {
-  let hi = -1, header = null;
-  for (let i = 0; i < Math.min(10, aoa.length); i++) {
-    const fields = (aoa[i] || []).map(matchField);
-    if (fields.includes("unitNo") && (fields.includes("buyerName") || fields.includes("sellingPrice"))) { hi = i; header = aoa[i]; break; }
-  }
-  if (hi < 0) for (let i = 0; i < Math.min(10, aoa.length); i++) {
-    if ((aoa[i] || []).map(matchField).includes("unitNo")) { hi = i; header = aoa[i]; break; }
+  let hi = -1, best = 0, header = null;
+  for (let i = 0; i < Math.min(12, aoa.length); i++) {
+    const s = headerScore((aoa[i] || []).map(matchField));
+    if (s > best) { best = s; hi = i; header = aoa[i]; if (s >= 3) break; }
   }
   if (hi < 0) return [];
 
   const col = {};
   header.forEach((h, idx) => { const f = matchField(h); if (f && !(f in col)) col[f] = idx; });
   const data = aoa.slice(hi + 1);
+  // Unit column: explicit header if present, else detect by data pattern
+  // (handles the blank/mislabelled Unit header seen in some workbooks).
   const ucol = "unitNo" in col ? col.unitNo : unitCol(header, data);
   if (ucol < 0) return [];
   const ocol = outColIndex(header);
