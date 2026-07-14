@@ -2,11 +2,11 @@ rules_version = '2';
 
 // Collection Tracker — Firestore security rules (auth + assignment).
 //
-// Roles live in users/{uid}.role ("boss" | "agent"). Visibility of a
-// record is driven by its `assignedTo` (a uid): the boss sees everything,
-// an agent sees only records assigned to them. The client queries records
-// with `where("assignedTo","==",uid)` for agents, which matches the read
-// rule below so the query is allowed.
+// Roles live in users/{uid}.role: "boss" (Manager), "lead" (Collection TL),
+// "agent" (Collection Officer). System/IT admins are matched by email.
+// Reads: every signed-in user may read all records (officers see all
+// projects). Writes: Manager + Team Leader may change anything; a Collection
+// Officer may only update the units assigned to them (assignedTo == their uid).
 service cloud.firestore {
   match /databases/{database}/documents {
 
