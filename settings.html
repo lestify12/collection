@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Collection Analytics — All Projects</title>
-  <meta name="description" content="Collection summary dashboard across all projects.">
+  <title>Settings — Collection Tracker</title>
   <link rel="stylesheet" href="fonts/tabler-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" type="image/png" href="photos/peacehomeslogo.png">
@@ -21,10 +20,10 @@
       <button class="navbar-icon-btn" id="themeToggle" title="Toggle theme"><i class="ti ti-moon"></i></button>
       <div class="navbar-user">
         <div class="user-info">
-          <div class="user-name">Collections</div>
-          <div class="user-role">Recovery Tracker</div>
+          <div class="user-name">…</div>
+          <div class="user-role">…</div>
         </div>
-        <div class="user-avatar">PH</div>
+        <div class="user-avatar">…</div>
       </div>
     </div>
   </nav>
@@ -37,40 +36,24 @@
       </div>
       <div class="sidebar-section">
         <div class="sidebar-section-label">Projects</div>
-        <div id="navProjects"><div class="sk-nav"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></div>
+        <div id="navProjects"><div class="sk-nav"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></div>
       </div>
       <div class="sidebar-spacer"></div>
-      <div class="sidebar-foot" id="modeBadge">
-        <span class="pulse"></span>
-        <div>
-          <div class="foot-text mode-text">Loading…</div>
-          <div class="foot-sub">data source</div>
-        </div>
-      </div>
     </aside>
 
     <main class="main">
       <div class="page-header">
         <div>
-          <div class="page-title">All Project Collection Summary</div>
-          <div class="page-subtitle" id="reportDate"></div>
+          <div class="page-title">Settings</div>
+          <div class="page-subtitle">Update your profile and password</div>
         </div>
       </div>
-
-      <div id="dashboard">
-        <div class="kpi-row">
-          <div class="skeleton" style="height:96px"></div>
-          <div class="skeleton" style="height:96px"></div>
-          <div class="skeleton" style="height:96px"></div>
-          <div class="skeleton" style="height:96px"></div>
-        </div>
-        <div class="skeleton" style="height:360px;margin-top:18px"></div>
-      </div>
+      <div id="settingsBody"><div class="skeleton" style="height:280px"></div></div>
     </main>
   </div>
 
   <script src="js/config.js"></script>
-  <script type="module" src="js/dashboard.js"></script>
+  <script type="module" src="js/settings.js"></script>
   <script src="js/mobile-nav.js"></script>
 </body>
 </html>

@@ -83,6 +83,10 @@ function redirectToLogin() {
 export async function requireAuth({ boss = false } = {}) {
   const user = await ready;
   if (!user) { redirectToLogin(); return null; }
+  // First-login security: must set a new password before using the app.
+  if (user.mustChangePassword && !location.pathname.endsWith("settings.html")) {
+    location.replace("settings.html"); return null;
+  }
   if (boss && user.role !== "boss") { location.replace("index.html"); return null; }
   return user;
 }
@@ -137,7 +141,7 @@ export async function createUser({ email, name, role, password }) {
     try {
       const secAuth = db.authNs.getAuth(secApp);
       const cred = await db.authNs.createUserWithEmailAndPassword(secAuth, email, password);
-      await db.saveUserDoc(cred.user.uid, { email, name, role, active: true });
+      await db.saveUserDoc(cred.user.uid, { email, name, role, active: true, mustChangePassword: true });
       await db.authNs.signOut(secAuth);
       return { uid: cred.user.uid, email, name, role, active: true };
     } finally { await deleteApp(secApp); }
@@ -145,7 +149,7 @@ export async function createUser({ email, name, role, password }) {
   const list = lsUsers() || seedLocal();
   if (list.some((u) => u.email.toLowerCase() === email.toLowerCase())) throw new Error("That email already exists.");
   const uid = "u_" + Date.now();
-  const u = { uid, email, name, role, password, active: true };
+  const u = { uid, email, name, role, password, active: true, mustChangePassword: true };
   list.push(u); saveUsers(list);
   return u;
 }
@@ -155,6 +159,21 @@ export async function updateUser(uid, patch) {
   const list = lsUsers() || seedLocal();
   const i = list.findIndex((u) => u.uid === uid);
   if (i >= 0) { list[i] = { ...list[i], ...patch }; saveUsers(list); if (_user?.uid === uid) _user = { ..._user, ...patch }; }
+}
+
+export async function changePassword(newPassword) {
+  if (db.LIVE) {
+    const u = db.authInst.currentUser;
+    if (!u) throw new Error("Please sign in again.");
+    try { await db.authNs.updatePassword(u, newPassword); }
+    catch (e) {
+      if (String(e?.code || e).includes("requires-recent-login"))
+        throw new Error("For security, sign out and back in, then change your password.");
+      throw new Error("Could not update password.");
+    }
+    return;
+  }
+  await updateUser(_user.uid, { password: newPassword });
 }
 
 export async function deleteUser(uid) {
@@ -194,20 +213,26 @@ export function renderChrome(user) {
   const roleEl = document.querySelector(".user-role");
   const avEl = document.querySelector(".user-avatar");
   if (nameEl) nameEl.textContent = user.name || "User";
-  if (roleEl) roleEl.textContent = user.role === "boss" ? "Administrator" : "Agent";
+  if (roleEl) roleEl.textContent = user.role === "boss" ? "Collection TL" : "Collection Officer";
   if (avEl) avEl.textContent = initials(user.name || user.email);
 
   const right = document.querySelector(".navbar-right");
+  const anchor = right?.querySelector(".navbar-user");
+  if (right && !document.getElementById("settingsBtn")) {
+    const s = document.createElement("a");
+    s.id = "settingsBtn"; s.className = "navbar-icon-btn"; s.title = "Settings"; s.href = "settings.html";
+    s.innerHTML = `<i class="ti ti-settings"></i>`;
+    right.insertBefore(s, anchor);
+  }
   if (right && !document.getElementById("signOutBtn")) {
     const b = document.createElement("button");
     b.id = "signOutBtn"; b.className = "navbar-icon-btn"; b.title = "Sign out";
     b.innerHTML = `<i class="ti ti-logout"></i>`;
     b.addEventListener("click", () => signOut());
-    right.insertBefore(b, right.querySelector(".navbar-user"));
+    right.insertBefore(b, anchor);
   }
 
   const boss = user.role === "boss";
-  document.querySelectorAll('a[href="seed.html"]').forEach((a) => (a.style.display = boss ? "" : "none"));
   if (boss) {
     const dash = document.getElementById("navDashboard");
     if (dash && !document.getElementById("navTeam")) {

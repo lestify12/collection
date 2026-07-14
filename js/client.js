@@ -483,7 +483,7 @@ function mountScheduleTips() {
 /* ------------------------------------------------ assign this unit (boss) */
 async function openAssign(r) {
   const users = (await auth.listUsers()).filter((u) => u.role === "agent" && u.active !== false);
-  const opts = [`<option value="">Unassigned — only admins see it</option>`]
+  const opts = [`<option value="">Unassigned — only the Collection TL sees it</option>`]
     .concat(users.map((u) => `<option value="${esc(u.uid)}" ${r.assignedTo === u.uid ? "selected" : ""}>${esc(u.name || u.email)}</option>`))
     .join("");
 
@@ -498,7 +498,7 @@ async function openAssign(r) {
     <div class="modal-body">
       <label class="fld"><span>Collector</span><select id="asSel">${opts}</select></label>
       <div class="assign-note"><i class="ti ti-info-circle"></i> Overrides the project-level assignment for this one unit.</div>
-      ${users.length ? "" : `<div class="login-error show">No agents yet — add one in Team &amp; access.</div>`}
+      ${users.length ? "" : `<div class="login-error show">No collection officers yet — add one in Team &amp; access.</div>`}
     </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
       <button class="btn primary" id="asSave"><i class="ti ti-check"></i> Save</button></div></div>`;

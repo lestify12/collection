@@ -53,7 +53,7 @@ async function render() {
             <div class="u-email">${esc(u.email)}</div></div>
           </div>
         </td>
-        <td><span class="role-badge ${boss ? "boss" : "agent"}">${boss ? "Administrator" : "Agent"}</span></td>
+        <td><span class="role-badge ${boss ? "boss" : "agent"}">${boss ? "Collection TL" : "Collection Officer"}</span></td>
         <td class="proj-cell">${chips}</td>
         <td><span class="status-dot ${disabled ? "off" : "on"}"></span>${disabled ? "Disabled" : "Active"}</td>
         <td class="num act-cell">
@@ -76,7 +76,7 @@ async function render() {
     </section>
     <div class="card-sub" style="margin-top:12px">
       ${auth.isLive()
-        ? "Agents sign in with the email &amp; password you set here. Removing a teammate deletes their access profile; delete the login itself in the Firebase console."
+        ? "Collection officers sign in with the email &amp; password you set here. Removing a teammate deletes their access profile; delete the login itself in the Firebase console."
         : "Preview mode — accounts and sessions live in this browser only. Switch on Firebase Auth to make them real."}
     </div>`;
 
@@ -129,8 +129,8 @@ function openUserForm() {
       <label class="fld"><span>Email</span><input id="fEmail" type="email" placeholder="reyshel@peacehomes.ae"></label>
       <label class="fld"><span>Temporary password</span><input id="fPass" type="text" placeholder="at least 6 characters"></label>
       <label class="fld"><span>Role</span>
-        <select id="fRole"><option value="agent">Agent — sees only assigned projects</option>
-        <option value="boss">Administrator — full access</option></select></label>
+        <select id="fRole"><option value="agent">Collection Officer — sees only assigned projects</option>
+        <option value="boss">Collection TL — full access</option></select></label>
       <div class="login-error" id="fErr"></div>
     </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
@@ -177,7 +177,7 @@ async function openAssign(uid) {
       <div class="modal-header-sub">${esc(u.name || u.email)} will see &amp; collect on the checked projects</div></div></div>
       <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
     <div class="modal-body"><div class="assign-list">${list}</div>
-      <div class="assign-note"><i class="ti ti-info-circle"></i> Assigning a project hands every unit in it to this agent. Fine-tune individual units on each client's page.</div></div>
+      <div class="assign-note"><i class="ti ti-info-circle"></i> Assigning a project hands every unit in it to this collection officer. Fine-tune individual units on each client's page.</div></div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
       <button class="btn primary" id="aSave"><i class="ti ti-check"></i> Save</button></div>`);
 

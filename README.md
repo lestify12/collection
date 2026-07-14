@@ -60,18 +60,20 @@ assignments live in a Firestore `users` collection.
 1. **Build → Authentication → Get started → Email/Password → Enable.**
 2. **Authentication → Users → Add user** — create the first account with
    *your* email. The first person to sign in is auto-bootstrapped as the
-   **boss** (administrator) and lands on the full dashboard.
+   **Collection TL** (team lead / admin) and lands on the full dashboard.
 3. Sign in at **`/login.html`**, open **Team & access** (sidebar) and:
-   - **Add teammate** — creates an agent's login + profile in one step.
+   - **Add teammate** — creates a collection officer's login + profile in one
+     step.
    - **Assign projects** (📍 icon) — hands every unit in the chosen projects
-     to that agent.
+     to that officer.
    - Per-unit override: open any client and use **Assign** to move a single
-     unit to a different agent.
+     unit to a different officer.
 4. What each role sees:
-   - **Boss / administrator** — every project, the Team page, seed/import.
-   - **Agent** — only the projects/units assigned to them; no Team or import.
+   - **Collection TL** — every project, the Team page, seed/import.
+   - **Collection Officer** — only the projects/units assigned to them; no
+     Team or import.
 
-Access is enforced both in the app *and* in `firestore.rules` (an agent's
+Access is enforced both in the app *and* in `firestore.rules` (an officer's
 reads are limited to `where assignedTo == their-uid`). Removing a teammate
 here deletes their profile & assignments; delete the login itself under
 **Authentication → Users**.
