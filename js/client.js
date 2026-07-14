@@ -457,6 +457,25 @@ async function handleSOAUpload(e) {
   try {
     const res = await parseSOA(f);
     if (!res.items.length) { toast("Couldn’t find a Payment Installment Breakdown in that PDF."); return; }
+    // The SOA must belong to THIS unit. Block a definite mismatch; if the
+    // unit number can't be read, ask before proceeding.
+    const norm = (u) => String(u || "").toUpperCase().replace(/[\s\-]/g, "");
+    if (res.unit && norm(res.unit) !== norm(record.unitNo)) {
+      await confirmModal({
+        title: "Wrong unit — upload blocked",
+        message: `This SOA is for unit ${res.unit}, but you're on unit ${record.unitNo}. Upload the SOA that belongs to this unit.`,
+        confirmLabel: "OK", icon: "ti-alert-triangle",
+      });
+      return;
+    }
+    if (!res.unit) {
+      const ok = await confirmModal({
+        title: "Couldn’t verify the unit",
+        message: `We couldn't read a unit number from this PDF to confirm it belongs to unit ${record.unitNo}. Upload anyway?`,
+        confirmLabel: "Upload anyway", icon: "ti-help-circle",
+      });
+      if (!ok) return;
+    }
     const patch = { soaBreakdown: { ...res, uploadedAt: new Date().toISOString(), fileName: f.name } };
     if (res.start) patch.installmentStart = res.start.slice(0, 7);   // feed the schedule anchor
     // Drive the payment-schedule boxes from the SOA: each installment's

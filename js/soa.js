@@ -54,6 +54,10 @@ export async function parseSOA(file) {
   }
   text = text.replace(/\s+/g, " ");
   const ref = (text.match(/PHD\/SOA\/\d+/i) || [""])[0];
+  // the SOA's own "Unit Number : A1209" — used to verify it matches the record
+  const um = text.match(/Unit\s*(?:No\.?|Number)\s*:?\s*(.+?)\s+Unit\s+(?:Type|Price)/i)
+    || text.match(/Unit\s*(?:No\.?|Number)\s*:?\s*([A-Za-z0-9][\w\-/]{0,14})/i);
+  const unit = um ? um[1].trim() : "";
 
   const byN = new Map();
   ROW_RE.lastIndex = 0;
@@ -64,5 +68,5 @@ export async function parseSOA(file) {
   }
   const items = [...byN.values()].sort((a, b) => a.n - b.n);
   const start = items.length ? items[0].date : null;
-  return { ref, start, items };
+  return { ref, unit, start, items };
 }
