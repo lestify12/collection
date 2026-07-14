@@ -57,11 +57,13 @@ service cloud.firestore {
       allow write: if isBoss();
     }
 
-    // Unit records. Manager + Team Leader: full access (incl. assigning).
-    // Collection Officer: read/update only their own assigned units, and
-    // may not reassign a unit away from themselves.
+    // Unit records. Everyone signed in may READ every record (officers see
+    // all projects). Writing is restricted: Manager + Team Leader may change
+    // anything; a Collection Officer may update only their own assigned units
+    // (and not reassign a unit away from themselves). Create/delete stay with
+    // Manager + Team Leader.
     match /records/{recordId} {
-      allow read:   if canViewAll() || (signedIn() && resource.data.assignedTo == request.auth.uid);
+      allow read:   if signedIn();
       allow update: if canViewAll()
         || (signedIn() && resource.data.assignedTo == request.auth.uid
             && request.resource.data.assignedTo == resource.data.assignedTo);

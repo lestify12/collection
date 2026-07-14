@@ -185,9 +185,10 @@ function render() {
 
 function renderClientTab() {
   const r = record;
+  const canEdit = auth.canEdit(r, ME);
   const body = document.getElementById("clientBody");
   if (activeClientTab === "history") {
-    body.innerHTML = historyHTML(r);
+    body.innerHTML = historyHTML(r, canEdit);
     document.getElementById("recordPayBtn2")?.addEventListener("click", recordPayment);
     body.querySelectorAll("[data-deltxn]").forEach((b) =>
       b.addEventListener("click", () => deleteTxn(b.dataset.deltxn)));
@@ -207,6 +208,7 @@ function renderClientTab() {
 
   const refS = fmtMoney(reflected), outS = fmtMoney(outstanding), spS = fmtMoney(r.sellingPrice);
   body.innerHTML = `
+    ${!canEdit ? `<div class="ro-banner"><i class="ti ti-eye"></i> <div>View only — this unit is assigned to <b>${esc(r.assignedToName || "another officer")}</b>. You can browse it, but can't record or change payments.</div></div>` : ""}
     <div class="stat-grid client-stats">
       <div class="stat-card"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div>
         <div><div class="stat-value money-good" style="font-size:${fitStat(refS)}px">${refS}</div>
@@ -234,12 +236,12 @@ function renderClientTab() {
         <div class="card-head">
           <div class="card-head-t">
             <div class="card-head-title"><i class="ti ti-calendar-dollar"></i> Payment schedule</div>
-            <div class="card-head-sub">1% monthly · click a box to edit %</div>
+            <div class="card-head-sub">1% monthly${canEdit ? " · click a box to edit %" : ""}</div>
           </div>
-          ${sched ? `<button class="btn head-btn sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
+          ${sched && canEdit ? `<button class="btn head-btn sm" id="recordPayBtn"><i class="ti ti-cash"></i> Record payment</button>` : ""}
         </div>
         <div class="card-pad">
-          ${sched ? scheduleHTML(sched, r) : `<div class="empty" style="padding:26px"><div class="e-icon">🧾</div>
+          ${sched ? scheduleHTML(sched, r, canEdit) : `<div class="empty" style="padding:26px"><div class="e-icon">🧾</div>
             <div class="e-title">No selling price on record</div>
             <div class="e-sub">Add a selling price to generate the 1% installment breakdown.</div></div>`}
         </div>
@@ -248,19 +250,21 @@ function renderClientTab() {
 
   if (sched) {
     mountScheduleTips();
-    document.getElementById("recordPayBtn")?.addEventListener("click", recordPayment);
-    document.getElementById("transferBtn")?.addEventListener("click", transferToInstallment);
-    document.getElementById("schedReset")?.addEventListener("click", async (e) => {
-      e.preventDefault();
-      try { await db.updateRecord(record.id, { installmentPlan: null }); toast("Schedule reset to 1%"); await reloadAndRender(); }
-      catch (err) { toast("Failed — " + err.message); }
-    });
-    document.querySelectorAll(".sched-cell[data-idx]").forEach((el) =>
-      el.addEventListener("click", () => editBox(Number(el.dataset.idx))));
+    if (canEdit) {
+      document.getElementById("recordPayBtn")?.addEventListener("click", recordPayment);
+      document.getElementById("transferBtn")?.addEventListener("click", transferToInstallment);
+      document.getElementById("schedReset")?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        try { await db.updateRecord(record.id, { installmentPlan: null }); toast("Schedule reset to 1%"); await reloadAndRender(); }
+        catch (err) { toast("Failed — " + err.message); }
+      });
+      document.querySelectorAll(".sched-cell[data-idx]").forEach((el) =>
+        el.addEventListener("click", () => editBox(Number(el.dataset.idx))));
+    }
   }
 }
 
-function historyHTML(r) {
+function historyHTML(r, canEdit = true) {
   const list = txns(r).slice().sort((a, b) => String(b.date || b.ts || "").localeCompare(String(a.date || a.ts || "")));
   const reflected = Number(r.reflected) || 0;
   const sumTx = list.reduce((s, t) => s + (Number(t.amount) || 0), 0);
@@ -270,7 +274,7 @@ function historyHTML(r) {
       <td style="white-space:nowrap">${t.date ? fmtDate(t.date) : "—"}</td>
       <td class="num money-good">+${fmtMoney(t.amount, { currency: false })}</td>
       <td class="cell-remarks">${esc(t.note || "")}</td>
-      <td><div class="row-actions"><button class="del" data-deltxn="${esc(t.id)}" title="Delete payment">✕</button></div></td>
+      <td>${canEdit ? `<div class="row-actions"><button class="del" data-deltxn="${esc(t.id)}" title="Delete payment">✕</button></div>` : ""}</td>
     </tr>`).join("");
   const baseRow = base > 0.5 ? `<tr>
       <td style="white-space:nowrap;color:var(--ink-3)">Opening balance</td>
@@ -284,7 +288,7 @@ function historyHTML(r) {
         <div class="card-head-title"><i class="ti ti-receipt-2"></i> Transaction history</div>
         <div class="card-head-sub">${list.length} recorded payment${list.length === 1 ? "" : "s"} for unit ${esc(r.unitNo)}</div>
       </div>
-      <button class="btn head-btn sm" id="recordPayBtn2"><i class="ti ti-cash"></i> Record payment</button>
+      ${canEdit ? `<button class="btn head-btn sm" id="recordPayBtn2"><i class="ti ti-cash"></i> Record payment</button>` : ""}
     </div>
     <div class="card-pad">
       ${hasRows ? `<div class="table-wrap"><table class="data">
@@ -316,7 +320,7 @@ async function deleteTxn(id) {
   } catch (e) { toast("Failed — " + e.message); }
 }
 
-function scheduleHTML(s, r) {
+function scheduleHTML(s, r, canEdit = true) {
   const dpBar = s.dpTarget ? Math.min(100, Math.round((s.dpPaid / s.dpTarget) * 100)) : 100;
   const paidCount = s.instRows.filter((x) => x.status === "paid").length;
   const partialCount = s.instRows.filter((x) => x.status === "partial").length;
@@ -324,13 +328,13 @@ function scheduleHTML(s, r) {
   const cells = s.instRows.map((x) => {
     const pct = s.onePct ? Math.round((x.amount / s.onePct) * 100) / 100 : 1;
     const custom = Math.abs(pct - 1) > 0.001;
-    return `<span class="sched-cell ${x.status}${custom ? " custom" : ""}" data-idx="${x.idx}"
-      data-tip="Installment ${x.idx + 1} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}<br><span style='opacity:.7'>click to set %</span>">${custom ? pct + "%" : ""}</span>`;
+    return `<span class="sched-cell ${x.status}${custom ? " custom" : ""}${canEdit ? "" : " ro"}" ${canEdit ? `data-idx="${x.idx}"` : ""}
+      data-tip="Installment ${x.idx + 1} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}${canEdit ? "<br><span style='opacity:.7'>click to set %</span>" : ""}">${custom ? pct + "%" : ""}</span>`;
   }).join("");
 
   const transfer = s.isDp
     ? (s.transferReady
-        ? `<button class="btn primary sm sched-transfer" id="transferBtn"><i class="ti ti-arrow-right"></i> Transfer to Installment</button>`
+        ? (canEdit ? `<button class="btn primary sm sched-transfer" id="transferBtn"><i class="ti ti-arrow-right"></i> Transfer to Installment</button>` : "")
         : `<div class="sched-note"><i class="ti ti-info-circle"></i> Reflected payments go to the 24% downpayment. When it's complete, a <b>Transfer to Installment</b> button appears to start the 1% monthly plan.</div>`)
     : "";
 
@@ -350,7 +354,7 @@ function scheduleHTML(s, r) {
     </div>
 
     <div class="sched-inst-head">
-      <span>${s.instCount} installments · 1% = ${fmtMoney(s.onePct)}${s.custom ? ` · <a href="#" id="schedReset">reset</a>` : ""}${s.isDp ? " (starts after transfer)" : ""}</span>
+      <span>${s.instCount} installments · 1% = ${fmtMoney(s.onePct)}${s.custom && canEdit ? ` · <a href="#" id="schedReset">reset</a>` : ""}${s.isDp ? " (starts after transfer)" : ""}</span>
       <span class="sched-legend">
         <span class="sched-cell paid"></span> ${paidCount} paid
         <span class="sched-cell partial"></span> ${partialCount} partial

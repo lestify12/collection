@@ -856,3 +856,11 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .assign-card:has(input:checked) { border-color: var(--brand-accent); background: rgba(47,143,91,.08); color: var(--ink); }
 .assign-card:has(input:checked) > .ti-building { color: var(--brand-accent); }
 .assign-card:has(input:checked) .assign-check { opacity: 1; }
+
+/* read-only banner (officer viewing a unit not assigned to them) */
+.ro-banner { display: flex; gap: 10px; align-items: center; margin-bottom: 16px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 15px; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.ro-banner i { font-size: 18px; color: var(--ink-3); flex-shrink: 0; }
+.ro-banner b { color: var(--ink); }
+.sched-cell.ro { cursor: default; }

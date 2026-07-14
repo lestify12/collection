@@ -234,15 +234,17 @@ export function assignedProjectIds(records, uid) {
   return s;
 }
 
-/** Filter a loaded { summary, records } down to what `user` may see.
-    Manager + Team Leader see everything; officers see only their units. */
+/** Everyone may VIEW all projects & records now, so this is a pass-through.
+    (Write access is gated separately via canEdit.) */
 export function scopeData({ summary, records }, user) {
-  if (!user || canViewAll(user)) return { summary, records };
-  const uid = user.uid;
-  const recs = records.filter((r) => r.assignedTo === uid);
-  const projIds = new Set(recs.map((r) => r.projectId));
-  const projects = (summary.projects || []).filter((p) => projIds.has(p.id));
-  return { summary: { ...summary, projects }, records: recs };
+  return { summary, records };
+}
+
+/** Can `user` make changes to this record? Manager/TL/admin: any record;
+    a Collection Officer: only units assigned to them. */
+export function canEdit(record, user = _user) {
+  if (!user || !record) return false;
+  return canViewAll(user) || record.assignedTo === user.uid;
 }
 
 /* ------------------------------------------------ chrome (navbar + sidebar) */

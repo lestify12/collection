@@ -119,24 +119,17 @@ async function fetchJSON(path) {
 }
 
 /** Loads everything the pages need: { summary, records }.
-    `scope` (optional) = the signed-in user; when they are an agent the live
-    query is narrowed to records assigned to them so it satisfies the rules. */
+    Every signed-in user reads all records (officers see all projects);
+    write access is enforced separately in the UI and Firestore rules. */
 export async function loadAll(force = false, scope = null) {
-  const key = scope && scope.role === "agent" ? `agent:${scope.uid}` : "all";
-  if (cache && cache._key === key && !force) return cache;
+  if (cache && !force) return cache;
 
   const summary = await loadSummary();
   let records;
 
   if (LIVE) {
-    if (scope && scope.role === "agent") {
-      const q = fs.query(fs.collection(db, "records"), fs.where("assignedTo", "==", scope.uid));
-      const snap = await fs.getDocs(q);
-      records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } else {
-      const snap = await fs.getDocs(fs.collection(db, "records"));
-      records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    }
+    const snap = await fs.getDocs(fs.collection(db, "records"));
+    records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } else {
     const seed = await fetchJSON("data/records.json");
     const local = loadLocal();
@@ -147,7 +140,7 @@ export async function loadAll(force = false, scope = null) {
     records = records.concat(local.added);
   }
 
-  cache = { summary, records, _key: key };
+  cache = { summary, records };
   return cache;
 }
 

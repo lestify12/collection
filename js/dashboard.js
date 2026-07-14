@@ -35,8 +35,7 @@ async function main() {
   const projects = visibleProjects(summary.projects);
   renderNav(projects, null);
 
-  document.querySelector(".page-title").textContent =
-    user.role !== "agent" ? "All Project Collection Summary" : "My Collection Summary";
+  document.querySelector(".page-title").textContent = "All Project Collection Summary";
 
   document.getElementById("reportDate").textContent =
     `Report date ${summary.reportDate || ""} · ${projects.length} project${projects.length === 1 ? "" : "s"}`;
