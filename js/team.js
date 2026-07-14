@@ -197,43 +197,113 @@ function openUserForm() {
   });
 }
 
-/* ------------------------------------------------ assign projects modal */
+/* natural unit sort */
+function unitKey(u) { const m = String(u || "").trim().match(/^([A-Za-z]*)\s*(\d+)?(.*)$/); return [(m?.[1] || "").toUpperCase(), m?.[2] ? parseInt(m[2], 10) : -1, m?.[3] || ""]; }
+function byUnit(a, b) { const ka = unitKey(a.unitNo), kb = unitKey(b.unitNo); return ka[0] < kb[0] ? -1 : ka[0] > kb[0] ? 1 : ka[1] !== kb[1] ? ka[1] - kb[1] : ka[2] < kb[2] ? -1 : ka[2] > kb[2] ? 1 : 0; }
+
+/* ------------------------------------------------ assign modal (projects + units) */
 async function openAssign(uid) {
   const users = await auth.listUsers();
   const u = users.find((x) => x.uid === uid);
+  const name = u.name || u.email;
   const current = auth.assignedProjectIds(RECORDS, uid);
+  const withRecs = PROJECTS.filter((p) => RECORDS.some((r) => r.projectId === p.id));
 
-  const list = PROJECTS.map((p) => `
+  const cards = PROJECTS.map((p) => `
     <label class="assign-card">
       <input type="checkbox" value="${esc(p.id)}" ${current.has(p.id) ? "checked" : ""}>
-      <i class="ti ti-building"></i>
-      <span>${esc(navLabel(p.name))}</span>
+      <i class="ti ti-building"></i><span>${esc(navLabel(p.name))}</span>
       <i class="ti ti-check assign-check"></i>
     </label>`).join("");
+  const projOpts = withRecs.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
 
   const bd = modal(`
     <div class="modal-header"><div class="modal-header-left">
       <div class="modal-header-icon"><i class="ti ti-map-pin-cog"></i></div>
-      <div><div class="modal-header-title">Assign projects</div>
-      <div class="modal-header-sub">${esc(u.name || u.email)} will see &amp; collect on the selected projects</div></div></div>
+      <div><div class="modal-header-title">Assign work</div>
+      <div class="modal-header-sub">${esc(name)} · whole projects or individual units</div></div></div>
       <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
-    <div class="modal-body"><div class="assign-grid">${list}</div>
-      <div class="assign-note"><i class="ti ti-info-circle"></i> Assigning a project hands every unit in it to this collection officer. Fine-tune individual units on each client's page.</div></div>
+    <div class="modal-body">
+      <div class="seg"><button type="button" class="seg-btn active" data-panel="proj">Whole projects</button>
+        <button type="button" class="seg-btn" data-panel="units">By unit</button></div>
+      <div data-p="proj"><div class="assign-grid">${cards}</div>
+        <div class="assign-note"><i class="ti ti-info-circle"></i> Assigning a project hands every unit in it to this officer.</div></div>
+      <div data-p="units" hidden>
+        <div class="ua-head">
+          <select id="uaProj" class="ua-sel">${projOpts || '<option value="">No units imported yet</option>'}</select>
+          <input id="uaSearch" class="ua-search" placeholder="Search unit / buyer…">
+        </div>
+        <div class="ua-bar"><button type="button" class="btn xs" id="uaAll">Select all</button>
+          <button type="button" class="btn xs" id="uaNone">Clear</button>
+          <span class="muted" id="uaCount"></span></div>
+        <div class="unit-list" id="uaList"></div>
+        <div class="assign-note"><i class="ti ti-info-circle"></i> Check the units this officer collects on. Others’ units are shown for reference.</div>
+      </div>
+    </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
       <button class="btn primary" id="aSave"><i class="ti ti-check"></i> Save</button></div>`);
 
+  let panel = "proj";
+  const uaList = bd.querySelector("#uaList");
+  let selected = new Set();   // record ids selected for this officer (current project)
+
+  const initSelected = () => {
+    const pid = bd.querySelector("#uaProj").value;
+    selected = new Set(RECORDS.filter((r) => r.projectId === pid && r.assignedTo === uid).map((r) => r.id));
+  };
+  const projectUnits = () => {
+    const pid = bd.querySelector("#uaProj").value;
+    return RECORDS.filter((r) => r.projectId === pid).sort(byUnit);
+  };
+  const updateCount = () => { bd.querySelector("#uaCount").textContent = `${selected.size} selected`; };
+  const renderUnits = () => {
+    const q = bd.querySelector("#uaSearch").value.trim().toLowerCase();
+    const recs = projectUnits().filter((r) => !q || `${r.unitNo} ${r.buyerName || ""}`.toLowerCase().includes(q));
+    uaList.innerHTML = recs.length ? recs.map((r) => {
+      const other = r.assignedTo && r.assignedTo !== uid ? (r.assignedToName || "assigned") : "";
+      return `<label class="unit-row">
+        <input type="checkbox" data-rec="${esc(r.id)}" ${selected.has(r.id) ? "checked" : ""}>
+        <span class="ur-unit">${esc(r.unitNo)}</span>
+        <span class="ur-buyer">${esc(r.buyerName || "—")}</span>
+        <span class="ur-cur">${other ? `<i class="ti ti-user"></i> ${esc(other)}` : ""}</span></label>`;
+    }).join("") : `<div class="muted" style="padding:16px">No units.</div>`;
+    updateCount();
+  };
+
+  bd.querySelectorAll(".seg-btn").forEach((b) => b.addEventListener("click", () => {
+    panel = b.dataset.panel;
+    bd.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+    bd.querySelector('[data-p="proj"]').hidden = panel !== "proj";
+    bd.querySelector('[data-p="units"]').hidden = panel !== "units";
+    if (panel === "units" && projOpts) { if (!selected.size) initSelected(); renderUnits(); }
+  }));
+  bd.querySelector("#uaProj").addEventListener("change", () => { initSelected(); bd.querySelector("#uaSearch").value = ""; renderUnits(); });
+  bd.querySelector("#uaSearch").addEventListener("input", renderUnits);
+  uaList.addEventListener("change", (e) => {
+    const cb = e.target.closest("input[data-rec]"); if (!cb) return;
+    if (cb.checked) selected.add(cb.dataset.rec); else selected.delete(cb.dataset.rec);
+    updateCount();
+  });
+  bd.querySelector("#uaAll").addEventListener("click", () => { projectUnits().forEach((r) => selected.add(r.id)); renderUnits(); });
+  bd.querySelector("#uaNone").addEventListener("click", () => { selected.clear(); renderUnits(); });
+
   bd.querySelector("#aSave").addEventListener("click", async () => {
-    const checked = new Set([...bd.querySelectorAll('input[type=checkbox]:checked')].map((c) => c.value));
-    const toAdd = [...checked].filter((id) => !current.has(id));
-    const toClear = [...current].filter((id) => !checked.has(id));
-    if (!toAdd.length && !toClear.length) { close(bd); return; }
-    const btn = bd.querySelector("#aSave"); btn.disabled = true;
-    btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Saving…`;
-    for (const id of toAdd) await db.setProjectAssignee(id, uid, u.name || u.email);
-    for (const id of toClear) await db.setProjectAssignee(id, "");
-    RECORDS = (await db.loadAll(true, auth.loadScope(ME))).records;
-    close(bd); toast("Assignments updated");
-    render();
+    const btn = bd.querySelector("#aSave"); btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Saving…`;
+    try {
+      if (panel === "proj") {
+        const checked = new Set([...bd.querySelectorAll('[data-p="proj"] input:checked')].map((c) => c.value));
+        for (const id of [...checked].filter((id) => !current.has(id))) await db.setProjectAssignee(id, uid, name);
+        for (const id of [...current].filter((id) => !checked.has(id))) await db.setProjectAssignee(id, "");
+      } else {
+        for (const r of projectUnits()) {
+          const mine = r.assignedTo === uid, want = selected.has(r.id);
+          if (want && !mine) await db.updateRecord(r.id, { assignedTo: uid, assignedToName: name });
+          else if (!want && mine) await db.updateRecord(r.id, { assignedTo: "", assignedToName: "" });
+        }
+      }
+      RECORDS = (await db.loadAll(true, auth.loadScope(ME))).records;
+      close(bd); toast("Assignments updated"); render();
+    } catch (e) { toast("Failed — " + e.message); btn.disabled = false; btn.innerHTML = `<i class="ti ti-check"></i> Save`; }
   });
 }
 
