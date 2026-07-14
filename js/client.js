@@ -188,8 +188,8 @@ function render() {
         <div class="page-subtitle"><i class="ti ti-building"></i> Unit ${esc(r.unitNo)}${r.type ? " · " + esc(r.type) : ""} · ${esc(project?.name || "")}</div>
       </div>
       <div class="page-header-actions">
+        ${auth.canEdit(r, ME) ? `<button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>` : ""}
         ${auth.canViewAll(ME) ? `<button class="btn" id="assignBtn"><i class="ti ti-user-cog"></i> Assign</button>
-        <button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>
         <button class="btn" id="editBtn"><i class="ti ti-pencil"></i> Edit</button>
         <button class="btn danger" id="deleteBtn"><i class="ti ti-trash"></i> Delete</button>` : ""}
       </div>
@@ -201,9 +201,11 @@ function render() {
     </div>
     <div id="clientBody"></div>`;
 
+  if (auth.canEdit(r, ME)) {
+    document.getElementById("moveBtn").addEventListener("click", () => openMoveCategory(r));
+  }
   if (auth.canViewAll(ME)) {
     document.getElementById("assignBtn").addEventListener("click", () => openAssign(r));
-    document.getElementById("moveBtn").addEventListener("click", () => openMoveCategory(r));
     document.getElementById("editBtn").addEventListener("click", () =>
       openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
         onSaved: reloadAndRender }));
