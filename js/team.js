@@ -93,7 +93,6 @@ async function render() {
         <div class="u-email">${esc(me.email)}</div>
       </div>
       <span class="role-badge boss">${esc(auth.displayRole(me))}</span>
-      <a class="btn" href="settings.html"><i class="ti ti-settings"></i> Settings</a>
     </section>
 
     <div class="you-label" style="margin-top:20px">Team${others.length ? ` · ${others.length}` : ""}</div>
