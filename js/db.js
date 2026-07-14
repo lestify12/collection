@@ -119,14 +119,14 @@ async function fetchJSON(path) {
     `scope` (optional) = the signed-in user; when they are an agent the live
     query is narrowed to records assigned to them so it satisfies the rules. */
 export async function loadAll(force = false, scope = null) {
-  const key = scope && scope.role !== "boss" ? `agent:${scope.uid}` : "all";
+  const key = scope && scope.role === "agent" ? `agent:${scope.uid}` : "all";
   if (cache && cache._key === key && !force) return cache;
 
   const summary = await loadSummary();
   let records;
 
   if (LIVE) {
-    if (scope && scope.role !== "boss") {
+    if (scope && scope.role === "agent") {
       const q = fs.query(fs.collection(db, "records"), fs.where("assignedTo", "==", scope.uid));
       const snap = await fs.getDocs(q);
       records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));

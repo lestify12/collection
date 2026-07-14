@@ -35,9 +35,8 @@ async function main() {
   const projects = visibleProjects(summary.projects);
   renderNav(projects, null);
 
-  // Agents collecting on a single project land straight on it.
   document.querySelector(".page-title").textContent =
-    user.role === "boss" ? "All Project Collection Summary" : "My Collection Summary";
+    user.role !== "agent" ? "All Project Collection Summary" : "My Collection Summary";
 
   document.getElementById("reportDate").textContent =
     `Report date ${summary.reportDate || ""} · ${projects.length} project${projects.length === 1 ? "" : "s"}`;

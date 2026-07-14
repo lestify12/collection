@@ -45,8 +45,8 @@ async function main() {
   renderNav(projects, project.id);
   allRecords = records;
 
-  // Structural actions (add unit, import) are boss-only.
-  if (ME.role !== "boss") {
+  // Structural actions (add unit, import) — Manager + Team Leader only.
+  if (!auth.canViewAll(ME)) {
     document.getElementById("sidebarAdd")?.style.setProperty("display", "none");
     document.getElementById("importBtn")?.style.setProperty("display", "none");
   }

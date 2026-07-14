@@ -22,32 +22,38 @@ service cloud.firestore {
     function isBoss() {
       return hasProfile() && profile().role == 'boss';
     }
+    // Manager (boss) + Team Leader (lead) both have full data access.
+    function canViewAll() {
+      return hasProfile() && (profile().role == 'boss' || profile().role == 'lead');
+    }
 
-    // User profiles. A user can read their own; the boss reads/writes all.
-    // The very first person to sign in may create their own boss profile
-    // (bootstrap). After that, the boss creates every other account.
+    // User profiles. Manager reads/writes all; a Team Leader may read the
+    // list (to assign work); everyone may read their own. Only the Manager
+    // creates/changes accounts. The very first person to sign in may
+    // bootstrap their own Manager profile.
     match /users/{uid} {
-      allow read:  if signedIn() && (request.auth.uid == uid || isBoss());
+      allow read:  if signedIn() && (request.auth.uid == uid || canViewAll());
       allow write: if isBoss()
         || (signedIn() && request.auth.uid == uid
             && !exists(/databases/$(database)/documents/users/$(uid))
             && request.resource.data.role == 'boss');
     }
 
-    // App-level summary doc — any signed-in user may read; boss writes.
+    // App-level summary doc — any signed-in user may read; Manager writes.
     match /app/{doc} {
       allow read:  if signedIn();
       allow write: if isBoss();
     }
 
-    // Unit records. Boss: full access. Agent: read/update only their own
-    // assigned units, and may not reassign a unit away from themselves.
+    // Unit records. Manager + Team Leader: full access (incl. assigning).
+    // Collection Officer: read/update only their own assigned units, and
+    // may not reassign a unit away from themselves.
     match /records/{recordId} {
-      allow read:   if isBoss() || (signedIn() && resource.data.assignedTo == request.auth.uid);
-      allow update: if isBoss()
+      allow read:   if canViewAll() || (signedIn() && resource.data.assignedTo == request.auth.uid);
+      allow update: if canViewAll()
         || (signedIn() && resource.data.assignedTo == request.auth.uid
             && request.resource.data.assignedTo == resource.data.assignedTo);
-      allow create, delete: if isBoss();
+      allow create, delete: if canViewAll();
     }
   }
 }

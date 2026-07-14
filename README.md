@@ -68,15 +68,19 @@ assignments live in a Firestore `users` collection.
      to that officer.
    - Per-unit override: open any client and use **Assign** to move a single
      unit to a different officer.
-4. What each role sees:
-   - **Manager** — every project, the Team page, seed/import.
+4. The three roles:
+   - **Manager** — the main boss. Full access to every project **plus** the
+     Team page: add/remove people, change roles, seed/import.
+   - **Collection TL** — team leader. Full access to every project and can
+     assign projects/units to officers, but cannot manage accounts or roles.
    - **Collection Officer** — only the projects/units assigned to them; no
-     Team or import.
+     Team page.
 
-Access is enforced both in the app *and* in `firestore.rules` (an officer's
-reads are limited to `where assignedTo == their-uid`). Removing a teammate
-here deletes their profile & assignments; delete the login itself under
-**Authentication → Users**.
+Access is enforced both in the app *and* in `firestore.rules` (a Manager and
+Team Leader may read everything; an officer's reads are limited to
+`where assignedTo == their-uid`). Removing a teammate here deletes their
+profile & assignments; delete the login itself under **Authentication →
+Users**.
 
 > Until Email/Password is switched on, the app runs in **preview mode** — a
 > simulated login backed by this browser (`boss@peacehomes.ae` / `peace123`)

@@ -69,9 +69,25 @@ async function init() {
 /** Resolves to the signed-in profile (or null) once auth state is known. */
 export const ready = init();
 
+/* ------------------------------------------------ roles
+   Three tiers (internal key → label):
+     boss  → Manager           (main boss, full control)
+     lead  → Collection TL      (team leader, sees all + assigns)
+     agent → Collection Officer (only their assigned units)          */
+const RANK = { boss: 3, lead: 2, agent: 1 };
+export function roleLabel(role) {
+  return role === "boss" ? "Manager" : role === "lead" ? "Collection TL" : "Collection Officer";
+}
+
 /* ------------------------------------------------ session */
 export function currentUser() { return _user; }
 export function isBoss() { return _user?.role === "boss"; }
+export function isManager(user = _user) { return user?.role === "boss"; }
+export function isLead(user = _user) { return user?.role === "lead"; }
+/** Manager + Team Leader see every project; officers see only their own. */
+export function canViewAll(user = _user) { return !!user && user.role !== "agent"; }
+/** Only the Manager can manage accounts, roles, and import. */
+export function canManage(user = _user) { return user?.role === "boss"; }
 export function isLive() { return db.LIVE; }
 
 function redirectToLogin() {
@@ -79,15 +95,16 @@ function redirectToLogin() {
   location.replace(`login.html?next=${encodeURIComponent(here)}`);
 }
 
-/** Gate a page. Returns the profile, or redirects and returns null. */
-export async function requireAuth({ boss = false } = {}) {
+/** Gate a page. `min` = the lowest role allowed ("agent" | "lead" | "boss").
+    Returns the profile, or redirects and returns null. */
+export async function requireAuth({ min = "agent" } = {}) {
   const user = await ready;
   if (!user) { redirectToLogin(); return null; }
   // First-login security: must set a new password before using the app.
   if (user.mustChangePassword && !location.pathname.endsWith("settings.html")) {
     location.replace("settings.html"); return null;
   }
-  if (boss && user.role !== "boss") { location.replace("index.html"); return null; }
+  if ((RANK[user.role] || 0) < (RANK[min] || 0)) { location.replace("index.html"); return null; }
   return user;
 }
 
@@ -191,9 +208,10 @@ export function assignedProjectIds(records, uid) {
   return s;
 }
 
-/** Filter a loaded { summary, records } down to what `user` may see. */
+/** Filter a loaded { summary, records } down to what `user` may see.
+    Manager + Team Leader see everything; officers see only their units. */
 export function scopeData({ summary, records }, user) {
-  if (!user || user.role === "boss") return { summary, records };
+  if (!user || user.role !== "agent") return { summary, records };
   const uid = user.uid;
   const recs = records.filter((r) => r.assignedTo === uid);
   const projIds = new Set(recs.map((r) => r.projectId));
@@ -213,7 +231,7 @@ export function renderChrome(user) {
   const roleEl = document.querySelector(".user-role");
   const avEl = document.querySelector(".user-avatar");
   if (nameEl) nameEl.textContent = user.name || "User";
-  if (roleEl) roleEl.textContent = user.role === "boss" ? "Manager" : "Collection Officer";
+  if (roleEl) roleEl.textContent = roleLabel(user.role);
   if (avEl) avEl.textContent = initials(user.name || user.email);
 
   const right = document.querySelector(".navbar-right");
@@ -232,8 +250,8 @@ export function renderChrome(user) {
     right.insertBefore(b, anchor);
   }
 
-  const boss = user.role === "boss";
-  if (boss) {
+  // Manager + Team Leader get the Team & access page (TL can assign only).
+  if (canViewAll(user)) {
     const dash = document.getElementById("navDashboard");
     if (dash && !document.getElementById("navTeam")) {
       const t = document.createElement("a");

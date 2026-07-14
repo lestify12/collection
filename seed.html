@@ -25,7 +25,7 @@
   <script src="js/config.js"></script>
   <script type="module">
     import * as auth from "./js/auth.js";
-    const me = await auth.requireAuth({ boss: true });   // admins only
+    const me = await auth.requireAuth({ min: "boss" });   // Manager only
     if (!me) throw new Error("redirecting");
     auth.renderChrome(me);
 

@@ -17,7 +17,7 @@ let PROJECTS = [];   // assignable projects (config-scoped)
 let RECORDS = [];    // all records (boss view) — used to derive current assignment
 
 async function main() {
-  ME = await auth.requireAuth({ boss: true });
+  ME = await auth.requireAuth({ min: "lead" });   // Manager + Team Leader
   if (!ME) return;
   auth.renderChrome(ME);
 
@@ -26,7 +26,13 @@ async function main() {
   PROJECTS = visibleProjects(data.summary.projects);
   renderNav(PROJECTS, null);
 
-  document.getElementById("addUserBtn").addEventListener("click", () => openUserForm());
+  const addBtn = document.getElementById("addUserBtn");
+  if (auth.canManage(ME)) addBtn.addEventListener("click", () => openUserForm());
+  else addBtn.style.display = "none";   // Team Leaders assign only, don't manage accounts
+
+  document.getElementById("teamSub").textContent = auth.canManage(ME)
+    ? "Manage who can sign in and which projects they collect on"
+    : "Assign projects to your collection officers";
   await render();
 }
 
@@ -34,38 +40,41 @@ async function render() {
   const users = await auth.listUsers();
   const body = document.getElementById("teamBody");
   const projName = Object.fromEntries(PROJECTS.map((p) => [p.id, p.name]));
+  const canManage = auth.canManage(ME);   // Manager: manage accounts + roles
 
   const rowsHtml = users.map((u) => {
-    const boss = u.role === "boss";
-    const assigned = boss ? null : [...auth.assignedProjectIds(RECORDS, u.uid)];
-    const chips = boss
+    const viewsAll = u.role !== "agent";   // Manager + TL see everything
+    const assigned = viewsAll ? null : [...auth.assignedProjectIds(RECORDS, u.uid)];
+    const chips = viewsAll
       ? `<span class="chip chip-all">All projects</span>`
       : (assigned.length
           ? assigned.map((id) => `<span class="chip">${esc(navLabel(projName[id] || id))}</span>`).join("")
           : `<span class="muted">No projects yet</span>`);
     const disabled = u.active === false;
+    const roleCell = (canManage && u.uid !== ME.uid)
+      ? `<select class="role-select" data-role="${u.uid}">
+           <option value="agent" ${u.role === "agent" ? "selected" : ""}>Collection Officer</option>
+           <option value="lead"  ${u.role === "lead" ? "selected" : ""}>Collection TL</option>
+           <option value="boss"  ${u.role === "boss" ? "selected" : ""}>Manager</option>
+         </select>`
+      : `<span class="role-badge ${u.role === "agent" ? "agent" : "boss"}">${esc(auth.roleLabel(u.role))}</span>`;
     return `
       <tr class="${disabled ? "row-off" : ""}">
         <td>
           <div class="u-cell">
-            <div class="u-avatar ${boss ? "boss" : ""}">${esc(initials(u.name || u.email))}</div>
+            <div class="u-avatar ${viewsAll ? "boss" : ""}">${esc(initials(u.name || u.email))}</div>
             <div><div class="u-name">${esc(u.name || "—")}${u.uid === ME.uid ? ' <span class="tag-you">you</span>' : ""}</div>
             <div class="u-email">${esc(u.email)}</div></div>
           </div>
         </td>
-        <td>${u.uid === ME.uid
-          ? `<span class="role-badge boss">Manager</span>`
-          : `<select class="role-select" data-role="${u.uid}">
-               <option value="agent" ${boss ? "" : "selected"}>Collection Officer</option>
-               <option value="boss" ${boss ? "selected" : ""}>Manager</option>
-             </select>`}</td>
+        <td>${roleCell}</td>
         <td class="proj-cell">${chips}</td>
         <td><span class="status-dot ${disabled ? "off" : "on"}"></span>${disabled ? "Disabled" : "Active"}</td>
         <td class="num act-cell">
-          ${boss ? "" : `<button class="icon-act" data-assign="${u.uid}" title="Assign projects"><i class="ti ti-map-pin-cog"></i></button>`}
-          ${u.uid === ME.uid ? "" : `
+          ${u.role === "agent" ? `<button class="icon-act" data-assign="${u.uid}" title="Assign projects"><i class="ti ti-map-pin-cog"></i></button>` : ""}
+          ${canManage && u.uid !== ME.uid ? `
             <button class="icon-act" data-toggle="${u.uid}" title="${disabled ? "Enable" : "Disable"}"><i class="ti ti-${disabled ? "player-play" : "player-pause"}"></i></button>
-            <button class="icon-act danger" data-del="${u.uid}" title="Remove"><i class="ti ti-trash"></i></button>`}
+            <button class="icon-act danger" data-del="${u.uid}" title="Remove"><i class="ti ti-trash"></i></button>` : ""}
         </td>
       </tr>`;
   }).join("");
@@ -95,7 +104,7 @@ async function render() {
 /* ------------------------------------------------ actions */
 async function changeRole(uid, role) {
   await auth.updateUser(uid, { role });
-  toast(role === "boss" ? "Promoted to Manager" : "Set to Collection Officer");
+  toast("Role updated to " + auth.roleLabel(role));
   render();
 }
 
@@ -138,7 +147,8 @@ function openUserForm() {
       <label class="fld"><span>Temporary password</span><input id="fPass" type="text" placeholder="at least 6 characters"></label>
       <label class="fld"><span>Role</span>
         <select id="fRole"><option value="agent">Collection Officer — sees only assigned projects</option>
-        <option value="boss">Manager — full access</option></select></label>
+        <option value="lead">Collection TL — full access, can assign</option>
+        <option value="boss">Manager — full access + manage team</option></select></label>
       <div class="login-error" id="fErr"></div>
     </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>

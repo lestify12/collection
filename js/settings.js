@@ -43,7 +43,7 @@ function render() {
         <div class="card-sub">This name shows in the header and on your assignments</div>
         <label class="fld"><span>Full name</span><input id="pName" value="${esc(ME.name || "")}" ${forced ? "disabled" : ""}></label>
         <label class="fld"><span>Email</span><input value="${esc(ME.email || "")}" disabled></label>
-        <label class="fld"><span>Role</span><input value="${ME.role === "boss" ? "Manager" : "Collection Officer"}" disabled></label>
+        <label class="fld"><span>Role</span><input value="${auth.roleLabel(ME.role)}" disabled></label>
         <div class="login-error" id="pErr"></div>
         <button class="btn primary" id="saveName" ${forced ? "disabled" : ""}><i class="ti ti-check"></i> Save profile</button>
       </section>
