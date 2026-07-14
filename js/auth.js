@@ -39,10 +39,11 @@ async function loadProfile(fbUser) {
   if (!fbUser) return null;
   let prof = await db.getUserDoc(fbUser.uid);
   if (!prof) {
-    // First person to ever sign in bootstraps as the boss/admin.
+    // No profile yet → default to Collection Officer. A Manager can promote
+    // them later from Team & access. (The Manager account is set up first.)
     prof = { uid: fbUser.uid, email: fbUser.email,
-             name: (fbUser.email || "boss").split("@")[0], role: "boss", active: true };
-    await db.saveUserDoc(fbUser.uid, { email: prof.email, name: prof.name, role: "boss", active: true });
+             name: (fbUser.email || "user").split("@")[0], role: "agent", active: true };
+    await db.saveUserDoc(fbUser.uid, { email: prof.email, name: prof.name, role: "agent", active: true });
   }
   return prof;
 }
@@ -50,9 +51,17 @@ async function loadProfile(fbUser) {
 async function init() {
   if (db.LIVE) {
     await new Promise((res) => {
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; res(); } };
       db.authNs.onAuthStateChanged(db.authInst, async (fbUser) => {
-        _user = await loadProfile(fbUser);
-        res();
+        try { _user = await loadProfile(fbUser); }
+        catch (e) {
+          console.error("Could not load user profile", e);
+          // Never hang the app: fall back to a minimal officer profile.
+          _user = fbUser ? { uid: fbUser.uid, email: fbUser.email,
+            name: (fbUser.email || "user").split("@")[0], role: "agent", active: true } : null;
+        }
+        finally { done(); }
       });
     });
   } else {
@@ -101,8 +110,8 @@ export async function requireAuth({ min = "agent" } = {}) {
   const user = await ready;
   if (!user) { redirectToLogin(); return null; }
   // First-login security: must set a new password before using the app.
-  if (user.mustChangePassword && !location.pathname.endsWith("settings.html")) {
-    location.replace("settings.html"); return null;
+  if (user.mustChangePassword && !location.pathname.endsWith("reset.html")) {
+    location.replace("reset.html"); return null;
   }
   if ((RANK[user.role] || 0) < (RANK[min] || 0)) { location.replace("index.html"); return null; }
   return user;

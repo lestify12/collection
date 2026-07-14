@@ -63,7 +63,10 @@
       const orig = btn.innerHTML;
       btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Signing in…`;
       const res = await auth.signIn(document.getElementById("email").value, document.getElementById("password").value);
-      if (res.ok) { location.replace(next); return; }
+      if (res.ok) {
+        location.replace(auth.currentUser()?.mustChangePassword ? "reset.html" : next);
+        return;
+      }
       err.textContent = res.error;
       err.classList.add("show");
       btn.disabled = false;

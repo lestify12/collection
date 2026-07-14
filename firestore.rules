@@ -29,14 +29,14 @@ service cloud.firestore {
 
     // User profiles. Manager reads/writes all; a Team Leader may read the
     // list (to assign work); everyone may read their own. Only the Manager
-    // creates/changes accounts. The very first person to sign in may
-    // bootstrap their own Manager profile.
+    // creates/changes accounts. A profile-less first sign-in may bootstrap
+    // its own profile ONLY as a Collection Officer (never self-promote).
     match /users/{uid} {
       allow read:  if signedIn() && (request.auth.uid == uid || canViewAll());
       allow write: if isBoss()
         || (signedIn() && request.auth.uid == uid
             && !exists(/databases/$(database)/documents/users/$(uid))
-            && request.resource.data.role == 'boss');
+            && request.resource.data.role == 'agent');
     }
 
     // App-level summary doc — any signed-in user may read; Manager writes.

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set your password — Collection Tracker</title>
+  <link rel="stylesheet" href="fonts/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="photos/peacehomeslogo.png">
+</head>
+<body class="login-body">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="photos/peacehomeslogo.png" alt="Peace Homes Development">
+        <div>
+          <div class="login-title">Set your password</div>
+          <div class="login-sub" id="whoSub">Welcome — choose a password to continue</div>
+        </div>
+      </div>
+
+      <div class="reset-note"><i class="ti ti-shield-lock"></i> For your security, set your own password before using the app.</div>
+
+      <form id="resetForm" class="login-form" autocomplete="off">
+        <label class="fld"><span>New password</span>
+          <input type="password" id="pw1" placeholder="At least 6 characters" required autofocus></label>
+        <label class="fld"><span>Confirm new password</span>
+          <input type="password" id="pw2" placeholder="Re-enter password" required></label>
+        <div class="login-error" id="resetError"></div>
+        <button type="submit" class="btn primary login-btn" id="resetBtn">
+          <i class="ti ti-lock"></i> Set password &amp; continue
+        </button>
+      </form>
+      <button class="link-btn" id="signOutLink"><i class="ti ti-logout"></i> Sign out</button>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script type="module">
+    import * as auth from "./js/auth.js";
+
+    const user = await auth.ready;
+    if (!user) { location.replace("login.html"); }
+    else if (!user.mustChangePassword) { location.replace("index.html"); }
+    else {
+      document.getElementById("whoSub").textContent = `Signed in as ${user.email}`;
+    }
+
+    document.getElementById("signOutLink").addEventListener("click", () => auth.signOut());
+
+    const form = document.getElementById("resetForm");
+    const err = document.getElementById("resetError");
+    const btn = document.getElementById("resetBtn");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.classList.remove("show");
+      const p1 = document.getElementById("pw1").value;
+      const p2 = document.getElementById("pw2").value;
+      if (p1.length < 6) { err.textContent = "Password must be at least 6 characters."; err.classList.add("show"); return; }
+      if (p1 !== p2) { err.textContent = "The two passwords don't match."; err.classList.add("show"); return; }
+      btn.disabled = true;
+      const orig = btn.innerHTML;
+      btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Saving…`;
+      try {
+        await auth.changePassword(p1);
+        await auth.updateUser(user.uid, { mustChangePassword: false });
+        location.replace("index.html");
+      } catch (e2) {
+        err.textContent = e2.message || "Could not set password."; err.classList.add("show");
+        btn.disabled = false; btn.innerHTML = orig;
+      }
+    });
+  </script>
+</body>
+</html>

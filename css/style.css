@@ -753,11 +753,19 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 }
 
 /* ---- login page ---- */
-.login-body { min-height: 100vh; display: grid; place-items: center;
-  background: linear-gradient(135deg, #0f3323 0%, #14432f 45%, #1c5a3d 100%); padding: 24px; }
+.login-body { min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background: linear-gradient(135deg, rgba(15,51,35,.82) 0%, rgba(20,67,47,.78) 45%, rgba(28,90,61,.72) 100%),
+    url("../photos/peacehomesbackground.png") center / cover no-repeat fixed;
+}
 .login-wrap { width: min(400px, 100%); }
 .login-card { background: var(--surface); border-radius: 18px; padding: 30px 28px;
-  box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+  box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+.reset-note { display: flex; gap: 9px; align-items: flex-start; font-size: 12.5px; line-height: 1.45;
+  color: var(--ink-2); background: var(--surface-2); border-radius: 10px; padding: 11px 13px; margin-bottom: 18px; }
+.reset-note i { color: var(--brand-accent); font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+.link-btn { display: flex; width: fit-content; margin: 14px auto 0; background: none; border: none;
+  cursor: pointer; color: var(--ink-3); font: inherit; font-size: 12.5px; align-items: center; gap: 6px; }
+.link-btn:hover { color: var(--ink); }
 .login-brand { display: flex; align-items: center; gap: 13px; margin-bottom: 22px; }
 .login-brand img { width: 46px; height: 46px; object-fit: contain; }
 .login-title { font-size: 18px; font-weight: 750; color: var(--ink); letter-spacing: -.01em; }
