@@ -43,7 +43,11 @@ async function render() {
   const canManage = auth.canManage(ME);   // Manager: manage accounts + roles
 
   const me = users.find((u) => u.uid === ME.uid) || ME;
-  const others = users.filter((u) => u.uid !== ME.uid);
+  // Managers first, then Team Leaders, then Collection Officers (admins top).
+  const rank = (u) => (auth.isSuperAdmin(u) ? 4 : u.role === "boss" ? 3 : u.role === "lead" ? 2 : 1);
+  const others = users
+    .filter((u) => u.uid !== ME.uid)
+    .sort((a, b) => rank(b) - rank(a) || String(a.name || a.email).localeCompare(String(b.name || b.email)));
 
   const rowsHtml = others.map((u) => {
     const viewsAll = u.role !== "agent";   // Manager + TL see everything
