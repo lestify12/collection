@@ -10,13 +10,14 @@ import {
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
 import { importWorkbook } from "./import-xlsx.js";
-import { flexiNeedsSetup, planOf } from "./plan.js";
+import { flexiNeedsSetup, planOf, parseYM, MONTHS } from "./plan.js";
 
 const planLabel = (r) => {
   const p = planOf(r);
   if (p.mode === "cash") return "100% Cash";
   return `${p.dpPct}% DP · ${p.dcPct}% DC · ${p.mode === "flexi" ? "Flexi" : "1% Monthly"}`;
 };
+const startLabel = (r) => { const ym = parseYM(r.installmentStart); return ym ? `${MONTHS[ym.m - 1]} ${ym.y}` : "—"; };
 
 initTheme();
 initSidebar();
@@ -249,7 +250,7 @@ function renderCategory(cat) {
     body.innerHTML = toolbar + `
       <div class="table-wrap"><table class="data">
         <thead><tr>
-          <th>Unit</th><th>Buyer name</th><th>Payment plan</th>
+          <th>Unit</th><th>Buyer name</th><th>Payment plan</th><th>Installment start</th>
           <th class="num">Reflected</th><th class="num">Outstanding due</th><th></th>
         </tr></thead>
         <tbody>${rows.map((r) => `
@@ -257,12 +258,13 @@ function renderCategory(cat) {
             <td><span class="unit-chip">${esc(r.unitNo)}</span>${flexiNeedsSetup(r) ? ` <i class="ti ti-alert-triangle flexi-flag" title="Flexi plan needs fixing — boxes don't total the DC amount"></i>` : ""}</td>
             <td class="strong">${esc(r.buyerName) || "<span style='color:var(--ink-3)'>—</span>"}</td>
             <td style="white-space:nowrap;color:var(--ink-2);font-size:12.5px">${esc(planLabel(r))}</td>
+            <td style="white-space:nowrap;color:${r.installmentStart ? "var(--ink-2)" : "var(--ink-3)"};font-size:12.5px">${esc(startLabel(r))}</td>
             <td class="num money-good">${fmtMoney(r.reflected, { currency: false })}</td>
             <td class="num ${Number(r.outstanding) > 0 ? "money-bad" : ""}">${fmtMoney(r.outstanding, { currency: false })}</td>
             <td class="num"><i class="ti ti-chevron-right" style="color:var(--ink-3)"></i></td>
           </tr>`).join("")}</tbody>
         <tfoot><tr>
-          <td>Total</td><td></td><td></td>
+          <td>Total</td><td></td><td></td><td></td>
           <td class="num money-good">${fmtMoney(totalRefl, { currency: false })}</td>
           <td class="num strong">${fmtMoney(totalDue, { currency: false })}</td><td></td>
         </tr></tfoot>
