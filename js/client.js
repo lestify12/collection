@@ -378,7 +378,8 @@ function scheduleHTML(s, r, canEdit = true) {
     const pct = s.onePct ? Math.round((x.amount / s.onePct) * 100) / 100 : 1;
     const custom = Math.abs(pct - 1) > 0.001;
     const cls = x.skip ? "skip" : x.status;
-    const face = x.skip ? '<i class="ti ti-ban"></i>' : custom ? pct + "%" : "";
+    // Label every box with its % (default boxes show 1%), matching custom boxes.
+    const face = x.skip ? '<i class="ti ti-ban"></i>' : pct + "%";
     return `<span class="sched-cell ${cls}${custom && !x.skip ? " custom" : ""}${canEdit ? "" : " ro"}" ${canEdit ? `data-idx="${x.idx}"` : ""}
       data-tip="Installment ${x.idx + 1}${x.month ? " · " + x.month : ""} · ${fmtMoney(x.amount)} (${pct}%)<br>${x.skip ? "No collection this month" : x.status === "paid" ? "Paid" : x.status === "partial" ? "Partly paid " + fmtMoney(x.paid) : "Not yet paid"}${canEdit ? "<br><span style='opacity:.7'>click to set month / %</span>" : ""}">
       <span class="sc-face">${face}</span><span class="sc-mon">${x.month || ""}</span></span>`;

@@ -709,10 +709,10 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .sched-grid { display: flex; flex-wrap: wrap; gap: 7px 5px; }
 /* each box = a coloured face (status/%) with an optional month caption below */
 .sched-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
-.sc-face { width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center;
+.sc-face { min-width: 20px; height: 18px; padding: 0 3px; border-radius: 4px; display: grid; place-items: center;
   font-size: 8px; font-weight: 800; line-height: 1; color: rgba(0,0,0,.55); }
 .sc-mon { font-size: 8px; font-weight: 600; color: var(--ink-3); line-height: 1; white-space: nowrap; }
-.sched-cell.custom .sc-face { width: auto; min-width: 24px; padding: 0 4px; }
+.sched-cell.custom .sc-face { min-width: 24px; }
 .sched-cell.paid .sc-face { background: var(--good); color: #fff; }
 .sched-cell.partial .sc-face { background: #f0a500; color: #5a3d00; }
 .sched-cell.due .sc-face { background: rgba(239,68,68,.22); color: #b3201f; }
