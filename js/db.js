@@ -270,6 +270,20 @@ export async function deleteCategoryRecords(projectId, category) {
 
 /* ------------------------------------------------ derived metrics */
 
+/** Amount still owed on one record. For 24% DP clients the workbook often
+    leaves the outstanding column blank (they're in the downpayment phase),
+    so fall back to the remaining downpayment = (DP + DLD + admin) − reflected. */
+function rowDue(r, catKey) {
+  const stored = Number(r.outstanding) || 0;
+  if (catKey === "dp24" && stored <= 0) {
+    const dpTarget = Number(r.dpTotal) || Number(r.dpAmount)
+      || ((Number(r.dp20) || 0) + (Number(r.dld) || 0) + (Number(r.adminFee) || 0))
+      || (Number(r.sellingPrice) ? 0.24 * Number(r.sellingPrice) : 0);
+    return Math.max(0, dpTarget - (Number(r.reflected) || 0));
+  }
+  return stored;
+}
+
 /** Per-project metrics: computed live from unit records when the project
     has any; otherwise the seeded figures from the summary workbook. */
 export function projectMetrics(project, records) {
@@ -280,7 +294,7 @@ export function projectMetrics(project, records) {
   let withDues = 0, totalDue = 0;
   for (const cat of window.APP_CONFIG.categories) {
     const rows = recs.filter((r) => r.category === cat.key);
-    const due = rows.reduce((s, r) => s + (Number(r.outstanding) || 0), 0);
+    const due = rows.reduce((s, r) => s + rowDue(r, cat.key), 0);
     m[cat.key] = { clients: rows.length, due: Math.round(due * 100) / 100 };
     if (cat.due) { withDues += rows.length; totalDue += due; }
   }
