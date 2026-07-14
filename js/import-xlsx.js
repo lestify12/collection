@@ -56,8 +56,11 @@ function matchField(h) {
   if (n.includes("20% dp") || n.includes("20% down payment") || n.includes("20% downpayment")) return "dp20";
   if (n.includes("reflected") || n.includes("total amount paid")) return "reflected";
   if (n.includes("monthly installment")) return "monthlyInstallment";
-  if (n.includes("how many months") || n.includes("unsettled")) return "unsettledMonths";
+  // "Remarks on how many months unsettled" is one combined free-text column in
+  // some workbooks (Sky Livings) — treat anything mentioning remarks as remarks
+  // first, so it doesn't get misread as the numeric unsettled-months count.
   if (n.includes("remarks")) return "remarks";
+  if (n.includes("how many months") || n.includes("unsettled")) return "unsettledMonths";
   return null;
 }
 
@@ -75,7 +78,9 @@ function sheetCategory(name) {
   const n = norm(name);
   if (n.includes("24") || n.includes("downpay") || n === "dp" || n.includes(" dp")) return "dp24";
   if (n.includes("install")) return "installment";
-  if (n.includes("legal")) return "legal";
+  // "On Hold" / "Defaulters – for endorsement" units are heading to legal, so
+  // they are collected under the Legal category.
+  if (n.includes("legal") || n.includes("hold") || n.includes("endors") || n.includes("defaulter")) return "legal";
   if (n.includes("dnc") || n.includes("do not call")) return "dnc";
   if (n.includes("cancel")) return "cancelled";
   if (n.includes("avail")) return "available";
