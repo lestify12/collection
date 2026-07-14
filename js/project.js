@@ -3,6 +3,7 @@
    category tables that drill into the client detail page.
    ============================================================ */
 import * as db from "./db.js";
+import * as auth from "./auth.js";
 import {
   CATS, catByKey, esc, fmtMoney, fmtInt, renderNav, initTheme,
   initSidebar, setModeBadge, observeReveals, toast, visibleProjects,
@@ -12,6 +13,8 @@ import { importWorkbook } from "./import-xlsx.js";
 
 initTheme();
 initSidebar();
+
+let ME = null;
 
 /* Tab order for the project page (Overview first, then 24% DP, …) */
 const CAT_ORDER = ["dp24", "installment", "legal", "dnc", "cancelled", "others", "available"];
@@ -29,13 +32,24 @@ let activeTab = "overview";
 let search = "";
 
 async function main() {
-  const { summary, records } = await db.loadAll();
+  ME = await auth.requireAuth();
+  if (!ME) return;
+  auth.renderChrome(ME);
+
+  const { summary, records } = auth.scopeData(await db.loadAll(false, ME), ME);
   setModeBadge(db.LIVE);
 
   const projects = visibleProjects(summary.projects);
   project = summary.projects.find((p) => p.id === projectId) || projects[0] || summary.projects[0];
+  if (!project) { location.replace("index.html"); return; }
   renderNav(projects, project.id);
   allRecords = records;
+
+  // Structural actions (add unit, import) are boss-only.
+  if (ME.role !== "boss") {
+    document.getElementById("sidebarAdd")?.style.setProperty("display", "none");
+    document.getElementById("importBtn")?.style.setProperty("display", "none");
+  }
 
   document.title = `${project.name} — Collection Tracker`;
   document.getElementById("bcName").textContent = project.name;

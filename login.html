@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Peace Homes Collection Tracker</title>
+  <link rel="stylesheet" href="fonts/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="photos/peacehomeslogo.png">
+</head>
+<body class="login-body">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="photos/peacehomeslogo.png" alt="Peace Homes Development">
+        <div>
+          <div class="login-title">Collection Tracker</div>
+          <div class="login-sub">Peace Homes Development</div>
+        </div>
+      </div>
+
+      <form id="loginForm" class="login-form" autocomplete="on">
+        <label class="fld">
+          <span>Email</span>
+          <input type="email" id="email" placeholder="you@peacehomes.ae" required autofocus>
+        </label>
+        <label class="fld">
+          <span>Password</span>
+          <input type="password" id="password" placeholder="••••••••" required>
+        </label>
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="btn primary login-btn" id="loginBtn">
+          <i class="ti ti-login-2"></i> Sign in
+        </button>
+      </form>
+
+      <div class="login-hint" id="loginHint"></div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script type="module">
+    import * as auth from "./js/auth.js";
+
+    // Already signed in? go straight through.
+    const existing = await auth.ready;
+    const params = new URLSearchParams(location.search);
+    const next = params.get("next") || "index.html";
+    if (existing) location.replace(next);
+
+    if (!auth.isLive()) {
+      document.getElementById("loginHint").innerHTML =
+        `<i class="ti ti-info-circle"></i> Preview mode — sign in with <b>boss@peacehomes.ae</b> / <b>peace123</b>`;
+    }
+
+    const form = document.getElementById("loginForm");
+    const err = document.getElementById("loginError");
+    const btn = document.getElementById("loginBtn");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.classList.remove("show");
+      btn.disabled = true;
+      const orig = btn.innerHTML;
+      btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Signing in…`;
+      const res = await auth.signIn(document.getElementById("email").value, document.getElementById("password").value);
+      if (res.ok) { location.replace(next); return; }
+      err.textContent = res.error;
+      err.classList.add("show");
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    });
+  </script>
+</body>
+</html>

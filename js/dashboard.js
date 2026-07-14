@@ -2,6 +2,7 @@
    Analytics dashboard (boss view) — all-projects summary.
    ============================================================ */
 import * as db from "./db.js";
+import * as auth from "./auth.js";
 import {
   CATS, catByKey, esc, fmtMoney, fmtInt, renderNav, initTheme, initSidebar,
   setModeBadge, observeReveals, countUp, attachTips, toast, visibleProjects,
@@ -13,9 +14,13 @@ initSidebar();
 const DUE_CATS = CATS.filter((c) => c.due);
 
 async function main() {
+  const user = await auth.requireAuth();
+  if (!user) return;
+  auth.renderChrome(user);
+
   let data;
   try {
-    data = await db.loadAll();
+    data = auth.scopeData(await db.loadAll(false, user), user);
   } catch (e) {
     console.error(e);
     document.getElementById("dashboard").innerHTML =
@@ -29,6 +34,10 @@ async function main() {
   setModeBadge(db.LIVE);
   const projects = visibleProjects(summary.projects);
   renderNav(projects, null);
+
+  // Agents collecting on a single project land straight on it.
+  document.querySelector(".page-title").textContent =
+    user.role === "boss" ? "All Project Collection Summary" : "My Collection Summary";
 
   document.getElementById("reportDate").textContent =
     `Report date ${summary.reportDate || ""} · ${projects.length} project${projects.length === 1 ? "" : "s"}`;

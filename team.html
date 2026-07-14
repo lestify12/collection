@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team &amp; access — Collection Tracker</title>
+  <link rel="stylesheet" href="fonts/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="photos/peacehomeslogo.png">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-logo" href="index.html"><img src="photos/peace-homes-white.png" alt="Peace Homes Development"></a>
+    <div class="navbar-divider"></div>
+    <div class="navbar-search">
+      <i class="ti ti-search search-icon"></i>
+      <input type="text" id="projSearch" placeholder="Find a project…" autocomplete="off">
+    </div>
+    <div class="navbar-right">
+      <button class="navbar-icon-btn" id="themeToggle" title="Toggle theme"><i class="ti ti-moon"></i></button>
+      <a class="navbar-icon-btn" href="seed.html" title="Import / seed data"><i class="ti ti-database-cog"></i></a>
+      <div class="navbar-user">
+        <div class="user-info">
+          <div class="user-name">…</div>
+          <div class="user-role">…</div>
+        </div>
+        <div class="user-avatar">…</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-body">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Overview</div>
+        <a class="sidebar-item" id="navDashboard" href="index.html"><i class="ti ti-layout-dashboard"></i>Dashboard</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Projects</div>
+        <div id="navProjects"><div class="sk-nav"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></div>
+      </div>
+      <div class="sidebar-spacer"></div>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Team &amp; access</div>
+          <div class="page-subtitle" id="teamSub">Manage who can sign in and which projects they collect on</div>
+        </div>
+        <button class="btn primary" id="addUserBtn"><i class="ti ti-user-plus"></i> Add teammate</button>
+      </div>
+      <div id="teamBody">
+        <div class="skeleton" style="height:320px"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script type="module" src="js/team.js"></script>
+  <script src="js/mobile-nav.js"></script>
+</body>
+</html>

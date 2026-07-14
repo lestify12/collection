@@ -24,6 +24,11 @@
 
   <script src="js/config.js"></script>
   <script type="module">
+    import * as auth from "./js/auth.js";
+    const me = await auth.requireAuth({ boss: true });   // admins only
+    if (!me) throw new Error("redirecting");
+    auth.renderChrome(me);
+
     const FB_VER = "10.12.2";
     const statusEl = document.getElementById("status");
     const logEl = document.getElementById("log");
@@ -34,9 +39,9 @@
     if (!cfg.apiKey) {
       statusEl.innerHTML = "<b>Firebase is not configured.</b>&nbsp;Paste your web app config into <code>js/config.js</code> first, redeploy, then open this page again.";
     } else {
-      const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
+      const { initializeApp, getApps, getApp } = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
       const fs = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`);
-      const db = fs.getFirestore(initializeApp(cfg));
+      const db = fs.getFirestore(getApps().length ? getApp() : initializeApp(cfg));
 
       const clearBtn = document.getElementById("clearBtn");
       const existing = await fs.getCountFromServer(fs.collection(db, "records"));

@@ -3,6 +3,7 @@
    1%-installment payment schedule (downpayment-first).
    ============================================================ */
 import * as db from "./db.js";
+import * as auth from "./auth.js";
 import {
   catByKey, esc, fmtMoney, fmtInt, fmtDate, renderNav, initTheme,
   initSidebar, setModeBadge, observeReveals, toast, visibleProjects, confirmModal,
@@ -12,6 +13,7 @@ import { openRecordForm } from "./record-form.js";
 initTheme();
 initSidebar();
 
+let ME = null;
 const params = new URLSearchParams(location.search);
 const projectId = params.get("project");
 const recordId = params.get("id");
@@ -20,7 +22,11 @@ let activeClientTab = "overview";
 const txns = (r) => (Array.isArray(r.transactions) ? r.transactions : []);
 
 async function main() {
-  const { summary, records } = await db.loadAll();
+  ME = await auth.requireAuth();
+  if (!ME) return;
+  auth.renderChrome(ME);
+
+  const { summary, records } = auth.scopeData(await db.loadAll(false, ME), ME);
   setModeBadge(db.LIVE);
   const projects = visibleProjects(summary.projects);
   project = summary.projects.find((p) => p.id === projectId) || null;
@@ -29,8 +35,8 @@ async function main() {
   record = records.find((r) => r.id === recordId);
   if (!record) {
     document.getElementById("clientMain").innerHTML =
-      `<div class="empty"><div class="e-icon">🔍</div><div class="e-title">Record not found</div>
-       <div class="e-sub">It may have been deleted. <a href="${project ? `project.html?id=${encodeURIComponent(project.id)}` : "index.html"}">Go back</a>.</div></div>`;
+      `<div class="empty"><div class="e-icon">🔒</div><div class="e-title">Not available</div>
+       <div class="e-sub">This unit doesn't exist or isn't assigned to you. <a href="index.html">Go back</a>.</div></div>`;
     return;
   }
   render();
@@ -141,8 +147,9 @@ function render() {
         <div class="page-subtitle"><i class="ti ti-building"></i> Unit ${esc(r.unitNo)}${r.type ? " · " + esc(r.type) : ""} · ${esc(project?.name || "")}</div>
       </div>
       <div class="page-header-actions">
+        ${ME.role === "boss" ? `<button class="btn" id="assignBtn"><i class="ti ti-user-cog"></i> Assign</button>
         <button class="btn" id="editBtn"><i class="ti ti-pencil"></i> Edit</button>
-        <button class="btn danger" id="deleteBtn"><i class="ti ti-trash"></i> Delete</button>
+        <button class="btn danger" id="deleteBtn"><i class="ti ti-trash"></i> Delete</button>` : ""}
       </div>
     </div>
 
@@ -152,15 +159,18 @@ function render() {
     </div>
     <div id="clientBody"></div>`;
 
-  document.getElementById("editBtn").addEventListener("click", () =>
-    openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
-      onSaved: reloadAndRender }));
-  document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!(await confirmModal({ title: `Delete unit ${r.unitNo}?`, message: "This permanently deletes the record. This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
-    try { await db.deleteRecord(r.id); toast("Record deleted");
-      location.href = `project.html?id=${encodeURIComponent(project.id)}`;
-    } catch (e) { toast("Delete failed — " + e.message); }
-  });
+  if (ME.role === "boss") {
+    document.getElementById("assignBtn").addEventListener("click", () => openAssign(r));
+    document.getElementById("editBtn").addEventListener("click", () =>
+      openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
+        onSaved: reloadAndRender }));
+    document.getElementById("deleteBtn").addEventListener("click", async () => {
+      if (!(await confirmModal({ title: `Delete unit ${r.unitNo}?`, message: "This permanently deletes the record. This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
+      try { await db.deleteRecord(r.id); toast("Record deleted");
+        location.href = `project.html?id=${encodeURIComponent(project.id)}`;
+      } catch (e) { toast("Delete failed — " + e.message); }
+    });
+  }
   main.querySelectorAll("#clientTabs .tab").forEach((b) =>
     b.addEventListener("click", () => { activeClientTab = b.dataset.ctab; render(); }));
 
@@ -467,6 +477,43 @@ function mountScheduleTips() {
       tip.style.left = x + "px"; tip.style.top = y + "px";
     });
     el.addEventListener("mouseleave", () => tip.classList.remove("show"));
+  });
+}
+
+/* ------------------------------------------------ assign this unit (boss) */
+async function openAssign(r) {
+  const users = (await auth.listUsers()).filter((u) => u.role === "agent" && u.active !== false);
+  const opts = [`<option value="">Unassigned — only admins see it</option>`]
+    .concat(users.map((u) => `<option value="${esc(u.uid)}" ${r.assignedTo === u.uid ? "selected" : ""}>${esc(u.name || u.email)}</option>`))
+    .join("");
+
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal" style="width:min(440px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-user-cog"></i></div>
+      <div><div class="modal-header-title">Assign this unit</div>
+      <div class="modal-header-sub">Unit ${esc(r.unitNo)}${r.buyerName ? " · " + esc(r.buyerName) : ""}</div></div></div>
+      <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <label class="fld"><span>Collector</span><select id="asSel">${opts}</select></label>
+      <div class="assign-note"><i class="ti ti-info-circle"></i> Overrides the project-level assignment for this one unit.</div>
+      ${users.length ? "" : `<div class="login-error show">No agents yet — add one in Team &amp; access.</div>`}
+    </div>
+    <div class="modal-actions"><button class="btn" data-x>Cancel</button>
+      <button class="btn primary" id="asSave"><i class="ti ti-check"></i> Save</button></div></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+  bd.querySelector("#asSave").addEventListener("click", async () => {
+    const uid = bd.querySelector("#asSel").value;
+    try {
+      await db.updateRecord(r.id, { assignedTo: uid });
+      record.assignedTo = uid;
+      close(); toast("Unit assignment updated");
+    } catch (e) { toast("Could not update — " + e.message); }
   });
 }
 

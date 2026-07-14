@@ -731,3 +731,75 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
   .page-title { font-size: 1.2rem; }
   .hbar-row { grid-template-columns: 110px 1fr 80px; }
 }
+
+/* ============================================================
+   Authentication, team & assignment
+   ============================================================ */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display: inline-block; animation: spin .8s linear infinite; }
+
+/* form field used in modals + login */
+.fld { display: block; margin-bottom: 14px; }
+.fld > span { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 5px; }
+.fld input, .fld select {
+  width: 100%; font: inherit; font-size: 13.5px; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 9px; padding: 10px 11px; outline: none;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.fld input:focus, .fld select:focus {
+  border-color: var(--brand-accent); background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(47,143,91,.14);
+}
+
+/* ---- login page ---- */
+.login-body { min-height: 100vh; display: grid; place-items: center;
+  background: linear-gradient(135deg, #0f3323 0%, #14432f 45%, #1c5a3d 100%); padding: 24px; }
+.login-wrap { width: min(400px, 100%); }
+.login-card { background: var(--surface); border-radius: 18px; padding: 30px 28px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+.login-brand { display: flex; align-items: center; gap: 13px; margin-bottom: 22px; }
+.login-brand img { width: 46px; height: 46px; object-fit: contain; }
+.login-title { font-size: 18px; font-weight: 750; color: var(--ink); letter-spacing: -.01em; }
+.login-sub { font-size: 12.5px; color: var(--ink-3); }
+.login-btn { width: 100%; justify-content: center; margin-top: 4px; padding: 11px; font-size: 14px; }
+.login-error { display: none; font-size: 12.5px; color: #dc2626; background: rgba(220,38,38,.08);
+  border: 1px solid rgba(220,38,38,.2); border-radius: 8px; padding: 8px 11px; margin-bottom: 12px; }
+.login-error.show { display: block; }
+.login-hint { margin-top: 16px; font-size: 12px; color: var(--ink-3); text-align: center; line-height: 1.5; }
+.login-hint b { color: var(--ink-2); }
+
+/* ---- team table ---- */
+.u-cell { display: flex; align-items: center; gap: 11px; }
+.u-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; color: #fff; background: var(--brand-accent); }
+.u-avatar.boss { background: var(--brand); }
+.u-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.u-email { font-size: 12px; color: var(--ink-3); }
+.tag-you { font-size: 10px; font-weight: 700; color: var(--brand-accent); background: rgba(47,143,91,.12);
+  padding: 1px 6px; border-radius: 6px; vertical-align: middle; }
+.role-badge { font-size: 11px; font-weight: 650; padding: 3px 10px; border-radius: 999px; }
+.role-badge.boss { color: var(--brand); background: rgba(20,67,47,.1); }
+.role-badge.agent { color: #2563eb; background: rgba(37,99,235,.1); }
+.proj-cell { max-width: 320px; }
+.proj-cell .chip { display: inline-block; font-size: 11px; font-weight: 550; color: var(--ink-2);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 2px 8px; margin: 2px 3px 2px 0; }
+.proj-cell .chip-all { color: var(--brand-accent); border-color: rgba(47,143,91,.3); background: rgba(47,143,91,.08); }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+.status-dot.on { background: #22c55e; }
+.status-dot.off { background: #94a3b8; }
+.row-off { opacity: .55; }
+.act-cell { white-space: nowrap; }
+.icon-act { border: none; background: transparent; color: var(--ink-3); cursor: pointer; padding: 6px;
+  border-radius: 7px; font-size: 16px; transition: background .15s, color .15s; }
+.icon-act:hover { background: var(--surface-2); color: var(--ink); }
+.icon-act.danger:hover { background: rgba(220,38,38,.1); color: #dc2626; }
+
+/* ---- assign modal ---- */
+.assign-list { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow-y: auto; }
+.assign-row { display: flex; align-items: center; gap: 11px; padding: 9px 8px; border-radius: 9px;
+  font-size: 13.5px; color: var(--ink); cursor: pointer; }
+.assign-row:hover { background: var(--surface-2); }
+.assign-row input { width: 17px; height: 17px; accent-color: var(--brand-accent); }
+.assign-note { display: flex; gap: 7px; font-size: 12px; color: var(--ink-3); margin-top: 12px; line-height: 1.45; }
+.assign-note i { color: var(--brand-accent); flex-shrink: 0; margin-top: 1px; }

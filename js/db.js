@@ -13,12 +13,18 @@ export let mode = LIVE ? "live" : "local";
 
 let fs = null;   // firestore module namespace
 let db = null;
+let app = null;
+export let authNs = null;   // firebase-auth module namespace (live only)
+export let authInst = null; // Auth instance (live only)
 
 if (LIVE) {
   try {
     const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
     fs = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`);
-    db = fs.getFirestore(initializeApp(cfg));
+    authNs = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-auth.js`);
+    app = initializeApp(cfg);
+    db = fs.getFirestore(app);
+    authInst = authNs.getAuth(app);
   } catch (e) {
     // Network / CDN failure — degrade to local mode instead of hanging on a blank page.
     console.error("Firebase SDK failed to load — falling back to local data.", e);
@@ -26,7 +32,71 @@ if (LIVE) {
     mode = "local";
     fs = null;
     db = null;
+    app = null;
+    authNs = null;
+    authInst = null;
   }
+}
+
+export function firebaseApp() { return app; }
+export function firebaseConfig() { return cfg; }
+
+/* ------------------------------------------------ user profiles (live) */
+export async function listUserDocs() {
+  if (!LIVE) return [];
+  const snap = await fs.getDocs(fs.collection(db, "users"));
+  return snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+}
+export async function getUserDoc(uid) {
+  if (!LIVE) return null;
+  const d = await fs.getDoc(fs.doc(db, "users", uid));
+  return d.exists() ? { uid, ...d.data() } : null;
+}
+export async function saveUserDoc(uid, data) {
+  if (!LIVE) return;
+  await fs.setDoc(fs.doc(db, "users", uid), data, { merge: true });
+}
+export async function deleteUserDoc(uid) {
+  if (!LIVE) return;
+  await fs.deleteDoc(fs.doc(db, "users", uid));
+}
+
+/* Set (or clear, uid="") the assignee on every record of a project. */
+export async function setProjectAssignee(projectId, uid) {
+  if (LIVE) {
+    let touched = 0;
+    let last = null;
+    while (true) {
+      let q = fs.query(fs.collection(db, "records"), fs.where("projectId", "==", projectId), fs.limit(400));
+      const snap = await fs.getDocs(q);
+      if (snap.empty) break;
+      const batch = fs.writeBatch(db);
+      snap.docs.forEach((d) => batch.set(d.ref, { assignedTo: uid || "" }, { merge: true }));
+      await batch.commit();
+      touched += snap.size;
+      if (snap.size < 400) break;
+      if (last === snap.docs[0].id) break;   // guard against loops
+      last = snap.docs[0].id;
+    }
+    invalidate();
+    return touched;
+  }
+  // local mode
+  const local = loadLocal();
+  let touched = 0;
+  for (const r of local.added)
+    if (r.projectId === projectId) { r.assignedTo = uid || ""; touched++; }
+  for (const r of cache?.records || [])
+    if (r.projectId === projectId && !String(r.id).startsWith("loc_")) {
+      const base = local.overrides[r.id] || { ...r };
+      delete base.id;
+      base.assignedTo = uid || "";
+      local.overrides[r.id] = base;
+      touched++;
+    }
+  saveLocal(local);
+  invalidate();
+  return touched;
 }
 
 /* ------------------------------------------------ local overlay */
@@ -45,16 +115,25 @@ async function fetchJSON(path) {
   return res.json();
 }
 
-/** Loads everything the pages need: { summary, records } */
-export async function loadAll(force = false) {
-  if (cache && !force) return cache;
+/** Loads everything the pages need: { summary, records }.
+    `scope` (optional) = the signed-in user; when they are an agent the live
+    query is narrowed to records assigned to them so it satisfies the rules. */
+export async function loadAll(force = false, scope = null) {
+  const key = scope && scope.role !== "boss" ? `agent:${scope.uid}` : "all";
+  if (cache && cache._key === key && !force) return cache;
 
   const summary = await loadSummary();
   let records;
 
   if (LIVE) {
-    const snap = await fs.getDocs(fs.collection(db, "records"));
-    records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (scope && scope.role !== "boss") {
+      const q = fs.query(fs.collection(db, "records"), fs.where("assignedTo", "==", scope.uid));
+      const snap = await fs.getDocs(q);
+      records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } else {
+      const snap = await fs.getDocs(fs.collection(db, "records"));
+      records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
   } else {
     const seed = await fetchJSON("data/records.json");
     const local = loadLocal();
@@ -65,7 +144,7 @@ export async function loadAll(force = false) {
     records = records.concat(local.added);
   }
 
-  cache = { summary, records };
+  cache = { summary, records, _key: key };
   return cache;
 }
 
