@@ -26,7 +26,7 @@ async function main() {
   if (!ME) return;
   auth.renderChrome(ME);
 
-  const { summary, records } = auth.scopeData(await db.loadAll(false, ME), ME);
+  const { summary, records } = auth.scopeData(await db.loadAll(false, auth.loadScope(ME)), ME);
   setModeBadge(db.LIVE);
   const projects = visibleProjects(summary.projects);
   project = summary.projects.find((p) => p.id === projectId) || null;
@@ -515,9 +515,10 @@ async function openAssign(r) {
   bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
   bd.querySelector("#asSave").addEventListener("click", async () => {
     const uid = bd.querySelector("#asSel").value;
+    const name = uid ? (users.find((u) => u.uid === uid)?.name || users.find((u) => u.uid === uid)?.email || "") : "";
     try {
-      await db.updateRecord(r.id, { assignedTo: uid });
-      record.assignedTo = uid;
+      await db.updateRecord(r.id, { assignedTo: uid, assignedToName: name });
+      record.assignedTo = uid; record.assignedToName = name;
       close(); toast("Unit assignment updated");
     } catch (e) { toast("Could not update — " + e.message); }
   });

@@ -61,8 +61,11 @@ export async function deleteUserDoc(uid) {
   await fs.deleteDoc(fs.doc(db, "users", uid));
 }
 
-/* Set (or clear, uid="") the assignee on every record of a project. */
-export async function setProjectAssignee(projectId, uid) {
+/* Set (or clear, uid="") the assignee on every record of a project.
+   `name` is denormalised onto each record so viewers who cannot list all
+   users (e.g. Collection Officers) can still show the assignee's name. */
+export async function setProjectAssignee(projectId, uid, name = "") {
+  const patch = { assignedTo: uid || "", assignedToName: uid ? (name || "") : "" };
   if (LIVE) {
     let touched = 0;
     let last = null;
@@ -71,7 +74,7 @@ export async function setProjectAssignee(projectId, uid) {
       const snap = await fs.getDocs(q);
       if (snap.empty) break;
       const batch = fs.writeBatch(db);
-      snap.docs.forEach((d) => batch.set(d.ref, { assignedTo: uid || "" }, { merge: true }));
+      snap.docs.forEach((d) => batch.set(d.ref, patch, { merge: true }));
       await batch.commit();
       touched += snap.size;
       if (snap.size < 400) break;
@@ -85,12 +88,12 @@ export async function setProjectAssignee(projectId, uid) {
   const local = loadLocal();
   let touched = 0;
   for (const r of local.added)
-    if (r.projectId === projectId) { r.assignedTo = uid || ""; touched++; }
+    if (r.projectId === projectId) { Object.assign(r, patch); touched++; }
   for (const r of cache?.records || [])
     if (r.projectId === projectId && !String(r.id).startsWith("loc_")) {
       const base = local.overrides[r.id] || { ...r };
       delete base.id;
-      base.assignedTo = uid || "";
+      Object.assign(base, patch);
       local.overrides[r.id] = base;
       touched++;
     }

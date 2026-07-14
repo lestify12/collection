@@ -19,12 +19,18 @@ service cloud.firestore {
     function profile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-    function isBoss() {
-      return hasProfile() && profile().role == 'boss';
+    // System/IT admins by email — always full Manager power. Keep this list
+    // in sync with config.js `superAdmins`.
+    function isAdmin() {
+      return signedIn() && request.auth.token.email in ['admin@peacehomes.ae'];
     }
-    // Manager (boss) + Team Leader (lead) both have full data access.
+    // "Manager" powers = the boss role OR a system admin email.
+    function isBoss() {
+      return isAdmin() || (hasProfile() && profile().role == 'boss');
+    }
+    // Manager + Team Leader (lead) both have full data access.
     function canViewAll() {
-      return hasProfile() && (profile().role == 'boss' || profile().role == 'lead');
+      return isAdmin() || (hasProfile() && (profile().role == 'boss' || profile().role == 'lead'));
     }
 
     // User profiles. Manager reads/writes all; a Team Leader may read the

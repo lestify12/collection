@@ -20,7 +20,7 @@ async function main() {
 
   let data;
   try {
-    data = auth.scopeData(await db.loadAll(false, user), user);
+    data = auth.scopeData(await db.loadAll(false, auth.loadScope(user)), user);
   } catch (e) {
     console.error(e);
     document.getElementById("dashboard").innerHTML =
@@ -41,13 +41,15 @@ async function main() {
   document.getElementById("reportDate").textContent =
     `Report date ${summary.reportDate || ""} · ${projects.length} project${projects.length === 1 ? "" : "s"}`;
 
-  // who is assigned to each project, derived from the records' assignedTo
+  // who is assigned to each project. Prefer the name denormalised onto the
+  // record; else look it up (Manager/TL can list users); always resolve self.
   const usersById = Object.fromEntries(
     (await auth.listUsers().catch(() => [])).map((u) => [u.uid, u.name || u.email]));
+  usersById[user.uid] = user.name || user.email;
   const projectAssignee = (pid) => {
-    const uids = [...new Set(records.filter((r) => r.projectId === pid && r.assignedTo).map((r) => r.assignedTo))];
-    if (!uids.length) return null;
-    const names = uids.map((u) => usersById[u] || "Unknown");
+    const recs = records.filter((r) => r.projectId === pid && r.assignedTo);
+    if (!recs.length) return null;
+    const names = [...new Set(recs.map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"))];
     return names.length <= 1 ? names[0] : `${names[0]} +${names.length - 1}`;
   };
 

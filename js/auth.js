@@ -84,19 +84,31 @@ export const ready = init();
      lead  → Collection TL      (team leader, sees all + assigns)
      agent → Collection Officer (only their assigned units)          */
 const RANK = { boss: 3, lead: 2, agent: 1 };
+const SUPER_ADMINS = ((window.APP_CONFIG && window.APP_CONFIG.superAdmins) || [])
+  .map((e) => String(e).toLowerCase());
+
 export function roleLabel(role) {
   return role === "boss" ? "Manager" : role === "lead" ? "Collection TL" : "Collection Officer";
 }
+/** System/IT admin — always has full Manager powers regardless of role. */
+export function isSuperAdmin(user = _user) {
+  return !!user && SUPER_ADMINS.includes(String(user.email || "").toLowerCase());
+}
+/** Label shown to people (super admins read as "Admin"). */
+export function displayRole(user) {
+  return isSuperAdmin(user) ? "Admin" : roleLabel(user.role);
+}
+function effRank(user) { return isSuperAdmin(user) ? 3 : (RANK[user.role] || 0); }
 
 /* ------------------------------------------------ session */
 export function currentUser() { return _user; }
-export function isBoss() { return _user?.role === "boss"; }
-export function isManager(user = _user) { return user?.role === "boss"; }
+export function isBoss() { return _user?.role === "boss" || isSuperAdmin(); }
+export function isManager(user = _user) { return user?.role === "boss" || isSuperAdmin(user); }
 export function isLead(user = _user) { return user?.role === "lead"; }
-/** Manager + Team Leader see every project; officers see only their own. */
-export function canViewAll(user = _user) { return !!user && user.role !== "agent"; }
-/** Only the Manager can manage accounts, roles, and import. */
-export function canManage(user = _user) { return user?.role === "boss"; }
+/** Manager + Team Leader (+ super admin) see every project; officers see only their own. */
+export function canViewAll(user = _user) { return !!user && (user.role !== "agent" || isSuperAdmin(user)); }
+/** Manager + super admin can manage accounts, roles, and import. */
+export function canManage(user = _user) { return user?.role === "boss" || isSuperAdmin(user); }
 export function isLive() { return db.LIVE; }
 
 function redirectToLogin() {
@@ -113,8 +125,13 @@ export async function requireAuth({ min = "agent" } = {}) {
   if (user.mustChangePassword && !location.pathname.endsWith("reset.html")) {
     location.replace("reset.html"); return null;
   }
-  if ((RANK[user.role] || 0) < (RANK[min] || 0)) { location.replace("index.html"); return null; }
+  if (effRank(user) < (RANK[min] || 0)) { location.replace("index.html"); return null; }
   return user;
+}
+
+/** Scope object for db.loadAll — full access for anyone who can view all. */
+export function loadScope(user = _user) {
+  return user ? { uid: user.uid, role: canViewAll(user) ? "boss" : "agent" } : null;
 }
 
 export async function signIn(email, password) {
@@ -220,7 +237,7 @@ export function assignedProjectIds(records, uid) {
 /** Filter a loaded { summary, records } down to what `user` may see.
     Manager + Team Leader see everything; officers see only their units. */
 export function scopeData({ summary, records }, user) {
-  if (!user || user.role !== "agent") return { summary, records };
+  if (!user || canViewAll(user)) return { summary, records };
   const uid = user.uid;
   const recs = records.filter((r) => r.assignedTo === uid);
   const projIds = new Set(recs.map((r) => r.projectId));
@@ -240,7 +257,7 @@ export function renderChrome(user) {
   const roleEl = document.querySelector(".user-role");
   const avEl = document.querySelector(".user-avatar");
   if (nameEl) nameEl.textContent = user.name || "User";
-  if (roleEl) roleEl.textContent = roleLabel(user.role);
+  if (roleEl) roleEl.textContent = displayRole(user);
   if (avEl) avEl.textContent = initials(user.name || user.email);
 
   const right = document.querySelector(".navbar-right");

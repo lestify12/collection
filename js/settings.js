@@ -20,7 +20,7 @@ async function main() {
   render();   // render immediately — never block the form on data loading
 
   // sidebar projects load in the background (non-blocking)
-  db.loadAll(false, ME)
+  db.loadAll(false, auth.loadScope(ME))
     .then((data) => renderNav(visibleProjects(auth.scopeData(data, ME).summary.projects), null))
     .catch(() => { /* non-fatal */ });
 }
@@ -34,7 +34,7 @@ function render() {
         <div class="card-sub">This name shows in the header and on your assignments</div>
         <label class="fld"><span>Full name</span><input id="pName" value="${esc(ME.name || "")}"></label>
         <label class="fld"><span>Email</span><input value="${esc(ME.email || "")}" disabled></label>
-        <label class="fld"><span>Role</span><input value="${auth.roleLabel(ME.role)}" disabled></label>
+        <label class="fld"><span>Role</span><input value="${auth.displayRole(ME)}" disabled></label>
         <div class="login-error" id="pErr"></div>
         <button class="btn primary" id="saveName"><i class="ti ti-check"></i> Save profile</button>
       </section>

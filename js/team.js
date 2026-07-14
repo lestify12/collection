@@ -21,7 +21,7 @@ async function main() {
   if (!ME) return;
   auth.renderChrome(ME);
 
-  const data = await db.loadAll(false, ME);
+  const data = await db.loadAll(false, auth.loadScope(ME));
   RECORDS = data.records;
   PROJECTS = visibleProjects(data.summary.projects);
   renderNav(PROJECTS, null);
@@ -42,7 +42,10 @@ async function render() {
   const projName = Object.fromEntries(PROJECTS.map((p) => [p.id, p.name]));
   const canManage = auth.canManage(ME);   // Manager: manage accounts + roles
 
-  const rowsHtml = users.map((u) => {
+  const me = users.find((u) => u.uid === ME.uid) || ME;
+  const others = users.filter((u) => u.uid !== ME.uid);
+
+  const rowsHtml = others.map((u) => {
     const viewsAll = u.role !== "agent";   // Manager + TL see everything
     const assigned = viewsAll ? null : [...auth.assignedProjectIds(RECORDS, u.uid)];
     const chips = viewsAll
@@ -51,13 +54,15 @@ async function render() {
           ? assigned.map((id) => `<span class="chip">${esc(navLabel(projName[id] || id))}</span>`).join("")
           : `<span class="muted">No projects yet</span>`);
     const disabled = u.active === false;
-    const roleCell = (canManage && u.uid !== ME.uid)
-      ? `<select class="role-select" data-role="${u.uid}">
-           <option value="agent" ${u.role === "agent" ? "selected" : ""}>Collection Officer</option>
-           <option value="lead"  ${u.role === "lead" ? "selected" : ""}>Collection TL</option>
-           <option value="boss"  ${u.role === "boss" ? "selected" : ""}>Manager</option>
-         </select>`
-      : `<span class="role-badge ${u.role === "agent" ? "agent" : "boss"}">${esc(auth.roleLabel(u.role))}</span>`;
+    const roleCell = auth.isSuperAdmin(u)
+      ? `<span class="role-badge boss">Admin</span>`
+      : (canManage && u.uid !== ME.uid)
+        ? `<select class="role-select" data-role="${u.uid}">
+             <option value="agent" ${u.role === "agent" ? "selected" : ""}>Collection Officer</option>
+             <option value="lead"  ${u.role === "lead" ? "selected" : ""}>Collection TL</option>
+             <option value="boss"  ${u.role === "boss" ? "selected" : ""}>Manager</option>
+           </select>`
+        : `<span class="role-badge ${u.role === "agent" ? "agent" : "boss"}">${esc(auth.roleLabel(u.role))}</span>`;
     return `
       <tr class="${disabled ? "row-off" : ""}">
         <td>
@@ -80,13 +85,26 @@ async function render() {
   }).join("");
 
   body.innerHTML = `
+    <div class="you-label">Your account</div>
+    <section class="card section reveal you-card">
+      <div class="u-avatar boss you-avatar">${esc(initials(me.name || me.email))}</div>
+      <div class="you-info">
+        <div class="you-name">${esc(me.name || "—")} <span class="tag-you">you</span></div>
+        <div class="u-email">${esc(me.email)}</div>
+      </div>
+      <span class="role-badge boss">${esc(auth.displayRole(me))}</span>
+      <a class="btn" href="settings.html"><i class="ti ti-settings"></i> Settings</a>
+    </section>
+
+    <div class="you-label" style="margin-top:20px">Team${others.length ? ` · ${others.length}` : ""}</div>
     <section class="card section reveal">
-      <div class="table-wrap">
+      ${others.length ? `<div class="table-wrap">
         <table class="data">
           <thead><tr><th>Person</th><th>Role</th><th>Assigned projects</th><th>Status</th><th></th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
-      </div>
+      </div>` : `<div class="empty" style="padding:30px 10px"><div class="e-title">No teammates yet</div>
+        <div class="e-sub">Use “Add teammate” to create collection officers and team leaders.</div></div>`}
     </section>`;
 
   body.querySelectorAll("[data-role]").forEach((sel) =>
@@ -128,7 +146,7 @@ async function removeUser(uid) {
   // clear their project assignments first
   for (const pid of auth.assignedProjectIds(RECORDS, uid)) await db.setProjectAssignee(pid, "");
   await auth.deleteUser(uid);
-  RECORDS = (await db.loadAll(true, ME)).records;
+  RECORDS = (await db.loadAll(true, auth.loadScope(ME))).records;
   toast("Teammate removed");
   render();
 }
@@ -183,18 +201,20 @@ async function openAssign(uid) {
   const current = auth.assignedProjectIds(RECORDS, uid);
 
   const list = PROJECTS.map((p) => `
-    <label class="assign-row">
+    <label class="assign-card">
       <input type="checkbox" value="${esc(p.id)}" ${current.has(p.id) ? "checked" : ""}>
-      <span>${esc(p.name)}</span>
+      <i class="ti ti-building"></i>
+      <span>${esc(navLabel(p.name))}</span>
+      <i class="ti ti-check assign-check"></i>
     </label>`).join("");
 
   const bd = modal(`
     <div class="modal-header"><div class="modal-header-left">
       <div class="modal-header-icon"><i class="ti ti-map-pin-cog"></i></div>
       <div><div class="modal-header-title">Assign projects</div>
-      <div class="modal-header-sub">${esc(u.name || u.email)} will see &amp; collect on the checked projects</div></div></div>
+      <div class="modal-header-sub">${esc(u.name || u.email)} will see &amp; collect on the selected projects</div></div></div>
       <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
-    <div class="modal-body"><div class="assign-list">${list}</div>
+    <div class="modal-body"><div class="assign-grid">${list}</div>
       <div class="assign-note"><i class="ti ti-info-circle"></i> Assigning a project hands every unit in it to this collection officer. Fine-tune individual units on each client's page.</div></div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
       <button class="btn primary" id="aSave"><i class="ti ti-check"></i> Save</button></div>`);
@@ -206,9 +226,9 @@ async function openAssign(uid) {
     if (!toAdd.length && !toClear.length) { close(bd); return; }
     const btn = bd.querySelector("#aSave"); btn.disabled = true;
     btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Saving…`;
-    for (const id of toAdd) await db.setProjectAssignee(id, uid);
+    for (const id of toAdd) await db.setProjectAssignee(id, uid, u.name || u.email);
     for (const id of toClear) await db.setProjectAssignee(id, "");
-    RECORDS = (await db.loadAll(true, ME)).records;
+    RECORDS = (await db.loadAll(true, auth.loadScope(ME))).records;
     close(bd); toast("Assignments updated");
     render();
   });

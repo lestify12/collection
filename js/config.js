@@ -26,6 +26,11 @@ window.APP_CONFIG = {
 
   currency: "AED",
 
+  /* System / IT administrators (by email). These accounts always have full
+     Manager powers — including changing everyone's roles — no matter what
+     role is stored on their profile. Keep this list short. */
+  superAdmins: ["admin@peacehomes.ae"],
+
   /* Which projects to show across the whole app (dashboard, nav, totals).
      Leave as an empty array [] to show ALL projects from the summary.
      Listed here are the projects we have client-wise data loaded for.

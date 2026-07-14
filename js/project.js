@@ -36,7 +36,7 @@ async function main() {
   if (!ME) return;
   auth.renderChrome(ME);
 
-  const { summary, records } = auth.scopeData(await db.loadAll(false, ME), ME);
+  const { summary, records } = auth.scopeData(await db.loadAll(false, auth.loadScope(ME)), ME);
   setModeBadge(db.LIVE);
 
   const projects = visibleProjects(summary.projects);
@@ -45,9 +45,8 @@ async function main() {
   renderNav(projects, project.id);
   allRecords = records;
 
-  // Structural actions (add unit, import) — Manager + Team Leader only.
+  // Structural actions (import) — Manager + Team Leader only.
   if (!auth.canViewAll(ME)) {
-    document.getElementById("sidebarAdd")?.style.setProperty("display", "none");
     document.getElementById("importBtn")?.style.setProperty("display", "none");
   }
 
@@ -61,8 +60,6 @@ async function main() {
   renderTabs();
   renderTab();
 
-  document.getElementById("sidebarAdd")?.addEventListener("click", () =>
-    openAdd(activeTab === "overview" ? "installment" : activeTab));
   const importFile = document.getElementById("importFile");
   document.getElementById("importBtn")?.addEventListener("click", () => importFile.click());
   importFile?.addEventListener("change", async (e) => {
