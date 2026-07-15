@@ -262,7 +262,7 @@ function renderOverview() {
     <section class="hero-card reveal" style="margin-top:4px">
       <img class="hero-photo" src="photos/projects/${esc(project.id)}.webp" alt="" aria-hidden="true">
       <div class="hero-main">
-        <div class="hero-icon"><i class="ti ti-report-money"></i></div>
+        <div class="hero-icon"><i class="ti ti-coins"></i></div>
         <div>
           <div class="hero-label">Overall outstanding due</div>
           <div class="hero-value" style="font-size:${overallPx}px">${overallStr}</div>
