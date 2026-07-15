@@ -152,9 +152,12 @@ function legendHTML() {
 
 /* Project picker modal — a grid of mini building cards. Calls onPick(id|"all"). */
 function openProjectPicker(projects, records, current, onPick) {
-  const miniCard = (pid, name, sub, photo, iconOnly) => `
+  // layered cascade: optimized .webp on top, .png (future uploads) beneath,
+  // brand texture last — the first that loads wins.
+  const bg = (pid) => `background-image:url('photos/projects/${pid}.webp'), url('photos/projects/${pid}.png'), url('photos/peacehomesbackground.webp')`;
+  const miniCard = (pid, name, sub, hasPhoto, iconOnly) => `
     <button class="proj-mini${current === pid ? " active" : ""}" data-pid="${esc(pid)}">
-      <span class="proj-mini-photo"${photo ? ` style="background-image:url('${photo}'), url('photos/peacehomesbackground.png')"` : ""}>
+      <span class="proj-mini-photo"${hasPhoto ? ` style="${bg(pid)}"` : ""}>
         ${iconOnly ? `<i class="ti ${iconOnly}"></i>` : ""}
       </span>
       <span class="proj-mini-body">
@@ -168,7 +171,7 @@ function openProjectPicker(projects, records, current, onPick) {
       const due = m.installment?.due || 0;
       const sub = due > 0 ? fmtMoney(due, { compact: true }) + " installment due"
         : m.projectUnits ? `${fmtInt(m.projectUnits)} unit${m.projectUnits === 1 ? "" : "s"}` : "View summary";
-      return miniCard(p.id, p.name, sub, `photos/projects/${p.id}.png`, "");
+      return miniCard(p.id, p.name, sub, true, "");
     }));
 
   const bd = document.createElement("div");
@@ -331,8 +334,8 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
   // default hero.png (the brand monogram). Missing files fall back to the brand
   // texture (see wiring below). hero.png is a logo, so it's shown contained
   // (hero-logo) rather than cropped like a building photo.
-  const heroPhoto = rows.length === 1 ? `photos/projects/${rows[0].id}.png` : "photos/hero.png";
-  const heroLogoCls = heroPhoto === "photos/hero.png" ? " hero-logo" : "";
+  const heroPhoto = rows.length === 1 ? `photos/projects/${rows[0].id}.webp` : "photos/hero.webp";
+  const heroLogoCls = heroPhoto === "photos/hero.webp" ? " hero-logo" : "";
 
   el.innerHTML = `
     <section class="hero-card reveal">
@@ -420,13 +423,15 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
   const heroImg = el.querySelector(".hero-photo");
   if (heroImg) heroImg.addEventListener("error", function onErr() {
     const src = heroImg.getAttribute("src") || "";
-    if (src.includes("/projects/")) {
-      heroImg.classList.add("hero-logo");                // default hero.png is the monogram
-      heroImg.src = "photos/hero.png";                   // per-project missing → default
-    } else if (src.endsWith("/hero.png")) {
+    if (src.endsWith(".webp") && src.includes("/projects/")) {
+      heroImg.src = src.replace(".webp", ".png");         // webp missing → try .png upload
+    } else if (src.includes("/projects/")) {
+      heroImg.classList.add("hero-logo");                // default hero is the monogram
+      heroImg.src = "photos/hero.webp";                  // per-project missing → default
+    } else if (src.endsWith("/hero.webp")) {
       heroImg.classList.remove("hero-logo");
       heroImg.classList.add("is-texture");
-      heroImg.src = "photos/peacehomesbackground.png";   // default missing → brand texture
+      heroImg.src = "photos/peacehomesbackground.webp";  // default missing → brand texture
     } else {
       heroImg.removeEventListener("error", onErr);        // texture is the last resort
     }

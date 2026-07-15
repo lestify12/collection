@@ -1,27 +1,30 @@
 # Dashboard hero building photos
 
-Drop a building photo for each project here. The dashboard's
-"Installment Outstanding" card shows it faded into the right side.
+Each project's building photo shows on the dashboard hero card and in the
+"Choose a project" picker cards.
 
-File name = the project's ID, as a **.png**:
+Preferred format is **.webp** (much smaller — pages load far faster), named
+after the project ID:
 
-| Project                         | File name                          |
-|---------------------------------|------------------------------------|
-| Natuzzi Harmony Residences      | natuzzi-harmony-residences.png     |
-| Peace Avenue                    | peace-avenue.png                   |
-| Peace Lagoons - A               | peace-lagoons-tower-a.png          |
-| Peace Lagoons - B               | peace-lagoons-tower-b.png          |
-| Peace Lagoons II - A            | peace-lagoons-ii-tower-a.png       |
-| Peace Lagoons II - B            | peace-lagoons-ii-tower-b.png       |
-| Sky Line                        | sky-line.png                       |
-| Sky Livings                     | sky-livings.png                    |
-| Sky Suites                      | sky-suites.png                     |
-| Sky Vista                       | sky-vista.png                      |
+| Project                         | File name                           |
+|---------------------------------|-------------------------------------|
+| Natuzzi Harmony Residences      | natuzzi-harmony-residences.webp     |
+| Peace Avenue                    | peace-avenue.webp                   |
+| Peace Lagoons - A               | peace-lagoons-tower-a.webp          |
+| Peace Lagoons - B               | peace-lagoons-tower-b.webp          |
+| Peace Lagoons II - A            | peace-lagoons-ii-tower-a.webp       |
+| Peace Lagoons II - B            | peace-lagoons-ii-tower-b.webp       |
+| Sky Line                        | sky-line.webp                       |
+| Sky Livings                     | sky-livings.webp                    |
+| Sky Suites                      | sky-suites.webp                     |
+| Sky Vista                       | sky-vista.webp                      |
 
-Also add **../hero.png** (in the `photos/` folder) — the default photo
-shown on the "All units" view where no single project is in focus.
+The default "All units" hero uses **../hero.webp** (in the `photos/` folder).
 
 Notes:
-- Landscape images work best (roughly 3:2 or wider). Large files are fine.
-- Any missing photo automatically falls back to the brand texture, so the
-  card never looks broken.
+- **You can still upload a `.png`** — the card loads `<id>.webp` first, then
+  `<id>.png`, then the brand texture, so a PNG upload will show. But WebP is
+  strongly preferred; ping me and I'll convert any PNG you add down to a small
+  WebP (a 3.5 MB PNG becomes ~0.4 MB with no visible quality loss).
+- Portrait renders of the whole building work well; the cards crop to the
+  lower part (entrance/podium).
