@@ -188,13 +188,15 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 .sidebar-item:hover > i { color: var(--brand); }
 .sidebar-item.active > i { background: var(--accent-soft); color: var(--brand); }
 :root[data-theme="dark"] .sidebar-item.active > i { background: rgba(47,143,91,.22); color: #7fe0a8; }
-/* project rows: the building photo as a small thumbnail instead of a generic icon */
-.sidebar-thumb { flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; background-color: #123c2a;
-  background-size: cover; background-position: center 68%; background-repeat: no-repeat;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
-/* custom uploaded icon: fill the tile, centred (self-contained app-style icons) */
-.sidebar-thumb.has-icon { background-size: cover; background-position: center; }
-.sidebar-item.active .sidebar-thumb { box-shadow: 0 0 0 2px var(--brand-accent); }
+/* project rows: a building glyph in a soft green chip */
+.sidebar-ico { flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 16px; background: var(--accent-soft); color: var(--brand-accent);
+  transition: background .12s, color .12s; }
+.sidebar-item:hover .sidebar-ico { background: var(--brand-accent); color: #fff; }
+.sidebar-item.active .sidebar-ico { background: var(--brand-accent); color: #fff; box-shadow: 0 1px 4px rgba(47,143,91,.35); }
+:root[data-theme="dark"] .sidebar-ico { background: rgba(47,143,91,.18); color: #7fe0a8; }
+:root[data-theme="dark"] .sidebar-item:hover .sidebar-ico,
+:root[data-theme="dark"] .sidebar-item.active .sidebar-ico { background: var(--brand-accent); color: #04130c; }
 /* per-row loading shimmer (matches a nav item's shape) */
 .sk-nav { display: flex; flex-direction: column; gap: 3px; padding: 2px 0; }
 .sk-nav .skeleton { height: 34px; margin: 0 14px; border-radius: 8px; }
