@@ -133,9 +133,9 @@ export function renderNav(projects, activeId) {
   if (dash && !activeId) dash.classList.add("active");
 }
 
-/* Navbar search: filters the sidebar list live AND shows a dropdown of
-   matching projects you can click or arrow/Enter into. Mobile drawer is
-   handled separately by js/mobile-nav.js. */
+/* Navbar search: shows a dropdown of matching projects, units and buyers you
+   can click or arrow/Enter into. The sidebar nav is left untouched. Mobile
+   drawer is handled separately by js/mobile-nav.js. */
 export function initSidebar() {
   const search = document.getElementById("projSearch");
   if (!search) return;
@@ -174,7 +174,8 @@ export function initSidebar() {
 
   const run = async () => {
     const q = search.value.trim().toLowerCase();
-    items().forEach((a) => { a.style.display = !q || (a.dataset.name || "").includes(q) ? "" : "none"; });
+    // The sidebar is navigation — never hide its projects. Matching projects
+    // (and units/buyers) are surfaced in the dropdown below instead.
     if (!q) return close();
     const projMatches = items().filter((a) => (a.dataset.name || "").includes(q)).slice(0, 5);
     if (q.length < 2) return draw(q, projMatches, [], false);   // wait for 2+ chars before unit search
