@@ -253,12 +253,17 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
     attachTips(box);
   }
 
+  // Building photo: a single project in view shows its own image; otherwise a
+  // default. Missing files fall back to the brand texture (see wiring below).
+  const heroPhoto = rows.length === 1 ? `photos/projects/${rows[0].id}.png` : "photos/hero.png";
+
   el.innerHTML = `
     <section class="hero-card reveal">
+      <img class="hero-photo" src="${heroPhoto}" alt="" aria-hidden="true">
       <div class="hero-main">
         <div class="hero-icon"><i class="ti ti-calendar-repeat"></i></div>
         <div>
-          <div class="hero-label">Installment outstanding</div>
+          <div class="hero-label">Installment Outstanding</div>
           <div class="hero-value" id="kpiInst">0</div>
         </div>
       </div>
@@ -333,6 +338,19 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
         </table>
       </div>
     </section>`;
+
+  // Any missing building photo (per-project or the default) falls back to the
+  // brand watercolor texture so the card never shows a broken image.
+  const heroImg = el.querySelector(".hero-photo");
+  if (heroImg) heroImg.addEventListener("error", function onErr() {
+    heroImg.removeEventListener("error", onErr);
+    if (heroImg.src.endsWith("photos/hero.png")) {
+      heroImg.classList.add("is-texture");
+      heroImg.src = "photos/peacehomesbackground.png";
+    } else {
+      heroImg.src = "photos/hero.png";   // per-project missing → try the default first
+    }
+  });
 
   const money = { money: true, compact: false };
   // shrink the value font as the amount gets longer so big figures never overflow
