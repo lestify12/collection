@@ -41,6 +41,17 @@ if (LIVE) {
 export function firebaseApp() { return app; }
 export function firebaseConfig() { return cfg; }
 
+/* Call a Firebase Cloud Function (used for admin actions the browser can't do
+   directly, e.g. setting another user's password). Lazy-loads the SDK. */
+let fnMod = null, fnInst = null;
+export async function callFunction(name, data) {
+  if (!LIVE) throw new Error("Cloud functions are only available in live mode.");
+  if (!fnMod) fnMod = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-functions.js`);
+  if (!fnInst) fnInst = fnMod.getFunctions(app);
+  const res = await fnMod.httpsCallable(fnInst, name)(data);
+  return res.data;
+}
+
 /* ------------------------------------------------ user profiles (live) */
 export async function listUserDocs() {
   if (!LIVE) return [];

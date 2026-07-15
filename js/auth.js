@@ -235,24 +235,27 @@ export async function changePassword(newPassword) {
   await updateUser(_user.uid, { password: newPassword });
 }
 
-/** Manager/Admin resets a teammate's password. The teammate is forced to set
-    a new password on their next sign-in (mustChangePassword), exactly like a
-    brand-new account. Local mode also sets the temporary password directly;
-    live mode can't set another user's Firebase password from the browser, so
-    it emails them a secure reset link instead. */
+/** Manager/Admin sets a teammate's temporary password. The teammate is forced
+    to set their own password on next sign-in (mustChangePassword), exactly like
+    a brand-new account. Live mode does the password change through a secure
+    Cloud Function (the browser can't set another user's Firebase password);
+    local/testing mode sets it directly. */
 export async function resetPassword(uid, tempPassword) {
   if (db.LIVE) {
-    await db.saveUserDoc(uid, { mustChangePassword: true });
-    if (_user?.uid === uid) _user = { ..._user, mustChangePassword: true };
-    let emailed = false;
     try {
-      const u = (await listUsers()).find((x) => x.uid === uid);
-      if (u?.email) { await db.authNs.sendPasswordResetEmail(db.authInst, u.email); emailed = true; }
-    } catch (e) { console.warn("reset email failed", e); }
-    return { emailed, tempApplied: false };
+      await db.callFunction("adminResetPassword", { uid, tempPassword });
+    } catch (e) {
+      const m = String(e?.code || e?.message || e);
+      if (/not-found|internal|Failed to fetch|CORS|does not exist/i.test(m))
+        throw new Error("The password-reset server function isn’t deployed yet. See functions/README.md to enable it.");
+      if (/permission-denied|unauthenticated/i.test(m)) throw new Error("Only Managers and Admins can reset passwords.");
+      throw new Error(e?.message?.replace(/^.*?:\s*/, "") || "Could not reset the password.");
+    }
+    if (_user?.uid === uid) _user = { ..._user, mustChangePassword: true };
+    return { tempApplied: true };
   }
   await updateUser(uid, { password: tempPassword, mustChangePassword: true });
-  return { emailed: false, tempApplied: true };
+  return { tempApplied: true };
 }
 
 export async function deleteUser(uid) {

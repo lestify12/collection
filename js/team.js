@@ -175,7 +175,6 @@ async function openResetPassword(uid) {
   const u = users.find((x) => x.uid === uid);
   if (!u) return;
   const name = u.name || u.email;
-  const live = auth.isLive();
   const suggest = "Peace" + Math.floor(1000 + Math.random() * 9000);
   const bd = modal(`
     <div class="modal-header"><div class="modal-header-left">
@@ -184,26 +183,22 @@ async function openResetPassword(uid) {
       <div class="modal-header-sub">${esc(name)}</div></div></div>
       <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
-      ${live
-        ? `<p class="rp-note">A secure reset link will be emailed to <b>${esc(u.email)}</b>. ${esc(name)} will also be required to set a new password the next time they sign in.</p>`
-        : `<label class="fld"><span>Temporary password</span><input id="rpPass" type="text" value="${esc(suggest)}"></label>
-           <p class="rp-note">Share this with ${esc(name)}. They’ll sign in with it once, then be required to set their own password — same as a new account.</p>`}
+      <label class="fld"><span>Temporary password</span><input id="rpPass" type="text" value="${esc(suggest)}"></label>
+      <p class="rp-note">Share this with ${esc(name)}. They’ll sign in with it once, then be required to set their own password — same as a new account.</p>
       <div class="login-error" id="rpErr"></div>
     </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
       <button class="btn primary" id="rpGo"><i class="ti ti-key"></i> Reset password</button></div>`);
 
   bd.querySelector("#rpGo").addEventListener("click", async () => {
-    const temp = live ? "" : bd.querySelector("#rpPass").value;
+    const temp = bd.querySelector("#rpPass").value;
     const err = bd.querySelector("#rpErr");
-    if (!live && temp.length < 6) { err.textContent = "Use at least 6 characters."; err.classList.add("show"); return; }
+    if (temp.length < 6) { err.textContent = "Use at least 6 characters."; err.classList.add("show"); return; }
     const btn = bd.querySelector("#rpGo"); btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Resetting…`;
     try {
-      const res = await auth.resetPassword(uid, temp);
+      await auth.resetPassword(uid, temp);
       close(bd);
-      toast(live
-        ? (res.emailed ? `Reset link sent to ${name}` : `${name} must set a new password on next sign-in`)
-        : `Temporary password set for ${name}`);
+      toast(`Temporary password set for ${name}`);
       render();
     } catch (e) { err.textContent = e.message || "Could not reset the password."; err.classList.add("show"); btn.disabled = false; btn.innerHTML = `<i class="ti ti-key"></i> Reset password`; }
   });
