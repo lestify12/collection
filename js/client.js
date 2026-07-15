@@ -458,12 +458,33 @@ function scheduleHTML(s, r, canEdit = true) {
         : `<div class="sched-note"><i class="ti ti-info-circle"></i> Reflected payments go to the 24% downpayment. When it's complete, a <b>Transfer to Installment</b> button appears to start the 1% monthly plan.</div>`)
     : "";
 
+  // Combined plan progress: the downpayment and the installments as two
+  // separately-coloured segments of one "plan settled" meter.
+  const totalPlan = (s.dpTarget || 0) + (s.planTotal || 0);
+  const dpShare = totalPlan ? Math.max(0, (s.dpPaid / totalPlan) * 100) : 0;
+  const instShare = totalPlan ? Math.max(0, (s.paidTotal / totalPlan) * 100) : 0;
+  const overallPct = Math.round(dpShare + instShare);
+
+  const meter = s.isDp
+    ? `<div class="sched-summary">
+        <div><div class="sched-big">${s.pct}%</div><div class="sched-cap">of downpayment settled</div></div>
+        <div class="sched-meter"><div class="sched-meter-fill" style="width:${s.pct}%"></div></div>
+      </div>`
+    : `<div class="sched-summary">
+        <div><div class="sched-big">${overallPct}%</div><div class="sched-cap">of plan settled</div></div>
+        <div class="sched-meter split">
+          <div class="sched-meter-fill dp" style="width:${dpShare.toFixed(1)}%" title="Downpayment ${fmtMoney(s.dpPaid)}"></div>
+          <div class="sched-meter-fill inst" style="width:${instShare.toFixed(1)}%" title="Installments ${fmtMoney(s.paidTotal)}"></div>
+        </div>
+      </div>
+      <div class="sched-splitleg">
+        <span class="key"><span class="dot dp"></span> Downpayment · ${fmtMoney(s.dpPaid, { compact: true })}</span>
+        <span class="key"><span class="dot inst"></span> Installments · ${fmtMoney(s.paidTotal, { compact: true })}</span>
+      </div>`;
+
   return `
     ${planStrip}
-    <div class="sched-summary">
-      <div><div class="sched-big">${s.pct}%</div><div class="sched-cap">${s.isDp ? "of downpayment settled" : "of plan settled"}</div></div>
-      <div class="sched-meter"><div class="sched-meter-fill" style="width:${s.pct}%"></div></div>
-    </div>
+    ${meter}
 
     <div class="sched-dp ${s.dpDone ? "done" : ""}">
       <div class="sched-dp-head">

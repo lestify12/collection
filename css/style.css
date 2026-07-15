@@ -758,6 +758,16 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .sched-meter { flex: 1; height: 9px; background: #d4ded8; border-radius: 99px; overflow: hidden; }
 :root[data-theme="dark"] .sched-meter { background: #2a382f; }
 .sched-meter-fill { height: 100%; background: linear-gradient(90deg, var(--brand-accent), #16a34a); border-radius: 99px; transition: width .8s cubic-bezier(.22,.8,.28,1); }
+/* two-colour split meter: downpayment + installments */
+.sched-meter.split { display: flex; gap: 2px; overflow: visible; }
+.sched-meter.split .sched-meter-fill { border-radius: 99px; }
+.sched-meter-fill.dp { background: #b8791f; }                        /* downpayment — gold */
+.sched-meter-fill.inst { background: linear-gradient(90deg, var(--brand-accent), #16a34a); } /* installments — green */
+.sched-splitleg { display: flex; gap: 16px; margin: -8px 0 16px; font-size: 11.5px; color: var(--ink-2); }
+.sched-splitleg .key { display: inline-flex; align-items: center; gap: 6px; }
+.sched-splitleg .dot { width: 9px; height: 9px; border-radius: 3px; }
+.sched-splitleg .dot.dp { background: #b8791f; }
+.sched-splitleg .dot.inst { background: var(--brand-accent); }
 .sched-dp { background: var(--surface-2); border-radius: 12px; padding: 13px 15px; margin-bottom: 16px; }
 .sched-dp.done { background: rgba(22,163,74,.08); }
 .sched-dp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 12px; flex-wrap: wrap; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 9px; }
@@ -897,12 +907,12 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .icon-act:hover { background: var(--surface-2); color: var(--ink); }
 .icon-act.danger:hover { background: rgba(220,38,38,.1); color: #dc2626; }
 
-/* ---- SOA filter chips in the category toolbar ---- */
-.soa-seg { margin-bottom: 0; flex-shrink: 0; }
-.soa-seg .seg-btn { display: inline-flex; align-items: center; gap: 5px; }
-.soa-seg .seg-btn i { font-size: 14px; }
-.soa-seg-n { font-size: 10.5px; font-weight: 700; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 999px; padding: 0 5px; min-width: 17px; text-align: center; color: var(--ink-2); }
+/* ---- SOA filter chips in the category toolbar (sized to match .btn.sm) ---- */
+.soa-seg { margin-bottom: 0; flex-shrink: 0; padding: 2px; border-radius: 8px; }
+.soa-seg .seg-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+.soa-seg .seg-btn i { font-size: 13px; }
+.soa-seg-n { font-size: 10px; font-weight: 700; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 4px; min-width: 15px; text-align: center; color: var(--ink-2); }
 .soa-seg .seg-btn.active .soa-seg-n { background: var(--accent-soft); border-color: transparent; color: var(--brand); }
 
 /* ---- assign modal ---- */
