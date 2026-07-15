@@ -90,6 +90,12 @@ async function main() {
   if (auth.canViewAll(ME)) {
     document.getElementById("importBtn")?.style.removeProperty("display");
   }
+  // Deleting a whole project is Manager/admin only.
+  if (auth.canManage(ME)) {
+    const del = document.getElementById("deleteProjectBtn");
+    del?.style.removeProperty("display");
+    del?.addEventListener("click", openDeleteProject);
+  }
 
   document.title = `${project.name} — Collection Tracker`;
   document.getElementById("bcName").textContent = project.name;
@@ -133,6 +139,49 @@ async function main() {
       });
     }
     catch (err) { console.error(err); toast("Import failed — " + err.message); }
+  });
+}
+
+/* ---- Delete project — type-to-confirm danger modal (Manager/admin) ---- */
+function openDeleteProject() {
+  const count = allRecords.filter((r) => r.projectId === project.id).length;
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal del-modal">
+    <button class="modal-close ghost" data-x aria-label="Close"><i class="ti ti-x"></i></button>
+    <div class="del-icon"><i class="ti ti-trash"></i></div>
+    <h3 class="del-title">Delete this project?</h3>
+    <p class="del-lead">You're about to permanently delete <b>${esc(project.name)}</b>${count ? ` and its <b>${fmtInt(count)}</b> unit record${count === 1 ? "" : "s"}` : ""}. This action <b>cannot be undone</b>.</p>
+    <form>
+      <label class="del-label">Type <b>${esc(project.name)}</b> to confirm</label>
+      <input id="delConfirm" type="text" autocomplete="off" spellcheck="false" placeholder="${esc(project.name)}">
+      <div class="del-actions">
+        <button type="button" class="btn" data-x>Cancel</button>
+        <button type="submit" class="btn danger-solid" id="delGo" disabled><i class="ti ti-trash"></i> Delete project</button>
+      </div>
+    </form>
+  </div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+  const input = bd.querySelector("#delConfirm");
+  const go = bd.querySelector("#delGo");
+  input.focus();
+  input.addEventListener("input", () => { go.disabled = input.value.trim() !== project.name; });
+  bd.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (input.value.trim() !== project.name) return;
+    go.disabled = true; go.innerHTML = `<i class="ti ti-loader-2 spin"></i> Deleting…`;
+    try {
+      await db.deleteProject(project.id);
+      toast("Project deleted");
+      location.href = "index.html";
+    } catch (err) {
+      console.error(err); toast("Delete failed — " + err.message);
+      go.disabled = false; go.innerHTML = `<i class="ti ti-trash"></i> Delete project`;
+    }
   });
 }
 
@@ -243,19 +292,16 @@ function renderOverview() {
       <div class="cat-card-value"${c.money ? ` style="font-size:${fitPx(c.value)}px"` : ""}>${c.value}</div>
     </div>`).join("");
 
-  const maxDue = Math.max(...CAT_ORDER.map((k) => (m[k]?.due) || 0), 1);
   const rows = CAT_ORDER.map((k) => {
     const c = catByKey[k];
     const mm = m[k] || { clients: 0, due: 0 };
     const isAvail = k === "available";
     const count = isAvail ? m.unsoldUnits : mm.clients;
-    const barW = isAvail ? 0 : ((mm.due || 0) / maxDue) * 100;
     return `
       <tr class="clickable" data-tab="${k}">
-        <td class="cat-name-cell"><span class="cat-row-name">
+        <td><span class="cat-row-name">
           <span class="cat-row-ico" style="--c:${c.color}"><i class="ti ${STAT_ICON[k] || "ti-circle"}"></i></span>
           <span class="cat-row-label">${esc(c.label)}</span>
-          <span class="cat-row-bar" title="${isAvail ? "" : `${Math.round(barW)}% of the largest category`}"><span class="cat-row-bar-fill" style="width:${barW.toFixed(1)}%;background:${c.color}"></span></span>
         </span></td>
         <td class="num">${fmtInt(count)}</td>
         <td class="num strong-num">${isAvail ? "—" : fmtMoney(mm.due, { currency: false })}</td>

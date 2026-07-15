@@ -435,16 +435,12 @@ table.data tfoot td {
 .cat-card-value { font-size: 19px; font-weight: 700; color: var(--ink); letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.05; }
 
-/* category breakdown table: coloured icon chip + a share bar that fills the row */
-.cat-name-cell { width: 100%; }
-.cat-row-name { display: flex; align-items: center; gap: 11px; font-weight: 550; color: var(--ink); }
+/* category breakdown table: coloured icon chip instead of a bare dot */
+.cat-row-name { display: inline-flex; align-items: center; gap: 11px; font-weight: 550; color: var(--ink); }
 .cat-row-ico { width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;
   font-size: 16px; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
 tr.clickable:hover .cat-row-ico { background: color-mix(in srgb, var(--c) 24%, transparent); }
-.cat-row-label { white-space: nowrap; flex-shrink: 0; }
-.cat-row-bar { flex: 1; height: 7px; min-width: 40px; max-width: 460px; margin: 0 6px 0 10px;
-  background: var(--surface-2); border-radius: 99px; overflow: hidden; }
-.cat-row-bar-fill { display: block; height: 100%; border-radius: 99px; opacity: .85; transition: width .5s cubic-bezier(.2,.7,.2,1); }
+.cat-row-label { white-space: nowrap; }
 table.data td.strong-num { color: var(--ink); font-weight: 600; }
 
 /* summary chips on project page */
@@ -583,6 +579,25 @@ table.data td.strong-num { color: var(--ink); font-weight: 600; }
   flex-shrink: 0; padding: 14px 22px;
   border-top: 1px solid var(--grid); background: var(--surface);
 }
+
+/* delete-project danger modal (type-to-confirm) */
+.del-modal { width: min(430px, 100%); padding: 30px 26px 24px; text-align: center; position: relative; }
+.del-modal .modal-close.ghost { position: absolute; top: 14px; right: 14px; background: transparent; color: var(--ink-3); }
+.del-modal .modal-close.ghost:hover { background: var(--surface-2); color: var(--ink); }
+.del-icon { width: 54px; height: 54px; border-radius: 15px; margin: 0 auto 14px; display: grid; place-items: center;
+  background: rgba(220,38,38,.11); color: #dc2626; font-size: 26px; }
+.del-title { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 8px; }
+.del-lead { font-size: 13.5px; color: var(--ink-2); line-height: 1.55; margin: 0 0 20px; }
+.del-lead b { color: var(--ink); font-weight: 650; }
+.del-label { display: block; text-align: left; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.del-label b { color: var(--ink); }
+.del-modal input { width: 100%; height: 42px; padding: 0 13px; box-sizing: border-box; font: inherit; font-size: 14px;
+  color: var(--ink); background: var(--surface); border: 1.5px solid var(--border); border-radius: 11px;
+  transition: border-color .15s, box-shadow .15s; }
+.del-modal input:focus { outline: 0; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.14); }
+.del-actions { display: flex; gap: 10px; margin-top: 18px; }
+.del-actions .btn { flex: 1; justify-content: center; }
+.del-actions .btn .spin { animation: spin 1s linear infinite; }
 
 /* import preview */
 .imp-lead { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }

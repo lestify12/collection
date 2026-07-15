@@ -310,6 +310,34 @@ export async function addProject(project) {
   return project;
 }
 
+/** Delete a project: remove all of its unit records and drop it from the
+    summary. Manager/admin only (enforced by rules). */
+export async function deleteProject(projectId) {
+  if (LIVE) {
+    // delete records in batches (Firestore batch limit is 500)
+    while (true) {
+      const snap = await fs.getDocs(fs.query(fs.collection(db, "records"), fs.where("projectId", "==", projectId), fs.limit(400)));
+      if (snap.empty) break;
+      const batch = fs.writeBatch(db);
+      snap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+      if (snap.size < 400) break;
+    }
+    const summary = await loadSummary();
+    const projects = (summary.projects || []).filter((p) => p.id !== projectId);
+    await fs.setDoc(fs.doc(db, "app", "summary"), { ...summary, projects });
+    try { await fs.setDoc(fs.doc(db, "assignments", "projects"), { [projectId]: fs.deleteField() }, { merge: true }); } catch {}
+  } else {
+    const extra = JSON.parse(localStorage.getItem(LS_PROJECTS) || "[]").filter((p) => p.id !== projectId);
+    localStorage.setItem(LS_PROJECTS, JSON.stringify(extra));
+    const local = loadLocal();
+    local.added = (local.added || []).filter((r) => r.projectId !== projectId);
+    if (local.assignments) delete local.assignments[projectId];
+    saveLocal(local);
+  }
+  invalidate();
+}
+
 export function invalidate() { cache = null; _searchCache = null; }
 
 /* ------------------------------------------------ writes */
