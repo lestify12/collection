@@ -235,6 +235,26 @@ export async function changePassword(newPassword) {
   await updateUser(_user.uid, { password: newPassword });
 }
 
+/** Manager/Admin resets a teammate's password. The teammate is forced to set
+    a new password on their next sign-in (mustChangePassword), exactly like a
+    brand-new account. Local mode also sets the temporary password directly;
+    live mode can't set another user's Firebase password from the browser, so
+    it emails them a secure reset link instead. */
+export async function resetPassword(uid, tempPassword) {
+  if (db.LIVE) {
+    await db.saveUserDoc(uid, { mustChangePassword: true });
+    if (_user?.uid === uid) _user = { ..._user, mustChangePassword: true };
+    let emailed = false;
+    try {
+      const u = (await listUsers()).find((x) => x.uid === uid);
+      if (u?.email) { await db.authNs.sendPasswordResetEmail(db.authInst, u.email); emailed = true; }
+    } catch (e) { console.warn("reset email failed", e); }
+    return { emailed, tempApplied: false };
+  }
+  await updateUser(uid, { password: tempPassword, mustChangePassword: true });
+  return { emailed: false, tempApplied: true };
+}
+
 export async function deleteUser(uid) {
   // Live: removes the profile + assignments. The Firebase Auth login itself
   // must be removed from the Firebase console (client SDK cannot delete others).

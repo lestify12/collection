@@ -927,6 +927,9 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
   border-radius: 999px; padding: 1px 8px; }
 .soa-tag i { font-size: 12px; }
 
+.rp-note { margin: 12px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.rp-note b { color: var(--ink); }
+
 /* ---- sidebar "Add project" button (Manager / Admin) ---- */
 .sidebar-add-project { margin: 4px 12px 10px; display: flex; align-items: center; justify-content: center;
   gap: 7px; padding: 10px; border: 1.5px dashed var(--border); border-radius: 10px; background: transparent;

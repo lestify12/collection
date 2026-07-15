@@ -92,6 +92,7 @@ async function render() {
         <td class="num act-cell">
           ${u.role === "agent" ? `<button class="icon-act" data-assign="${u.uid}" title="Assign projects"><i class="ti ti-map-pin-cog"></i></button>` : ""}
           ${canManage && u.uid !== ME.uid ? `
+            <button class="icon-act" data-reset="${u.uid}" title="Reset password"><i class="ti ti-key"></i></button>
             <button class="icon-act" data-toggle="${u.uid}" title="${disabled ? "Enable" : "Disable"}"><i class="ti ti-${disabled ? "player-play" : "player-pause"}"></i></button>
             <button class="icon-act danger" data-del="${u.uid}" title="Remove"><i class="ti ti-trash"></i></button>` : ""}
         </td>
@@ -124,6 +125,8 @@ async function render() {
     sel.addEventListener("change", () => changeRole(sel.dataset.role, sel.value)));
   body.querySelectorAll("[data-assign]").forEach((b) =>
     b.addEventListener("click", () => openAssign(b.dataset.assign)));
+  body.querySelectorAll("[data-reset]").forEach((b) =>
+    b.addEventListener("click", () => openResetPassword(b.dataset.reset)));
   body.querySelectorAll("[data-toggle]").forEach((b) =>
     b.addEventListener("click", () => toggleUser(b.dataset.toggle)));
   body.querySelectorAll("[data-del]").forEach((b) =>
@@ -164,6 +167,46 @@ async function removeUser(uid) {
   RECORDS = fresh.records; ASSIGN = fresh.assignments || {};
   toast("Teammate removed");
   render();
+}
+
+/* ------------------------------------------------ reset password */
+async function openResetPassword(uid) {
+  const users = await auth.listUsers();
+  const u = users.find((x) => x.uid === uid);
+  if (!u) return;
+  const name = u.name || u.email;
+  const live = auth.isLive();
+  const suggest = "Peace" + Math.floor(1000 + Math.random() * 9000);
+  const bd = modal(`
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-key"></i></div>
+      <div><div class="modal-header-title">Reset password</div>
+      <div class="modal-header-sub">${esc(name)}</div></div></div>
+      <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      ${live
+        ? `<p class="rp-note">A secure reset link will be emailed to <b>${esc(u.email)}</b>. ${esc(name)} will also be required to set a new password the next time they sign in.</p>`
+        : `<label class="fld"><span>Temporary password</span><input id="rpPass" type="text" value="${esc(suggest)}"></label>
+           <p class="rp-note">Share this with ${esc(name)}. They’ll sign in with it once, then be required to set their own password — same as a new account.</p>`}
+      <div class="login-error" id="rpErr"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" data-x>Cancel</button>
+      <button class="btn primary" id="rpGo"><i class="ti ti-key"></i> Reset password</button></div>`);
+
+  bd.querySelector("#rpGo").addEventListener("click", async () => {
+    const temp = live ? "" : bd.querySelector("#rpPass").value;
+    const err = bd.querySelector("#rpErr");
+    if (!live && temp.length < 6) { err.textContent = "Use at least 6 characters."; err.classList.add("show"); return; }
+    const btn = bd.querySelector("#rpGo"); btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Resetting…`;
+    try {
+      const res = await auth.resetPassword(uid, temp);
+      close(bd);
+      toast(live
+        ? (res.emailed ? `Reset link sent to ${name}` : `${name} must set a new password on next sign-in`)
+        : `Temporary password set for ${name}`);
+      render();
+    } catch (e) { err.textContent = e.message || "Could not reset the password."; err.classList.add("show"); btn.disabled = false; btn.innerHTML = `<i class="ti ti-key"></i> Reset password`; }
+  });
 }
 
 /* ------------------------------------------------ add teammate modal */
