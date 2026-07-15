@@ -39,9 +39,6 @@ async function main() {
 
   document.querySelector(".page-title").textContent = "All Project Collection Summary";
 
-  document.getElementById("reportDate").textContent =
-    `Report date ${summary.reportDate || ""} · ${projects.length} project${projects.length === 1 ? "" : "s"}`;
-
   // who is assigned to each project. Prefer the name denormalised onto the
   // record; else look it up (Manager/TL can list users); always resolve self.
   const usersById = Object.fromEntries(

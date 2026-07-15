@@ -297,6 +297,7 @@ export function renderChrome(user) {
   if (nameEl) nameEl.textContent = user.name || "User";
   if (roleEl) roleEl.textContent = displayRole(user);
   if (avEl) avEl.textContent = initials(user.name || user.email);
+  document.querySelector(".navbar-user")?.classList.add("chrome-ready");
 
   const right = document.querySelector(".navbar-right");
   const anchor = right?.querySelector(".navbar-user");

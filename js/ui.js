@@ -120,7 +120,9 @@ export function navLabel(name) {
 export function renderNav(projects, activeId) {
   const nav = document.getElementById("navProjects");
   if (!nav) return;
-  nav.innerHTML = projects.map((p) => `
+  const sorted = [...projects].sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), undefined, { numeric: true, sensitivity: "base" }));
+  nav.innerHTML = sorted.map((p) => `
     <a class="sidebar-item ${p.id === activeId ? "active" : ""}"
        href="project.html?id=${encodeURIComponent(p.id)}"
        title="${esc(p.name)}" data-name="${esc(p.name).toLowerCase()}">
