@@ -54,7 +54,7 @@ let ASSIGN = {};   // project-level assignment doc { projectId: {uid,name} }
 const CAT_ORDER = ["dp24", "installment", "legal", "dnc", "cancelled", "others", "available"];
 const STAT_ICON = {
   dp24: "ti-cash", installment: "ti-calendar-repeat", legal: "ti-gavel",
-  dnc: "ti-phone-off", cancelled: "ti-circle-x", others: "ti-dots-circle-horizontal",
+  dnc: "ti-user-x", cancelled: "ti-ban", others: "ti-package",
   available: "ti-home-check",
 };
 
@@ -250,7 +250,7 @@ function renderOverview() {
     const count = isAvail ? m.unsoldUnits : mm.clients;
     return `
       <tr class="clickable" data-tab="${k}">
-        <td><span class="cat-dot" style="background:${c.color}"></span>${esc(c.label)}</td>
+        <td><span class="cat-row-name"><span class="cat-row-ico" style="--c:${c.color}"><i class="ti ${STAT_ICON[k] || "ti-circle"}"></i></span>${esc(c.label)}</span></td>
         <td class="num">${fmtInt(count)}</td>
         <td class="num">${isAvail ? "—" : fmtMoney(mm.due, { currency: false })}</td>
         <td class="num"><i class="ti ti-chevron-right" style="color:var(--ink-3)"></i></td>

@@ -432,6 +432,12 @@ table.data tfoot td {
 .cat-card-value { font-size: 19px; font-weight: 700; color: var(--ink); letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.05; }
 
+/* category breakdown table: coloured icon chip instead of a bare dot */
+.cat-row-name { display: inline-flex; align-items: center; gap: 11px; font-weight: 550; color: var(--ink); }
+.cat-row-ico { width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;
+  font-size: 16px; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
+tr.clickable:hover .cat-row-ico { background: color-mix(in srgb, var(--c) 24%, transparent); }
+
 /* summary chips on project page */
 .chip-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .chip {
