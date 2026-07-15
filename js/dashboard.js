@@ -132,6 +132,7 @@ function overdueCardHTML() {
           <button class="seg-btn" data-mode="range">Between months</button>
         </div>
         <div class="od-pickers">
+          <span class="od-plabel" id="odFromLabel">As of</span>
           <select id="odFromM" class="od-sel">${monthOpts(m)}</select>
           <select id="odFromY" class="od-sel">${yearOpts(y)}</select>
           <span id="odTo" class="od-to" hidden><span class="od-dash">to</span>
@@ -320,6 +321,7 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
       mode = btn.dataset.mode;
       card.querySelectorAll(".od-mode .seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
       card.querySelector("#odTo").hidden = mode !== "range";
+      card.querySelector("#odFromLabel").textContent = mode === "range" ? "From" : "As of";
       recompute();
     }));
     card.querySelectorAll(".od-sel").forEach((s) => s.addEventListener("change", recompute));

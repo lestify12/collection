@@ -950,8 +950,10 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 #overdueCard { margin-bottom: 20px; }
 .od-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .od-head h2 { margin: 0; }
-.od-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 16px 0 4px; }
-.od-pickers { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.od-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin: 16px 0 4px; }
+.od-pickers { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.od-plabel { font-size: 12.5px; font-weight: 600; color: var(--ink-2); padding-left: 2px; margin-right: 2px; }
 .od-sel { height: 38px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 10px;
   background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
 .od-sel:focus { outline: 0; border-color: var(--brand-accent); }
