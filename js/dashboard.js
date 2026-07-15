@@ -369,7 +369,6 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
 
     <section class="card section reveal">
       <h2>Installment outstanding by project</h2>
-      <div class="card-sub">1% monthly collection to chase, largest first — click to open</div>
       <div class="simple-bars">
         ${byInst.map((r) => `
           <a class="sbar-row" href="project.html?id=${encodeURIComponent(r.id)}"
