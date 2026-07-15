@@ -113,6 +113,51 @@ export async function setProjectAssignee(projectId, uid, name = "") {
   return touched;
 }
 
+/* Move ALL of one officer's work to another in one go (e.g. when someone
+   resigns). Reassigns every record assigned to `fromUid` — across all
+   projects — plus any whole-project assignments, to `toUid`. Returns the
+   number of unit records moved. */
+export async function reassignRecords(fromUid, toUid, toName = "") {
+  if (!fromUid || !toUid || fromUid === toUid) return 0;
+  const patch = { assignedTo: toUid, assignedToName: toName || "" };
+  let touched = 0;
+  if (LIVE) {
+    // Each batch flips assignedTo, so those docs drop out of the next query.
+    while (true) {
+      const q = fs.query(fs.collection(db, "records"), fs.where("assignedTo", "==", fromUid), fs.limit(400));
+      const snap = await fs.getDocs(q);
+      if (snap.empty) break;
+      const batch = fs.writeBatch(db);
+      snap.docs.forEach((d) => batch.set(d.ref, patch, { merge: true }));
+      await batch.commit();
+      touched += snap.size;
+      if (snap.size < 400) break;
+    }
+    // whole-project assignments
+    const assignments = await loadAssignments();
+    const updates = {};
+    for (const [pid, a] of Object.entries(assignments)) if (a && a.uid === fromUid) updates[pid] = { uid: toUid, name: toName || "" };
+    if (Object.keys(updates).length) await fs.setDoc(fs.doc(db, "assignments", "projects"), updates, { merge: true });
+    invalidate();
+    return touched;
+  }
+  // local mode
+  const local = loadLocal();
+  for (const r of local.added) if (r.assignedTo === fromUid) { Object.assign(r, patch); touched++; }
+  for (const r of cache?.records || [])
+    if (r.assignedTo === fromUid && !String(r.id).startsWith("loc_")) {
+      const base = local.overrides[r.id] || { ...r };
+      delete base.id; Object.assign(base, patch);
+      local.overrides[r.id] = base; touched++;
+    }
+  const assignments = local.assignments || {};
+  for (const [pid, a] of Object.entries(assignments)) if (a && a.uid === fromUid) assignments[pid] = { uid: toUid, name: toName || "" };
+  local.assignments = assignments;
+  saveLocal(local);
+  invalidate();
+  return touched;
+}
+
 /* ---- project-level assignment (records-independent) ----------------------
    Whole-project assignment is ALSO stored in a small doc so a project with
    no imported units yet (summary-only, e.g. Sky Livings) can still be

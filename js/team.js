@@ -90,7 +90,8 @@ async function render() {
         <td class="proj-cell">${chips}</td>
         <td><span class="status-dot ${disabled ? "off" : "on"}"></span>${disabled ? "Disabled" : "Active"}</td>
         <td class="num act-cell">
-          ${u.role === "agent" ? `<button class="icon-act" data-assign="${u.uid}" title="Assign projects"><i class="ti ti-map-pin-cog"></i></button>` : ""}
+          ${u.role === "agent" ? `<button class="icon-act" data-assign="${u.uid}" title="Assign projects"><i class="ti ti-map-pin-cog"></i></button>
+            <button class="icon-act" data-transfer="${u.uid}" title="Transfer all work to another officer"><i class="ti ti-arrows-exchange"></i></button>` : ""}
           ${canManage && u.uid !== ME.uid ? `
             <button class="icon-act" data-reset="${u.uid}" title="Reset password"><i class="ti ti-key"></i></button>
             <button class="icon-act" data-toggle="${u.uid}" title="${disabled ? "Enable" : "Disable"}"><i class="ti ti-${disabled ? "player-play" : "player-pause"}"></i></button>
@@ -125,6 +126,8 @@ async function render() {
     sel.addEventListener("change", () => changeRole(sel.dataset.role, sel.value)));
   body.querySelectorAll("[data-assign]").forEach((b) =>
     b.addEventListener("click", () => openAssign(b.dataset.assign)));
+  body.querySelectorAll("[data-transfer]").forEach((b) =>
+    b.addEventListener("click", () => openTransferWork(b.dataset.transfer)));
   body.querySelectorAll("[data-reset]").forEach((b) =>
     b.addEventListener("click", () => openResetPassword(b.dataset.reset)));
   body.querySelectorAll("[data-toggle]").forEach((b) =>
@@ -167,6 +170,51 @@ async function removeUser(uid) {
   RECORDS = fresh.records; ASSIGN = fresh.assignments || {};
   toast("Teammate removed");
   render();
+}
+
+/* ------------------------------------------------ transfer all work (e.g. resignation) */
+async function openTransferWork(fromUid) {
+  const users = await auth.listUsers();
+  const from = users.find((x) => x.uid === fromUid);
+  if (!from) return;
+  const fromName = from.name || from.email;
+  const unitCount = RECORDS.filter((r) => r.assignedTo === fromUid).length;
+  const projCount = Object.values(ASSIGN).filter((a) => a && a.uid === fromUid).length;
+  const targets = users.filter((u) => u.uid !== fromUid && u.role === "agent" && u.active !== false);
+  const opts = targets.map((u) => `<option value="${esc(u.uid)}">${esc(u.name || u.email)}</option>`).join("");
+  const nothing = !unitCount && !projCount;
+
+  const summary = nothing ? "has no assigned work right now" :
+    `has <b>${unitCount}</b> unit${unitCount === 1 ? "" : "s"}${projCount ? ` and <b>${projCount}</b> whole project${projCount === 1 ? "" : "s"}` : ""} assigned`;
+
+  const bd = modal(`
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-arrows-exchange"></i></div>
+      <div><div class="modal-header-title">Transfer all work</div>
+      <div class="modal-header-sub">${esc(fromName)}</div></div></div>
+      <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px;font-size:13.5px;color:var(--ink-2);line-height:1.5"><b>${esc(fromName)}</b> ${summary}. Move it all to another officer in one step — handy when someone resigns.</div>
+      ${targets.length
+        ? `<label class="fld"><span>Transfer everything to</span><select id="twTo" class="role-select" style="width:100%">${opts}</select></label>`
+        : `<div class="muted">There's no other collection officer to receive the work. Add one first, then transfer.</div>`}
+      <div class="login-error" id="twErr"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" data-x>Cancel</button>
+      ${targets.length ? `<button class="btn primary" id="twGo"><i class="ti ti-arrows-exchange"></i> Transfer work</button>` : ""}</div>`);
+
+  bd.querySelector("#twGo")?.addEventListener("click", async () => {
+    const toUid = bd.querySelector("#twTo").value;
+    const to = users.find((u) => u.uid === toUid);
+    const toName = to.name || to.email;
+    const btn = bd.querySelector("#twGo"); btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Transferring…`;
+    try {
+      const n = await db.reassignRecords(fromUid, toUid, toName);
+      const fresh = await db.loadAll(true, auth.loadScope(ME));
+      RECORDS = fresh.records; ASSIGN = fresh.assignments || {};
+      close(bd); toast(`Moved ${n} unit${n === 1 ? "" : "s"} to ${toName}`); render();
+    } catch (e) { const err = bd.querySelector("#twErr"); err.textContent = e.message || "Transfer failed."; err.classList.add("show"); btn.disabled = false; btn.innerHTML = `<i class="ti ti-arrows-exchange"></i> Transfer work`; }
+  });
 }
 
 /* ------------------------------------------------ reset password */
