@@ -135,10 +135,11 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   display: flex; align-items: center; justify-content: center;
   font-size: 0.85rem; font-weight: 700; color: #fff; flex-shrink: 0;
 }
-/* hide the user chip until renderChrome fills in the real signed-in user,
-   so the "Collections / Recovery Tracker / PH" placeholder never flashes on load */
-.navbar-user { visibility: hidden; }
-.navbar-user.chrome-ready { visibility: visible; }
+/* hide the whole right-hand group (theme toggle + settings/sign-out + user
+   chip) until renderChrome has set the real user and injected the buttons —
+   so nothing sits there alone and the placeholder never flashes on load */
+.navbar-right { visibility: hidden; }
+.navbar-right.chrome-ready { visibility: visible; }
 
 /* ── App body: sidebar | main ── */
 .app-body { display: flex; flex: 1; min-height: 0; }

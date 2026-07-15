@@ -297,7 +297,6 @@ export function renderChrome(user) {
   if (nameEl) nameEl.textContent = user.name || "User";
   if (roleEl) roleEl.textContent = displayRole(user);
   if (avEl) avEl.textContent = initials(user.name || user.email);
-  document.querySelector(".navbar-user")?.classList.add("chrome-ready");
 
   const right = document.querySelector(".navbar-right");
   const anchor = right?.querySelector(".navbar-user");
@@ -314,6 +313,8 @@ export function renderChrome(user) {
     b.addEventListener("click", () => signOut());
     right.insertBefore(b, anchor);
   }
+  // everything on the right is set — reveal the group as one
+  right?.classList.add("chrome-ready");
 
   // Manager + Team Leader get the Team & access page (TL can assign only).
   if (canViewAll(user)) {
