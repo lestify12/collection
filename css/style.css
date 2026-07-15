@@ -634,6 +634,14 @@ td.money-good { font-variant-numeric: tabular-nums; }
   mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,.5) 34%, #000 72%);
 }
 .hero-photo.is-texture { opacity: .22; }
+/* hero.png is the brand monogram, not a building — show it whole (contained),
+   smaller, tucked to the right edge, with no left fade. */
+.hero-photo.hero-logo {
+  width: 200px; object-fit: contain; object-position: center right;
+  right: 26px; top: 50%; height: 76%; transform: translateY(-50%); opacity: .16;
+  -webkit-mask-image: none; mask-image: none;
+}
+@media (max-width: 640px) { .hero-photo.hero-logo { width: 130px; right: 12px; } }
 .hero-main, .hero-meter { position: relative; z-index: 1; }
 .hero-main { display: flex; gap: 18px; align-items: center; }
 .hero-icon {

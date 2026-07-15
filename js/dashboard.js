@@ -327,13 +327,16 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
     attachTips(box);
   }
 
-  // Building photo: a single project in view shows its own image; otherwise a
-  // default. Missing files fall back to the brand texture (see wiring below).
+  // Building photo: a single project in view shows its own image; otherwise the
+  // default hero.png (the brand monogram). Missing files fall back to the brand
+  // texture (see wiring below). hero.png is a logo, so it's shown contained
+  // (hero-logo) rather than cropped like a building photo.
   const heroPhoto = rows.length === 1 ? `photos/projects/${rows[0].id}.png` : "photos/hero.png";
+  const heroLogoCls = heroPhoto === "photos/hero.png" ? " hero-logo" : "";
 
   el.innerHTML = `
     <section class="hero-card reveal">
-      <img class="hero-photo" src="${heroPhoto}" alt="" aria-hidden="true">
+      <img class="hero-photo${heroLogoCls}" src="${heroPhoto}" alt="" aria-hidden="true">
       <div class="hero-main">
         <div class="hero-icon"><i class="ti ti-calendar-repeat"></i></div>
         <div>
@@ -419,12 +422,14 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
   if (heroImg) heroImg.addEventListener("error", function onErr() {
     const src = heroImg.getAttribute("src") || "";
     if (src.includes("/projects/")) {
-      heroImg.src = "photos/hero.png";                  // per-project missing → default
+      heroImg.classList.add("hero-logo");                // default hero.png is the monogram
+      heroImg.src = "photos/hero.png";                   // per-project missing → default
     } else if (src.endsWith("/hero.png")) {
+      heroImg.classList.remove("hero-logo");
       heroImg.classList.add("is-texture");
-      heroImg.src = "photos/peacehomesbackground.png";  // default missing → brand texture
+      heroImg.src = "photos/peacehomesbackground.png";   // default missing → brand texture
     } else {
-      heroImg.removeEventListener("error", onErr);       // texture is the last resort
+      heroImg.removeEventListener("error", onErr);        // texture is the last resort
     }
   });
 
