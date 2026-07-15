@@ -232,13 +232,15 @@ function renderOverview() {
   });
 
   const statCards = cards.map((c, i) => `
-    <div class="stat-card reveal" style="--d:${i * 0.05}s">
-      <div class="stat-icon ${c.tint}"><i class="ti ${c.icon}"></i></div>
-      <div>
-        <div class="stat-value"${c.money ? ` style="font-size:${fitPx(c.value)}px"` : ""}>${c.value}</div>
-        <div class="stat-label">${c.label}</div>
-        <div class="stat-foot">${c.foot}</div>
+    <div class="cat-card reveal" style="--d:${i * 0.05}s">
+      <div class="cat-card-top">
+        <div class="stat-icon ${c.tint}"><i class="ti ${c.icon}"></i></div>
+        <div class="cat-card-meta">
+          <div class="cat-card-label">${c.label}</div>
+          <div class="cat-card-foot">${c.foot}</div>
+        </div>
       </div>
+      <div class="cat-card-value"${c.money ? ` style="font-size:${fitPx(c.value)}px"` : ""}>${c.value}</div>
     </div>`).join("");
 
   const rows = CAT_ORDER.map((k) => {
