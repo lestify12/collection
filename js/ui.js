@@ -123,10 +123,11 @@ export function renderNav(projects, activeId) {
   const sorted = [...projects].sort((a, b) =>
     String(a.name || "").localeCompare(String(b.name || ""), undefined, { numeric: true, sensitivity: "base" }));
   nav.innerHTML = sorted.map((p) => `
-    <a class="sidebar-item ${p.id === activeId ? "active" : ""}"
+    <a class="sidebar-item project-item ${p.id === activeId ? "active" : ""}"
        href="project.html?id=${encodeURIComponent(p.id)}"
        title="${esc(p.name)}" data-name="${esc(p.name).toLowerCase()}">
-      <i class="ti ti-building"></i><span>${esc(navLabel(p.name))}</span>
+      <span class="sidebar-thumb" style="background-image:url('photos/projects/${esc(p.id)}.webp'), url('photos/projects/${esc(p.id)}.png'), url('photos/peacehomesbackground.webp')"></span>
+      <span>${esc(navLabel(p.name))}</span>
     </a>`).join("");
 
   const dash = document.getElementById("navDashboard");
