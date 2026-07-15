@@ -992,8 +992,8 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
   transition: border-color .15s, box-shadow .15s, transform .1s; }
 .proj-mini:hover { border-color: var(--brand-accent); box-shadow: 0 6px 18px rgba(0,0,0,.1); transform: translateY(-1px); }
 .proj-mini.active { border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(47,143,91,.18); }
-/* show ~30-40% up from the building base (65% down from the top in CSS terms) */
-.proj-mini-photo { height: 128px; background-size: cover; background-position: center 65%; background-color: #123c2a;
+/* show ~10-30% up from the building base (80% down from the top in CSS terms) */
+.proj-mini-photo { height: 128px; background-size: cover; background-position: center 80%; background-color: #123c2a;
   display: grid; place-items: center; color: rgba(255,255,255,.92); font-size: 22px; position: relative; }
 .proj-mini-photo::after { content: ""; position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(18,60,42,.12) 0%, rgba(18,60,42,.5) 100%); }
