@@ -65,6 +65,8 @@ let allRecords = [];
 let activeTab = "overview";
 let search = "";
 let soaFilter = "all";   // all | yes | no  — filter the category table by SOA upload
+let sortKey = "unit";    // active sort column
+let sortDir = 1;         // 1 = ascending, -1 = descending
 
 async function main() {
   ME = await auth.requireAuth();
@@ -197,7 +199,7 @@ function renderTabs() {
   ].join("");
   tabs.innerHTML = tabHTML;
   tabs.querySelectorAll(".tab").forEach((b) =>
-    b.addEventListener("click", () => { activeTab = b.dataset.tab; search = ""; soaFilter = "all"; renderTabs(); renderTab(); }));
+    b.addEventListener("click", () => { activeTab = b.dataset.tab; search = ""; soaFilter = "all"; sortKey = "unit"; sortDir = 1; renderTabs(); renderTab(); }));
 }
 
 function renderTab() {
@@ -298,7 +300,7 @@ function renderOverview() {
   });
 
   body.querySelectorAll("tr.clickable").forEach((tr) =>
-    tr.addEventListener("click", () => { activeTab = tr.dataset.tab; search = ""; soaFilter = "all"; renderTabs(); renderTab(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+    tr.addEventListener("click", () => { activeTab = tr.dataset.tab; search = ""; soaFilter = "all"; sortKey = "unit"; sortDir = 1; renderTabs(); renderTab(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
 }
 
 /* ------------------------------------------------ Category (compact) */
@@ -319,6 +321,24 @@ function renderCategory(cat) {
   let rows = all.filter((r) => matches(r, search));
   if (showSoaFilter && soaFilter === "yes") rows = rows.filter(hasSOA);
   else if (showSoaFilter && soaFilter === "no") rows = rows.filter((r) => !hasSOA(r));
+
+  // column sort
+  const sortVal = (r, k) => k === "buyer" ? (r.buyerName || "").toLowerCase()
+    : k === "plan" ? planLabel(r).toLowerCase()
+    : k === "start" ? (r.installmentStart || "")
+    : k === "type" ? (r.type || "").toLowerCase()
+    : k === "price" ? (Number(r.sellingPrice) || 0)
+    : k === "reflected" ? (Number(r.reflected) || 0)
+    : k === "outstanding" ? (Number(r.outstanding) || 0) : r.unitNo;
+  rows.sort((a, b) => {
+    if (sortKey === "unit") return byUnit(a, b) * sortDir;
+    const va = sortVal(a, sortKey), vb = sortVal(b, sortKey);
+    const cmp = typeof va === "number" ? va - vb : String(va).localeCompare(String(vb), undefined, { numeric: true });
+    return cmp * sortDir;
+  });
+  // sortable <th>: label + direction arrow, active column highlighted
+  const th = (key, label, cls = "") => `<th class="th-sort ${cls}${sortKey === key ? " active" : ""}" data-sort="${key}">
+    <span class="th-in">${esc(label)}<i class="ti ${sortKey === key ? (sortDir > 0 ? "ti-arrow-up" : "ti-arrow-down") : "ti-arrows-sort"} th-arrow"></i></span></th>`;
   const totalDue = rows.reduce((s, r) => s + (Number(r.outstanding) || 0), 0);
   const totalRefl = rows.reduce((s, r) => s + (Number(r.reflected) || 0), 0);
   const body = document.getElementById("tabBody");
@@ -360,7 +380,7 @@ function renderCategory(cat) {
   } else if (isAvail) {
     body.innerHTML = toolbar + `
       <div class="table-wrap"><table class="data">
-        <thead><tr><th>Unit</th><th>Type</th><th class="num">Selling price</th><th></th></tr></thead>
+        <thead><tr>${th("unit", "Unit")}${th("type", "Type")}${th("price", "Selling price", "num")}<th></th></tr></thead>
         <tbody>${rows.map((r) => `
           <tr class="clickable" data-id="${esc(r.id)}">
             <td><span class="unit-chip">${esc(r.unitNo)}</span></td>
@@ -373,8 +393,8 @@ function renderCategory(cat) {
     body.innerHTML = toolbar + `
       <div class="table-wrap"><table class="data">
         <thead><tr>
-          <th>Unit</th><th>Buyer name</th><th>Payment plan</th><th>Installment start</th>
-          <th class="num">Reflected</th><th class="num">Outstanding due</th><th></th>
+          ${th("unit", "Unit")}${th("buyer", "Buyer name")}${th("plan", "Payment plan")}${th("start", "Installment start")}
+          ${th("reflected", "Reflected", "num")}${th("outstanding", "Outstanding due", "num")}<th></th>
         </tr></thead>
         <tbody>${rows.map((r) => `
           <tr class="clickable" data-id="${esc(r.id)}">
@@ -403,6 +423,11 @@ function renderCategory(cat) {
   document.querySelectorAll("#soaSeg .seg-btn").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.soa === soaFilter) return;
     soaFilter = b.dataset.soa;
+    renderCategory(cat);
+  }));
+  body.querySelectorAll("th[data-sort]").forEach((el) => el.addEventListener("click", () => {
+    const k = el.dataset.sort;
+    if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
     renderCategory(cat);
   }));
   document.getElementById("addBtn")?.addEventListener("click", () => openAdd(cat));

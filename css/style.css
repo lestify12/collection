@@ -374,6 +374,14 @@ table.data td {
   color: var(--ink-2); vertical-align: top;
 }
 table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* sortable column headers */
+table.data th.th-sort { cursor: pointer; user-select: none; transition: color .12s; }
+table.data th.th-sort:hover { color: var(--ink); }
+table.data th.th-sort.active { color: var(--brand); }
+.th-in { display: inline-flex; align-items: center; gap: 4px; }
+th.num .th-in { flex-direction: row-reverse; }
+.th-arrow { font-size: 13px; opacity: .5; }
+table.data th.th-sort.active .th-arrow { opacity: 1; }
 table.data td.strong { color: var(--ink); font-weight: 600; }
 table.data tbody tr { transition: background .12s ease; }
 table.data tbody tr:hover { background: var(--surface-2); }
