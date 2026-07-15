@@ -916,9 +916,10 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .icon-act:hover { background: var(--surface-2); color: var(--ink); }
 .icon-act.danger:hover { background: rgba(220,38,38,.1); color: #dc2626; }
 
-/* ---- SOA filter chips in the category toolbar (sized to match .btn.sm) ---- */
-.soa-seg { margin-bottom: 0; flex-shrink: 0; padding: 2px; border-radius: 8px; }
-.soa-seg .seg-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+/* ---- category toolbar: search, SOA filter and buttons share one height ---- */
+.toolbar .btn { height: 34px; }
+.soa-seg { margin-bottom: 0; flex-shrink: 0; height: 34px; align-items: center; padding: 0 3px; border-radius: 9px; }
+.soa-seg .seg-btn { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; font-size: 12px; border-radius: 6px; }
 .soa-seg .seg-btn i { font-size: 13px; }
 .soa-seg-n { font-size: 10px; font-weight: 700; background: var(--surface); border: 1px solid var(--border);
   border-radius: 999px; padding: 0 4px; min-width: 15px; text-align: center; color: var(--ink-2); }
