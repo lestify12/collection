@@ -253,7 +253,7 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
       <div class="hero-meter"><div class="hero-meter-fill" data-w="${instShare}"></div></div>
     </section>
 
-    ${overdueCardHTML()}
+    <!-- Monthly overdue card temporarily hidden — restore with \${overdueCardHTML()} -->
 
     <div class="stat-grid">
       <div class="stat-card reveal"><div class="stat-icon green"><i class="ti ti-cash"></i></div>
