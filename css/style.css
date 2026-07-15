@@ -193,12 +193,17 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 .sidebar-item.project-item { position: relative; overflow: hidden; padding-right: 66px; }
 .sidebar-item.project-item > span { position: relative; z-index: 1; }
 .sidebar-item.project-item::after {
-  content: ""; position: absolute; top: 3px; right: 0; bottom: 3px; width: 88px; border-radius: 8px;
-  background-image: var(--thumb); background-size: cover; background-position: center; background-repeat: no-repeat;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 58%);
-  mask-image: linear-gradient(to right, transparent 0%, #000 58%);
+  content: ""; position: absolute; top: 3px; right: 0; bottom: 3px; width: 84px; border-radius: 8px;
+  /* the fade is the sidebar colour laid over the photo (not photo transparency),
+     so every building emerges at the same point → uniform visible width */
+  background-image: linear-gradient(to right, var(--surface) 14%, transparent 72%), var(--thumb);
+  background-size: cover; background-position: center; background-repeat: no-repeat;
   pointer-events: none; z-index: 0;
 }
+.sidebar-item.project-item:hover::after {
+  background-image: linear-gradient(to right, var(--surface-2) 14%, transparent 72%), var(--thumb); }
+.sidebar-item.project-item.active::after {
+  background-image: linear-gradient(to right, var(--accent-soft) 14%, transparent 72%), var(--thumb); }
 /* per-row loading shimmer (matches a nav item's shape) */
 .sk-nav { display: flex; flex-direction: column; gap: 3px; padding: 2px 0; }
 .sk-nav .skeleton { height: 34px; margin: 0 14px; border-radius: 8px; }
