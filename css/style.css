@@ -101,7 +101,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
 .navbar-logo { display: flex; align-items: center; flex-shrink: 0; text-decoration: none; }
-.navbar-logo img { height: 34px; width: auto; }
+.navbar-logo img { height: 44px; width: auto; }
 .navbar-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
 .navbar-search { flex: 1; max-width: 480px; margin: 0 auto; position: relative; }
 .navbar-search input {
@@ -493,7 +493,7 @@ table.data tfoot td {
 .modal-header {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 16px 20px; flex-shrink: 0; color: #fff;
-  background: linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
+  background: url("../photos/peacehomesbackground.png") center / cover no-repeat, linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
 }
 .modal-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
 /* let the title/subtitle wrapper shrink so long subtitles ellipsis instead
@@ -639,7 +639,7 @@ td.money-good { font-variant-numeric: tabular-nums; }
 /* hero card — the installment-outstanding headline of the dashboard */
 .hero-card {
   position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
+  background: url("../photos/peacehomesbackground.png") center / cover no-repeat, linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
   border-radius: 16px; padding: 22px 24px; margin-bottom: 20px;
   box-shadow: var(--shadow); color: #fff;
 }
@@ -716,7 +716,7 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .card-head {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 12px 18px; min-height: 60px; color: #fff; flex-shrink: 0;
-  background: linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
+  background: url("../photos/peacehomesbackground.png") center / cover no-repeat, linear-gradient(135deg, #123c2a 0%, #2b7d55 100%);
 }
 .card-head-t { min-width: 0; flex: 1; }
 .card-head-title { font-size: 15px; font-weight: 650; display: flex; align-items: center; gap: 8px; letter-spacing: -.01em; }
