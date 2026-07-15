@@ -112,9 +112,71 @@ function stackTip(name, m) {
 }
 
 /* ---- Monthly overdue filter (My units / All units + month selection) ---- */
-const OD_YEARS = (() => { const a = []; for (let y = 2024; y <= 2031; y++) a.push(y); return a; })();
-function monthOpts(sel) { return MONTHS.map((m, i) => `<option value="${i + 1}"${i + 1 === sel ? " selected" : ""}>${m}</option>`).join(""); }
-function yearOpts(sel) { return OD_YEARS.map((y) => `<option value="${y}"${y === sel ? " selected" : ""}>${y}</option>`).join(""); }
+const OD_YMIN = 2024, OD_YMAX = 2031;
+
+// close any open month/year popover when clicking elsewhere
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".my-picker")) return;
+  document.querySelectorAll(".my-pop:not([hidden])").forEach((p) => {
+    p.hidden = true; p.closest(".my-picker")?.classList.remove("open");
+  });
+});
+
+/** Wire a month+year popover: year stepper + month grid, writes data-m/data-y. */
+function initMYPicker(root, onChange) {
+  const trigger = root.querySelector(".my-trigger");
+  const pop = root.querySelector(".my-pop");
+  const label = root.querySelector(".my-label");
+  const yrVal = root.querySelector(".my-yr-val");
+  const paint = () => {
+    label.textContent = `${MONTHS[+root.dataset.m - 1]} ${root.dataset.y}`;
+    yrVal.textContent = root.dataset.y;
+    root.querySelectorAll(".my-grid button").forEach((b) => b.classList.toggle("sel", b.dataset.m === root.dataset.m));
+  };
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const willOpen = pop.hidden;
+    document.querySelectorAll(".my-pop:not([hidden])").forEach((p) => {
+      p.hidden = true; p.closest(".my-picker")?.classList.remove("open");
+    });
+    if (willOpen) { yrVal.textContent = root.dataset.y; pop.hidden = false; root.classList.add("open"); }
+  });
+  root.querySelectorAll(".my-yr-btn").forEach((b) => b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const y = Math.max(OD_YMIN, Math.min(OD_YMAX, +yrVal.textContent + (+b.dataset.d)));
+    yrVal.textContent = y;
+  }));
+  root.querySelectorAll(".my-grid button").forEach((b) => b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    root.dataset.m = b.dataset.m;
+    root.dataset.y = yrVal.textContent;   // commit the year the user paged to
+    paint();
+    pop.hidden = true; root.classList.remove("open");
+    onChange && onChange();
+  }));
+  paint();
+}
+
+/** A month+year popover picker. Value lives in data-m / data-y on the root. */
+function myPickerHTML(id, m, y) {
+  return `<div class="my-picker" id="${id}" data-m="${m}" data-y="${y}">
+    <button type="button" class="my-trigger">
+      <i class="ti ti-calendar-event"></i>
+      <span class="my-label">${MONTHS[m - 1]} ${y}</span>
+      <i class="ti ti-chevron-down my-caret"></i>
+    </button>
+    <div class="my-pop" hidden>
+      <div class="my-yr">
+        <button type="button" class="my-yr-btn" data-d="-1" aria-label="Previous year"><i class="ti ti-chevron-left"></i></button>
+        <span class="my-yr-val">${y}</span>
+        <button type="button" class="my-yr-btn" data-d="1" aria-label="Next year"><i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div class="my-grid">
+        ${MONTHS.map((mn, i) => `<button type="button" class="my-m${i + 1 === m ? " sel" : ""}" data-m="${i + 1}">${mn}</button>`).join("")}
+      </div>
+    </div>
+  </div>`;
+}
 
 function overdueCardHTML() {
   const now = new Date();
@@ -133,11 +195,9 @@ function overdueCardHTML() {
         </div>
         <div class="od-pickers">
           <span class="od-plabel" id="odFromLabel">As of</span>
-          <select id="odFromM" class="od-sel">${monthOpts(m)}</select>
-          <select id="odFromY" class="od-sel">${yearOpts(y)}</select>
+          ${myPickerHTML("odFrom", m, y)}
           <span id="odTo" class="od-to" hidden><span class="od-dash">to</span>
-            <select id="odToM" class="od-sel">${monthOpts(m)}</select>
-            <select id="odToY" class="od-sel">${yearOpts(y)}</select></span>
+            ${myPickerHTML("odToPick", m, y)}</span>
         </div>
       </div>
       <div class="od-result">
@@ -300,9 +360,9 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
   const card = document.getElementById("overdueCard");
   if (card) {
     let mode = "asof";
-    const key = (mSel, ySel) => `${card.querySelector(ySel).value}-${String(card.querySelector(mSel).value).padStart(2, "0")}`;
+    const key = (sel) => { const p = card.querySelector(sel); return `${p.dataset.y}-${String(p.dataset.m).padStart(2, "0")}`; };
     const recompute = () => {
-      let a = key("#odFromM", "#odFromY"), b = key("#odToM", "#odToY");
+      let a = key("#odFrom"), b = key("#odToPick");
       if (mode === "range" && a > b) [a, b] = [b, a];
       let total = 0, n = 0;
       for (const r of records) {
@@ -324,7 +384,7 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
       card.querySelector("#odFromLabel").textContent = mode === "range" ? "From" : "As of";
       recompute();
     }));
-    card.querySelectorAll(".od-sel").forEach((s) => s.addEventListener("change", recompute));
+    card.querySelectorAll(".my-picker").forEach((p) => initMYPicker(p, recompute));
     recompute();
   }
 

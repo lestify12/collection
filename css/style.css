@@ -951,15 +951,36 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .od-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .od-head h2 { margin: 0; }
 .od-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin: 16px 0 4px; }
-.od-pickers { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 8px 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
-.od-plabel { font-size: 12.5px; font-weight: 600; color: var(--ink-2); padding-left: 2px; margin-right: 2px; }
-.od-sel { height: 38px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 10px;
-  background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
-.od-sel:focus { outline: 0; border-color: var(--brand-accent); }
-.od-to { display: inline-flex; align-items: center; gap: 8px; }
+.od-pickers { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.od-plabel { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.od-to { display: inline-flex; align-items: center; gap: 10px; }
 .od-to[hidden] { display: none; }
 .od-dash { font-size: 12.5px; color: var(--ink-3); }
+
+/* month + year popover picker */
+.my-picker { position: relative; }
+.my-trigger { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px;
+  border: 1.5px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.my-trigger:hover { border-color: var(--brand-accent); }
+.my-picker.open .my-trigger { border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(47,143,91,.18); }
+.my-trigger > .ti-calendar-event { font-size: 16px; color: var(--brand-accent); }
+.my-caret { font-size: 15px; color: var(--ink-3); transition: transform .15s; margin-left: 2px; }
+.my-picker.open .my-caret { transform: rotate(180deg); }
+.my-pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 300; width: 236px; padding: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+.my-pop[hidden] { display: none; }
+.my-yr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.my-yr-val { font-size: 15px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.my-yr-btn { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); cursor: pointer; font-size: 15px;
+  transition: background .12s, color .12s; }
+.my-yr-btn:hover { background: var(--surface-2); color: var(--ink); }
+.my-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.my-grid button { height: 38px; border-radius: 9px; border: 1px solid transparent; background: var(--surface-2);
+  color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .12s, color .12s; }
+.my-grid button:hover { background: var(--border); color: var(--ink); }
+.my-grid button.sel { background: var(--brand-accent); color: #fff; border-color: var(--brand-accent); }
 .od-result { margin: 16px 0 6px; }
 .od-big { font-size: 30px; font-weight: 800; color: var(--cat-installment, var(--brand-accent)); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .od-cap { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
