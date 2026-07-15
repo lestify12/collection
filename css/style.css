@@ -188,15 +188,17 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 .sidebar-item:hover > i { color: var(--brand); }
 .sidebar-item.active > i { background: var(--accent-soft); color: var(--brand); }
 :root[data-theme="dark"] .sidebar-item.active > i { background: rgba(47,143,91,.22); color: #7fe0a8; }
-/* project rows: a building glyph in a soft green chip */
-.sidebar-ico { flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
-  font-size: 16px; background: var(--accent-soft); color: var(--brand-accent);
-  transition: background .12s, color .12s; }
-.sidebar-item:hover .sidebar-ico { background: var(--brand-accent); color: #fff; }
-.sidebar-item.active .sidebar-ico { background: var(--brand-accent); color: #fff; box-shadow: 0 1px 4px rgba(47,143,91,.35); }
-:root[data-theme="dark"] .sidebar-ico { background: rgba(47,143,91,.18); color: #7fe0a8; }
-:root[data-theme="dark"] .sidebar-item:hover .sidebar-ico,
-:root[data-theme="dark"] .sidebar-item.active .sidebar-ico { background: var(--brand-accent); color: #04130c; }
+/* project rows: the building photo (full colour) bleeding in from the right,
+   masked so it fades into the sidebar; the name truncates before it. */
+.sidebar-item.project-item { position: relative; overflow: hidden; padding-right: 66px; }
+.sidebar-item.project-item > span { position: relative; z-index: 1; }
+.sidebar-item.project-item::after {
+  content: ""; position: absolute; top: 3px; right: 0; bottom: 3px; width: 88px; border-radius: 8px;
+  background-image: var(--thumb); background-size: cover; background-position: center; background-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 58%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 58%);
+  pointer-events: none; z-index: 0;
+}
 /* per-row loading shimmer (matches a nav item's shape) */
 .sk-nav { display: flex; flex-direction: column; gap: 3px; padding: 2px 0; }
 .sk-nav .skeleton { height: 34px; margin: 0 14px; border-radius: 8px; }

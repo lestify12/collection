@@ -125,8 +125,8 @@ export function renderNav(projects, activeId) {
   nav.innerHTML = sorted.map((p) => `
     <a class="sidebar-item project-item ${p.id === activeId ? "active" : ""}"
        href="project.html?id=${encodeURIComponent(p.id)}"
-       title="${esc(p.name)}" data-name="${esc(p.name).toLowerCase()}">
-      <span class="sidebar-ico"><i class="ti ti-building-skyscraper"></i></span>
+       title="${esc(p.name)}" data-name="${esc(p.name).toLowerCase()}"
+       style="--thumb:url('../photos/thumbs/${esc(p.id)}.webp'),url('../photos/projects/${esc(p.id)}.webp')">
       <span>${esc(navLabel(p.name))}</span>
     </a>`).join("");
 
