@@ -38,7 +38,8 @@ async function main() {
   const projects = visibleProjects(summary.projects);
   renderNav(projects, null);
 
-  document.querySelector(".page-title").textContent = "All Project Collection Summary";
+  // page title reflects the active scope (set for real in draw()).
+  const titleEl = document.querySelector(".page-title");
 
   // who is assigned to each project. Prefer the name denormalised onto the
   // record; else look it up (Manager/TL can list users); always resolve self.
@@ -79,7 +80,18 @@ async function main() {
 
   // My units / All units switcher, in the page header — controls the whole page.
   let scope = user.role === "agent" ? "mine" : "all";
-  const draw = () => { const s = buildScope(scope); render(s.rows, s.tot, s.catTot, summary, s.scoped, user, scope); };
+  const draw = () => {
+    const s = buildScope(scope);
+    if (scope === "mine") {
+      const names = s.rows.map((r) => r.name);
+      titleEl.textContent = names.length === 1 ? `${names[0]} Collection Summary`
+        : names.length ? `${names.join(", ")} Collection Summary`
+        : "My Collection Summary";
+    } else {
+      titleEl.textContent = "All Project Collection Summary";
+    }
+    render(s.rows, s.tot, s.catTot, summary, s.scoped, user, scope);
+  };
   const header = document.querySelector(".page-header");
   if (header && !document.getElementById("scopeSeg")) {
     const seg = document.createElement("div");
