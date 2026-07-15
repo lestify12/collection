@@ -189,11 +189,12 @@ function render() {
         <div class="page-subtitle"><i class="ti ti-building"></i> Unit ${esc(r.unitNo)}${r.type ? " · " + esc(r.type) : ""} · ${esc(project?.name || "")}</div>
       </div>
       <div class="page-header-actions">
-        ${auth.canEdit(r, ME) ? `<button class="btn" id="soaBtn"><i class="ti ti-file-upload"></i> Upload SOA</button>
+        ${auth.canEdit(r, ME) ? `<button class="btn" id="remarksBtn"><i class="ti ti-message-2"></i> Remarks</button>
+        <button class="btn" id="soaBtn"><i class="ti ti-file-upload"></i> Upload SOA</button>
         <input type="file" id="soaFile" accept="application/pdf,.pdf" hidden>
-        <button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>` : ""}
+        <button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>
+        <button class="btn" id="editBtn"><i class="ti ti-pencil"></i> Edit</button>` : ""}
         ${auth.canViewAll(ME) ? `<button class="btn" id="assignBtn"><i class="ti ti-user-cog"></i> Assign</button>
-        <button class="btn" id="editBtn"><i class="ti ti-pencil"></i> Edit</button>
         <button class="btn danger" id="deleteBtn"><i class="ti ti-trash"></i> Delete</button>` : ""}
       </div>
     </div>
@@ -205,16 +206,17 @@ function render() {
     <div id="clientBody"></div>`;
 
   if (auth.canEdit(r, ME)) {
+    document.getElementById("remarksBtn").addEventListener("click", () => openRemarksEditor(r));
     document.getElementById("moveBtn").addEventListener("click", () => openMoveCategory(r));
+    document.getElementById("editBtn").addEventListener("click", () =>
+      openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
+        onSaved: reloadAndRender }));
     const soaFile = document.getElementById("soaFile");
     document.getElementById("soaBtn").addEventListener("click", () => soaFile.click());
     soaFile.addEventListener("change", handleSOAUpload);
   }
   if (auth.canViewAll(ME)) {
     document.getElementById("assignBtn").addEventListener("click", () => openAssign(r));
-    document.getElementById("editBtn").addEventListener("click", () =>
-      openRecordForm({ category: r.category, record: r, projectId: project.id, projectName: project?.name,
-        onSaved: reloadAndRender }));
     document.getElementById("deleteBtn").addEventListener("click", async () => {
       if (!(await confirmModal({ title: `Delete unit ${r.unitNo}?`, message: "This permanently deletes the record. This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
       try { await db.deleteRecord(r.id); toast("Record deleted");
@@ -552,6 +554,42 @@ function openMoveCategory(r) {
       toast(`Moved to ${catByKey[cat].label}`);
       await reloadAndRender();
     } catch (err) { toast("Move failed — " + err.message); btn.disabled = false; }
+  });
+}
+
+/* ---- quick remarks editor — the officer's most common edit ---- */
+function openRemarksEditor(r) {
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal" style="width:min(480px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-message-2"></i></div>
+      <div style="min-width:0"><div class="modal-header-title">Remarks</div>
+      <div class="modal-header-sub">Unit ${esc(r.unitNo)}${r.buyerName ? " · " + esc(r.buyerName) : ""}</div></div></div>
+      <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+    <form><div class="modal-body">
+      <div class="field full"><label>Notes for this unit</label>
+        <textarea id="rmk" rows="5" placeholder="e.g. buyer promised to settle by end of month…">${esc(r.remarks || "")}</textarea></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn" data-x>Cancel</button>
+      <button type="submit" class="btn primary"><i class="ti ti-check"></i> Save remarks</button></div></form></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+  const ta = bd.querySelector("#rmk");
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  bd.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const remarks = ta.value.trim();
+    const btn = bd.querySelector("button[type=submit]"); btn.disabled = true;
+    try {
+      await db.updateRecord(r.id, { remarks });
+      close();
+      toast("Remarks saved");
+      await reloadAndRender();
+    } catch (err) { toast("Save failed — " + err.message); btn.disabled = false; }
   });
 }
 
