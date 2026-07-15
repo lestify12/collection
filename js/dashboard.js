@@ -14,6 +14,13 @@ initSidebar();
 
 const DUE_CATS = CATS.filter((c) => c.due);
 
+// Category icon chips — mirrors the project page so the two views feel identical.
+const STAT_ICON = {
+  dp24: "ti-cash", installment: "ti-calendar-repeat", legal: "ti-gavel",
+  dnc: "ti-user-x", cancelled: "ti-ban", others: "ti-package",
+  available: "ti-home-check",
+};
+
 async function main() {
   const user = await auth.requireAuth();
   if (!user) return;
@@ -387,8 +394,8 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
       <h2>Outstanding by category</h2>
       <div class="card-sub">Pick a category to see each project's share — hover a bar for the exact amount</div>
       <div class="cat-tabs">
-        ${TAB_CATS.map((c, i) => `<button class="cat-tab${i === 0 ? " active" : ""}" data-cat="${c.key}">
-          <span class="cat-dot" style="background:${c.color}"></span>${esc(c.short)}</button>`).join("")}
+        ${TAB_CATS.map((c, i) => `<button class="tab cat-tab${i === 0 ? " active" : ""}" data-cat="${c.key}">
+          <i class="ti ${STAT_ICON[c.key] || "ti-circle"} tab-ico" style="--c:${c.color}"></i>${esc(c.short)}</button>`).join("")}
       </div>
       <div class="simple-bars" id="catBars"></div>
     </section>
