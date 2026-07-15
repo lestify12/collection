@@ -934,6 +934,13 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .ro-banner b { color: var(--ink); }
 .sched-cell.ro { cursor: default; }
 
+/* amber "needs input" banner (e.g. missing DP total) */
+.warn-banner { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px;
+  background: rgba(201,133,0,.09); border: 1px solid rgba(201,133,0,.28); border-radius: 12px;
+  padding: 12px 15px; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.warn-banner i { font-size: 18px; color: #c98500; flex-shrink: 0; margin-top: 1px; }
+.warn-banner b { color: var(--ink); }
+
 /* ---- buyer payment-progress meter (project category tables) ---- */
 .buyer-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .buyer-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

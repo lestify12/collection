@@ -97,6 +97,15 @@ export function downpaymentTarget(r) {
   return explicit || parts || r2(0.24 * S);
 }
 
+/** True when the DP total (DP + DLD + Admin) hasn't actually been entered.
+    planOf/downpaymentTarget then fall back to an estimate, so the deduction that
+    feeds the installment boxes can't be trusted until the officer inputs it. */
+export function dpNeedsInput(r) {
+  const explicit = (Number(r.dpAmount) || 0) || (Number(r.dpTotal) || 0)
+    || (Number(r.dp20) || 0) + (Number(r.dld) || 0) + (Number(r.adminFee) || 0);
+  return !(explicit > 0);
+}
+
 function buildSchedule(r) {
   const S = Number(r.sellingPrice) || 0;
   const R = Number(r.reflected) || 0;
@@ -261,6 +270,8 @@ function renderClientTab() {
   const refS = fmtMoney(reflected), outS = fmtMoney(outstanding), spS = fmtMoney(r.sellingPrice);
   body.innerHTML = `
     ${!canEdit ? `<div class="ro-banner"><i class="ti ti-eye"></i> <div>View only — this unit is assigned to <b>${esc(r.assignedToName || "another officer")}</b>. You can browse it, but can't record or change payments.</div></div>` : ""}
+    ${sched && sched.plan.mode !== "cash" && dpNeedsInput(r) ? `<div class="warn-banner"><i class="ti ti-alert-triangle"></i>
+      <div><b>Downpayment total not set.</b> The <b>DP total (DP + DLD + Admin)</b> hasn't been entered, so it's only estimated and the payment schedule may be inaccurate.${canEdit ? ` Tap <b>Edit</b> and fill in the DP, DLD and Admin fee.` : ""}</div></div>` : ""}
     <div class="stat-grid client-stats">
       <div class="stat-card"><div class="stat-icon green"><i class="ti ti-circle-check"></i></div>
         <div><div class="stat-value money-good" style="font-size:${fitStat(refS)}px">${refS}</div>
