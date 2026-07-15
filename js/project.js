@@ -6,7 +6,7 @@ import * as db from "./db.js";
 import * as auth from "./auth.js";
 import {
   CATS, catByKey, esc, fmtMoney, fmtInt, renderNav, initTheme,
-  initSidebar, setModeBadge, observeReveals, toast, visibleProjects,
+  initSidebar, setModeBadge, observeReveals, toast, visibleProjects, compressImage,
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
 import { importWorkbook } from "./import-xlsx.js";
@@ -90,8 +90,12 @@ async function main() {
   if (auth.canViewAll(ME)) {
     document.getElementById("importBtn")?.style.removeProperty("display");
   }
-  // Deleting a whole project is Manager/admin only.
+  // Editing (rename + building photo) and deleting a whole project are
+  // Manager/admin only.
   if (auth.canManage(ME)) {
+    const edit = document.getElementById("editProjectBtn");
+    edit?.style.removeProperty("display");
+    edit?.addEventListener("click", openEditProject);
     const del = document.getElementById("deleteProjectBtn");
     del?.style.removeProperty("display");
     del?.addEventListener("click", openDeleteProject);
@@ -183,6 +187,103 @@ function openDeleteProject() {
       go.disabled = false; go.innerHTML = `<i class="ti ti-trash"></i> Delete project`;
     }
   });
+}
+
+/* ---- Edit project — rename + building photo (Manager/admin) ----
+   The photo is shared everywhere the project appears (dashboard hero, project
+   banner, sidebar). It's compressed to a small WebP and stored per-project so
+   it never bloats the summary doc. */
+function openEditProject() {
+  const imgs = db.cachedImages();
+  const hasUpload = !!imgs[project.id];
+  const current = imgs[project.id] || `photos/projects/${project.id}.webp`;
+  let newImage = null;      // data URL when the user picks a file
+  let removeImage = false;  // true when the user clears an uploaded photo
+
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal edit-proj-modal" style="width:min(480px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-edit"></i></div>
+      <div style="min-width:0"><div class="modal-header-title">Edit project</div>
+      <div class="modal-header-sub">Rename it and set the building photo used across the app</div></div></div>
+      <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+    <form><div class="modal-body">
+      <label class="fld"><span>Project name</span><input id="epName" autocomplete="off" spellcheck="false" value="${esc(project.name)}"></label>
+      <div class="fld"><span>Building photo</span>
+        <div class="epimg">
+          <div class="epimg-preview"><img id="epImg" src="${esc(current)}" alt=""></div>
+          <div class="epimg-side">
+            <p class="epimg-hint">Shown on the dashboard hero, the project banner and the sidebar. A wide building shot works best.</p>
+            <div class="epimg-btns">
+              <label class="btn sm"><i class="ti ti-photo-up"></i> Choose photo<input type="file" id="epFile" accept="image/*" hidden></label>
+              <button type="button" class="btn sm ghost" id="epClear"${hasUpload ? "" : " style=\"display:none\""}><i class="ti ti-trash"></i> Remove</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="login-error" id="epErr"></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn" data-x>Cancel</button>
+      <button type="submit" class="btn primary" id="epSave"><i class="ti ti-check"></i> Save changes</button></div></form></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+
+  const img = bd.querySelector("#epImg");
+  const clearBtn = bd.querySelector("#epClear");
+  const err = bd.querySelector("#epErr");
+  // Preview falls back down the same chain the live app uses so a missing
+  // static photo never shows as a broken image.
+  img.addEventListener("error", function onErr() {
+    const src = img.getAttribute("src") || "";
+    if (src.startsWith("data:")) { img.removeEventListener("error", onErr); return; }
+    if (src.endsWith(".webp")) img.src = src.replace(".webp", ".png");
+    else if (src.endsWith(".png") && src.includes("/projects/")) { img.classList.add("is-logo"); img.src = "photos/hero.webp"; }
+    else img.removeEventListener("error", onErr);
+  });
+
+  bd.querySelector("#epFile").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    err.classList.remove("show");
+    try {
+      newImage = await compressImage(f);
+      removeImage = false;
+      img.classList.remove("is-logo");
+      img.src = newImage;
+      clearBtn.style.display = "";
+    } catch (ex) { err.textContent = ex.message || "Could not read that image."; err.classList.add("show"); }
+  });
+
+  clearBtn.addEventListener("click", () => {
+    newImage = null; removeImage = true;
+    img.classList.remove("is-logo");
+    img.src = `photos/projects/${project.id}.webp`;
+    clearBtn.style.display = "none";
+  });
+
+  bd.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = bd.querySelector("#epName").value.trim();
+    if (name.length < 2) { err.textContent = "Enter a project name."; err.classList.add("show"); return; }
+    const save = bd.querySelector("#epSave"); save.disabled = true;
+    save.innerHTML = `<i class="ti ti-loader-2 spin"></i> Saving…`;
+    try {
+      if (name !== project.name) await db.renameProject(project.id, name);
+      if (newImage) await db.setProjectImage(project.id, newImage);
+      else if (removeImage) await db.setProjectImage(project.id, "");
+      toast("Project updated");
+      location.reload();
+    } catch (ex) {
+      console.error(ex);
+      err.textContent = ex.message || "Could not save changes."; err.classList.add("show");
+      save.disabled = false; save.innerHTML = `<i class="ti ti-check"></i> Save changes`;
+    }
+  });
+  setTimeout(() => bd.querySelector("#epName")?.focus(), 200);
 }
 
 /* ---- "Show only my units" switch (officers sharing a project) ---- */
@@ -318,7 +419,7 @@ function renderOverview() {
     <div class="stat-grid">${statCards}</div>
 
     <section class="hero-card reveal" style="margin-top:4px">
-      <img class="hero-photo" src="photos/projects/${esc(project.id)}.webp" alt="" aria-hidden="true">
+      <img class="hero-photo" src="${esc(db.cachedImages()[project.id] || `photos/projects/${project.id}.webp`)}" alt="" aria-hidden="true">
       <div class="hero-main">
         <div class="hero-icon"><i class="ti ti-coins"></i></div>
         <div>

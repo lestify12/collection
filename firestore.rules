@@ -57,6 +57,14 @@ service cloud.firestore {
       allow write: if isBoss();
     }
 
+    // Per-project building photos (one small doc each, kept out of the summary
+    // so it doesn't bloat every page load). Any signed-in user may read;
+    // Manager writes (matching Edit project access).
+    match /projectImages/{projectId} {
+      allow read:  if signedIn();
+      allow write: if isBoss();
+    }
+
     // Project-level assignments (records-independent) so a project with no
     // imported units yet can still be assigned. Any signed-in user reads
     // (officers need to see their assignment); Manager + Team Leader write.

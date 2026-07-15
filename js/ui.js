@@ -55,6 +55,31 @@ export function openAddProject() {
   setTimeout(() => bd.querySelector("#npName")?.focus(), 200);
 }
 
+/* Shrink an uploaded image to a web-friendly WebP data URL so it can live in
+   a small Firestore doc (well under the 1 MB limit) and paint instantly from
+   cache. Scales the longest side down to `maxSide` and re-encodes as WebP. */
+export function compressImage(file, maxSide = 1000, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      // WebP where supported (much smaller); browsers that can't fall back to JPEG.
+      let out = cv.toDataURL("image/webp", quality);
+      if (!out.startsWith("data:image/webp")) out = cv.toDataURL("image/jpeg", quality);
+      resolve(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read that image.")); };
+    img.src = url;
+  });
+}
+
 /* ------------------------------------------------ theme */
 const THEME_KEY = "collection_theme";
 export function initTheme() {
@@ -122,13 +147,19 @@ export function renderNav(projects, activeId) {
   if (!nav) return;
   const sorted = [...projects].sort((a, b) =>
     String(a.name || "").localeCompare(String(b.name || ""), undefined, { numeric: true, sensitivity: "base" }));
-  nav.innerHTML = sorted.map((p) => `
+  // An admin-uploaded photo (a data: URL) takes priority over the static
+  // thumb/photo shipped in the repo; both fall through to the CSS default.
+  const uploaded = db.cachedImages();
+  nav.innerHTML = sorted.map((p) => {
+    const up = uploaded[p.id] ? `url('${uploaded[p.id]}'),` : "";
+    return `
     <a class="sidebar-item project-item ${p.id === activeId ? "active" : ""}"
        href="project.html?id=${encodeURIComponent(p.id)}"
        title="${esc(p.name)}" data-name="${esc(p.name).toLowerCase()}"
-       style="--thumb:url('../photos/thumbs/${esc(p.id)}.webp'),url('../photos/projects/${esc(p.id)}.webp')">
+       style="--thumb:${up}url('../photos/thumbs/${esc(p.id)}.webp'),url('../photos/projects/${esc(p.id)}.webp')">
       <span>${esc(navLabel(p.name))}</span>
-    </a>`).join("");
+    </a>`;
+  }).join("");
 
   const dash = document.getElementById("navDashboard");
   if (dash && !activeId) dash.classList.add("active");

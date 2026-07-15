@@ -202,6 +202,7 @@ function saveLocal(state) { localStorage.setItem(LS_KEY, JSON.stringify(state));
 
 /* ------------------------------------------------ cache */
 let cache = null;
+let _imagesCache = null;   // { [projectId]: dataUrl } uploaded project photos
 
 async function fetchJSON(path) {
   const res = await fetch(path);
@@ -227,6 +228,7 @@ export async function loadAll(force = false, scope = null, projectId = null) {
 
   const summary = await loadSummary();
   const assignments = await loadAssignments();
+  const images = await loadProjectImages();
   let records;
 
   if (LIVE) {
@@ -246,7 +248,7 @@ export async function loadAll(force = false, scope = null, projectId = null) {
     if (projectId) records = records.filter((r) => r.projectId === projectId);
   }
 
-  cache = { summary, records: upperNames(records), assignments, _projectId: projectId };
+  cache = { summary, records: upperNames(records), assignments, images, _projectId: projectId };
   return cache;
 }
 
@@ -274,6 +276,8 @@ export async function fetchAllRecords(force = false) {
 }
 
 const LS_PROJECTS = "collection_projects_v1";
+const LS_IMAGES = "collection_projimages_v1";   // { [id]: dataUrl } uploaded photos (local mode)
+const LS_PROJMETA = "collection_projmeta_v1";   // { [id]: {name} } project renames (local mode)
 async function loadSummary() {
   if (LIVE) {
     try {
@@ -283,14 +287,78 @@ async function loadSummary() {
   }
   const base = await fetchJSON("data/projects.json");
   if (!LIVE) {
-    // local mode: merge any projects added in this browser
+    // local mode: merge any projects added in this browser, plus name overrides
     const extra = JSON.parse(localStorage.getItem(LS_PROJECTS) || "[]");
-    if (extra.length) {
-      const have = new Set(base.projects.map((p) => p.id));
-      return { ...base, projects: [...base.projects, ...extra.filter((p) => !have.has(p.id))] };
-    }
+    const meta = JSON.parse(localStorage.getItem(LS_PROJMETA) || "{}");
+    const have = new Set(base.projects.map((p) => p.id));
+    let projects = [...base.projects, ...extra.filter((p) => !have.has(p.id))];
+    if (Object.keys(meta).length)
+      projects = projects.map((p) => (meta[p.id]?.name ? { ...p, name: meta[p.id].name } : p));
+    return { ...base, projects };
   }
   return base;
+}
+
+/* ---- project photos (per-project image docs) ----------------------------
+   Uploaded building photos are stored one doc per project — LIVE reads the
+   `projectImages` collection ({ url }); local mode a localStorage map — so the
+   large data URL never bloats the summary doc that every page loads. Consumed
+   by the sidebar, dashboard hero and project hero, always with a fallback to
+   the static photos/projects/<id>.webp shipped in the repo. */
+export async function loadProjectImages(force = false) {
+  if (_imagesCache && !force) return _imagesCache;
+  const out = {};
+  if (LIVE) {
+    try {
+      const snap = await fs.getDocs(fs.collection(db, "projectImages"));
+      snap.docs.forEach((d) => { const u = d.data()?.url; if (u) out[d.id] = u; });
+    } catch (e) { console.warn("projectImages unavailable", e); }
+  } else {
+    try { Object.assign(out, JSON.parse(localStorage.getItem(LS_IMAGES) || "{}")); } catch {}
+  }
+  _imagesCache = out;
+  return out;
+}
+
+/** The uploaded-photo map cached by the last loadAll/loadProjectImages call. */
+export function cachedImages() { return _imagesCache || {}; }
+
+/** Store (or clear, dataUrl="") a project's building photo. Manager/admin only. */
+export async function setProjectImage(projectId, dataUrl) {
+  if (LIVE) {
+    if (dataUrl) await fs.setDoc(fs.doc(db, "projectImages", projectId), { url: dataUrl, updatedAt: new Date().toISOString() });
+    else await fs.deleteDoc(fs.doc(db, "projectImages", projectId));
+  } else {
+    const map = JSON.parse(localStorage.getItem(LS_IMAGES) || "{}");
+    if (dataUrl) map[projectId] = dataUrl; else delete map[projectId];
+    localStorage.setItem(LS_IMAGES, JSON.stringify(map));
+  }
+  _imagesCache = null;
+  invalidate();
+}
+
+/** Rename a project. Manager/admin only (enforced by rules on the app doc). */
+export async function renameProject(projectId, name) {
+  name = String(name || "").trim();
+  if (!name) throw new Error("Project name cannot be empty.");
+  if (LIVE) {
+    const summary = await loadSummary();
+    const projects = (summary.projects || []).map((p) => (p.id === projectId ? { ...p, name } : p));
+    await fs.setDoc(fs.doc(db, "app", "summary"), { ...summary, projects });
+  } else {
+    // custom-added projects live in LS_PROJECTS; seeded ones use a name-override map
+    const extra = JSON.parse(localStorage.getItem(LS_PROJECTS) || "[]");
+    const i = extra.findIndex((p) => p.id === projectId);
+    if (i >= 0) {
+      extra[i] = { ...extra[i], name };
+      localStorage.setItem(LS_PROJECTS, JSON.stringify(extra));
+    } else {
+      const meta = JSON.parse(localStorage.getItem(LS_PROJMETA) || "{}");
+      meta[projectId] = { ...(meta[projectId] || {}), name };
+      localStorage.setItem(LS_PROJMETA, JSON.stringify(meta));
+    }
+  }
+  invalidate();
 }
 
 /** Add a new (empty) project. Manager/admin only (enforced by rules on the
@@ -327,14 +395,20 @@ export async function deleteProject(projectId) {
     const projects = (summary.projects || []).filter((p) => p.id !== projectId);
     await fs.setDoc(fs.doc(db, "app", "summary"), { ...summary, projects });
     try { await fs.setDoc(fs.doc(db, "assignments", "projects"), { [projectId]: fs.deleteField() }, { merge: true }); } catch {}
+    try { await fs.deleteDoc(fs.doc(db, "projectImages", projectId)); } catch {}
   } else {
     const extra = JSON.parse(localStorage.getItem(LS_PROJECTS) || "[]").filter((p) => p.id !== projectId);
     localStorage.setItem(LS_PROJECTS, JSON.stringify(extra));
+    const meta = JSON.parse(localStorage.getItem(LS_PROJMETA) || "{}"); delete meta[projectId];
+    localStorage.setItem(LS_PROJMETA, JSON.stringify(meta));
+    const imgs = JSON.parse(localStorage.getItem(LS_IMAGES) || "{}"); delete imgs[projectId];
+    localStorage.setItem(LS_IMAGES, JSON.stringify(imgs));
     const local = loadLocal();
     local.added = (local.added || []).filter((r) => r.projectId !== projectId);
     if (local.assignments) delete local.assignments[projectId];
     saveLocal(local);
   }
+  _imagesCache = null;
   invalidate();
 }
 

@@ -599,6 +599,21 @@ table.data td.strong-num { color: var(--ink); font-weight: 600; }
 .del-actions .btn { flex: 1; justify-content: center; }
 .del-actions .btn .spin { animation: spin 1s linear infinite; }
 
+/* edit-project modal — photo picker */
+.btn.ghost { background: transparent; border-color: transparent; color: var(--ink-3); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--ink); }
+.epimg { display: flex; gap: 14px; align-items: stretch; }
+.epimg-preview {
+  flex: 0 0 148px; width: 148px; height: 96px; border-radius: 12px; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--border); position: relative;
+}
+.epimg-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.epimg-preview img.is-logo { object-fit: contain; padding: 14px; }
+.epimg-side { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.epimg-hint { font-size: 12px; line-height: 1.45; color: var(--ink-3); margin: 0; }
+.epimg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.epimg-btns .btn { cursor: pointer; }
+
 /* import preview */
 .imp-lead { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
 .imp-lead b { color: var(--ink); }

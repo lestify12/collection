@@ -159,9 +159,13 @@ function legendHTML() {
 
 /* Project picker modal — a grid of mini building cards. Calls onPick(id|"all"). */
 function openProjectPicker(projects, records, current, onPick) {
-  // layered cascade: optimized .webp on top, .png (future uploads) beneath,
-  // brand texture last — the first that loads wins.
-  const bg = (pid) => `background-image:url('photos/projects/${pid}.webp'), url('photos/projects/${pid}.png'), url('photos/peacehomesbackground.webp')`;
+  // layered cascade: an admin-uploaded photo on top, then optimized .webp,
+  // .png, brand texture last — the first that loads wins.
+  const uploaded = db.cachedImages();
+  const bg = (pid) => {
+    const up = uploaded[pid] ? `url('${uploaded[pid]}'), ` : "";
+    return `background-image:${up}url('photos/projects/${pid}.webp'), url('photos/projects/${pid}.png'), url('photos/peacehomesbackground.webp')`;
+  };
   const miniCard = (pid, name, sub, hasPhoto, iconOnly) => `
     <button class="proj-mini${current === pid ? " active" : ""}" data-pid="${esc(pid)}">
       <span class="proj-mini-photo"${hasPhoto ? ` style="${bg(pid)}"` : ""}>
@@ -341,7 +345,9 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
   // default hero.png (the brand monogram). Missing files fall back to the brand
   // texture (see wiring below). hero.png is a logo, so it's shown contained
   // (hero-logo) rather than cropped like a building photo.
-  const heroPhoto = rows.length === 1 ? `photos/projects/${rows[0].id}.webp` : "photos/hero.webp";
+  const heroPhoto = rows.length === 1
+    ? (db.cachedImages()[rows[0].id] || `photos/projects/${rows[0].id}.webp`)
+    : "photos/hero.webp";
   const heroLogoCls = heroPhoto === "photos/hero.webp" ? " hero-logo" : "";
 
   el.innerHTML = `
