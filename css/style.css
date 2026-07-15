@@ -964,6 +964,24 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 /* ---- dashboard My units / All units page switcher ---- */
 .scope-seg { flex-shrink: 0; }
 
+/* manager / admin scope controls: "All units" pill + per-project dropdown */
+.scope-controls { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; margin-bottom: 16px; }
+.scope-btn { border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-2);
+  cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; padding: 8px 15px; border-radius: 9px;
+  transition: background .15s, color .15s, border-color .15s; }
+.scope-btn:hover { color: var(--ink); }
+.scope-btn.active { background: var(--surface); color: var(--ink); border-color: var(--brand-accent);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.scope-picker { position: relative; display: inline-flex; align-items: center; }
+.scope-picker > .ti-building-community { position: absolute; left: 11px; font-size: 15px; color: var(--brand-accent); pointer-events: none; }
+.scope-caret { position: absolute; right: 10px; font-size: 15px; color: var(--ink-3); pointer-events: none; }
+.scope-select { appearance: none; -webkit-appearance: none; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--ink); background: var(--surface); border: 1.5px solid var(--border); border-radius: 9px;
+  height: 38px; padding: 0 32px 0 32px; cursor: pointer; max-width: 220px;
+  text-overflow: ellipsis; transition: border-color .15s, box-shadow .15s; }
+.scope-select:hover { border-color: var(--brand-accent); }
+.scope-select:focus { outline: 0; border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(47,143,91,.18); }
+
 /* ---- dashboard monthly-overdue card ---- */
 #overdueCard { margin-bottom: 20px; }
 .od-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }

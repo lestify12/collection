@@ -57,10 +57,14 @@ async function main() {
   };
 
   // Scope: "all" = every unit (with boss-summary fallback for un-imported
-  // projects); "mine" = only the signed-in officer's assigned units.
+  // projects); "mine" = only the signed-in officer's assigned units; any other
+  // value is a single project id (manager/admin per-project drill-down).
   const buildScope = (scope) => {
-    const scoped = scope === "mine" ? records.filter((r) => r.assignedTo === user.uid) : records;
-    const projs = scope === "mine" ? projects.filter((p) => scoped.some((r) => r.projectId === p.id)) : projects;
+    const byProject = scope !== "mine" && scope !== "all";
+    const scoped = scope === "mine" ? records.filter((r) => r.assignedTo === user.uid)
+      : byProject ? records.filter((r) => r.projectId === scope) : records;
+    const projs = scope === "mine" ? projects.filter((p) => scoped.some((r) => r.projectId === p.id))
+      : byProject ? projects.filter((p) => p.id === scope) : projects;
     const rows = projs.map((p) => ({ ...p, m: db.projectMetrics(p, scoped, scope === "mine"), assignee: projectAssignee(p.id) }));
     const tot = { totalDue: 0, totalUnits: 0, unsoldUnits: 0, projectUnits: 0 };
     const catTot = {};
@@ -78,33 +82,62 @@ async function main() {
     return { rows, tot, catTot, scoped };
   };
 
-  // My units / All units switcher, in the page header — controls the whole page.
+  // Scope switcher, in the page header — controls the whole page.
   let scope = user.role === "agent" ? "mine" : "all";
   const draw = () => {
     const s = buildScope(scope);
-    if (scope === "mine") {
-      const names = s.rows.map((r) => r.name);
-      titleEl.textContent = names.length === 1 ? `${names[0]} Collection Summary`
-        : names.length ? `${names.join(", ")} Collection Summary`
-        : "My Collection Summary";
-    } else {
+    if (scope === "all") {
       titleEl.textContent = "All Project Collection Summary";
+    } else {
+      const names = s.rows.map((r) => r.name);
+      titleEl.textContent = names.length ? `${names.join(", ")} Collection Summary`
+        : scope === "mine" ? "My Collection Summary" : "Collection Summary";
     }
     render(s.rows, s.tot, s.catTot, summary, s.scoped, user, scope);
   };
+
   const header = document.querySelector(".page-header");
-  if (header && !document.getElementById("scopeSeg")) {
-    const seg = document.createElement("div");
-    seg.className = "seg scope-seg"; seg.id = "scopeSeg";
-    seg.innerHTML = `<button class="seg-btn${scope === "mine" ? " active" : ""}" data-scope="mine">My units</button>
-      <button class="seg-btn${scope === "all" ? " active" : ""}" data-scope="all">All units</button>`;
-    header.appendChild(seg);
-    seg.querySelectorAll(".seg-btn").forEach((b) => b.addEventListener("click", () => {
-      if (b.dataset.scope === scope) return;
-      scope = b.dataset.scope;
-      seg.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
-      draw();
-    }));
+  if (header && !document.getElementById("scopeControls")) {
+    const wrap = document.createElement("div");
+    wrap.id = "scopeControls";
+
+    if (auth.canViewAll(user)) {
+      // Managers / admins: "All units" + a per-project drill-down dropdown.
+      wrap.className = "scope-controls";
+      const opts = projects.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+      wrap.innerHTML = `
+        <button class="scope-btn${scope === "all" ? " active" : ""}" data-scope="all">All units</button>
+        <div class="scope-picker">
+          <i class="ti ti-building-community"></i>
+          <select id="projScope" class="scope-select" aria-label="View a single project">
+            <option value="">Choose a project…</option>${opts}
+          </select>
+          <i class="ti ti-chevron-down scope-caret"></i>
+        </div>`;
+      header.appendChild(wrap);
+      const allBtn = wrap.querySelector(".scope-btn");
+      const sel = wrap.querySelector("#projScope");
+      allBtn.addEventListener("click", () => {
+        if (scope === "all") return;
+        scope = "all"; sel.value = ""; allBtn.classList.add("active"); draw();
+      });
+      sel.addEventListener("change", () => {
+        if (!sel.value) { scope = "all"; allBtn.classList.add("active"); draw(); return; }
+        scope = sel.value; allBtn.classList.remove("active"); draw();
+      });
+    } else {
+      // Collection officers: My units / All units.
+      wrap.className = "seg scope-seg";
+      wrap.innerHTML = `<button class="seg-btn${scope === "mine" ? " active" : ""}" data-scope="mine">My units</button>
+        <button class="seg-btn${scope === "all" ? " active" : ""}" data-scope="all">All units</button>`;
+      header.appendChild(wrap);
+      wrap.querySelectorAll(".seg-btn").forEach((b) => b.addEventListener("click", () => {
+        if (b.dataset.scope === scope) return;
+        scope = b.dataset.scope;
+        wrap.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        draw();
+      }));
+    }
   }
   draw();
 }
@@ -339,16 +372,18 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
       </div>
     </section>`;
 
-  // Any missing building photo (per-project or the default) falls back to the
-  // brand watercolor texture so the card never shows a broken image.
+  // Any missing building photo falls back down a chain so the card never shows
+  // a broken image: per-project photo → default hero.png → brand texture.
   const heroImg = el.querySelector(".hero-photo");
   if (heroImg) heroImg.addEventListener("error", function onErr() {
-    heroImg.removeEventListener("error", onErr);
-    if (heroImg.src.endsWith("photos/hero.png")) {
+    const src = heroImg.getAttribute("src") || "";
+    if (src.includes("/projects/")) {
+      heroImg.src = "photos/hero.png";                  // per-project missing → default
+    } else if (src.endsWith("/hero.png")) {
       heroImg.classList.add("is-texture");
-      heroImg.src = "photos/peacehomesbackground.png";
+      heroImg.src = "photos/peacehomesbackground.png";  // default missing → brand texture
     } else {
-      heroImg.src = "photos/hero.png";   // per-project missing → try the default first
+      heroImg.removeEventListener("error", onErr);       // texture is the last resort
     }
   });
 
