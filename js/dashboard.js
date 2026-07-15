@@ -127,7 +127,6 @@ function render(rows, tot, catTot, summary) {
         <div>
           <div class="hero-label">Installment outstanding</div>
           <div class="hero-value" id="kpiInst">0</div>
-          <div class="hero-foot">${fmtInt(inst.clients)} account${inst.clients === 1 ? "" : "s"} on 1% monthly · ${instShare}% of all outstanding</div>
         </div>
       </div>
       <div class="hero-meter"><div class="hero-meter-fill" data-w="${instShare}"></div></div>
