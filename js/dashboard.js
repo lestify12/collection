@@ -48,9 +48,9 @@ async function main() {
   usersById[user.uid] = user.name || user.email;
   const projectAssignee = (pid) => {
     const set = new Set(records.filter((r) => r.projectId === pid && r.assignedTo)
-      .map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"));
+      .map((r) => usersById[r.assignedTo] || r.assignedToName || "Assigned"));   // live name over the stored copy
     const docA = db.projectAssignee(ASSIGN, pid);   // whole-project assignment (works with 0 units)
-    if (docA) set.add(docA.name || usersById[docA.uid] || "Assigned");
+    if (docA) set.add(usersById[docA.uid] || docA.name || "Assigned");
     if (!set.size) return null;
     const names = [...set].sort();
     return names.length === 1 ? names[0] : names.slice(0, -1).join(", ") + " & " + names[names.length - 1];

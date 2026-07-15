@@ -98,9 +98,11 @@ async function main() {
     (await auth.listUsers().catch(() => [])).map((u) => [u.uid, u.name || u.email]));
   usersById[ME.uid] = ME.name || ME.email;
   const arecs = allRecords.filter((r) => r.projectId === project.id && r.assignedTo);
-  const nameSet = new Set(arecs.map((r) => r.assignedToName || usersById[r.assignedTo] || "Assigned"));
+  // Prefer the live profile name (usersById) over the copy stored on the record
+  // at assignment time, so renamed users show their current name everywhere.
+  const nameSet = new Set(arecs.map((r) => usersById[r.assignedTo] || r.assignedToName || "Assigned"));
   const docA = db.projectAssignee(ASSIGN, project.id);   // whole-project assignment (works with 0 units)
-  if (docA) nameSet.add(docA.name || usersById[docA.uid] || "Assigned");
+  if (docA) nameSet.add(usersById[docA.uid] || docA.name || "Assigned");
   const anames = [...nameSet].sort();
   const assignee = anames.length
     ? (anames.length === 1 ? anames[0]
