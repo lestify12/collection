@@ -1,11 +1,10 @@
 {
   "name": "collection-tracker-functions",
-  "description": "Cloud Functions for the Collection Tracker",
+  "description": "Cloud Function for the Collection Tracker (admin password reset)",
   "private": true,
   "engines": { "node": "20" },
   "main": "index.js",
   "dependencies": {
-    "firebase-admin": "^12.6.0",
-    "firebase-functions": "^5.1.0"
+    "firebase-admin": "^12.6.0"
   }
 }

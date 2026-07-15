@@ -242,14 +242,20 @@ export async function changePassword(newPassword) {
     local/testing mode sets it directly. */
 export async function resetPassword(uid, tempPassword) {
   if (db.LIVE) {
+    const url = String((window.APP_CONFIG && window.APP_CONFIG.functionsUrl) || "").trim();
+    if (!url) throw new Error("Password reset isn’t set up yet — the admin needs to deploy the reset function (see functions/README.md) and add its URL to config.js.");
+    let resp;
     try {
-      await db.callFunction("adminResetPassword", { uid, tempPassword });
-    } catch (e) {
-      const m = String(e?.code || e?.message || e);
-      if (/not-found|internal|Failed to fetch|CORS|does not exist/i.test(m))
-        throw new Error("The password-reset server function isn’t deployed yet. See functions/README.md to enable it.");
-      if (/permission-denied|unauthenticated/i.test(m)) throw new Error("Only Managers and Admins can reset passwords.");
-      throw new Error(e?.message?.replace(/^.*?:\s*/, "") || "Could not reset the password.");
+      const idToken = await db.authInst.currentUser.getIdToken();
+      resp = await fetch(url, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${idToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, tempPassword }),
+      });
+    } catch (e) { throw new Error("Couldn’t reach the reset service. Check the function URL in config.js."); }
+    if (!resp.ok) {
+      const j = await resp.json().catch(() => ({}));
+      throw new Error(j.error || "Could not reset the password.");
     }
     if (_user?.uid === uid) _user = { ..._user, mustChangePassword: true };
     return { tempApplied: true };

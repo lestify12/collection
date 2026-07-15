@@ -31,6 +31,12 @@ window.APP_CONFIG = {
      role is stored on their profile. Keep this list short. */
   superAdmins: ["admin@peacehomes.ae"],
 
+  /* URL of the deployed "adminResetPassword" Cloud Function (used by the
+     Team page's Reset-password → temporary password action). Paste the URL
+     you get after deploying it (see functions/README.md). Until it's set,
+     Reset password says it isn't configured yet. */
+  functionsUrl: "",
+
   /* Which projects to show across the whole app (dashboard, nav, totals).
      Leave as an empty array [] to show ALL projects from the summary.
      Listed here are the projects we have client-wise data loaded for. To show
