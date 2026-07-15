@@ -64,6 +64,7 @@ let project = null;
 let allRecords = [];
 let activeTab = "overview";
 let search = "";
+let soaFilter = "all";   // all | yes | no  — filter the category table by SOA upload
 
 async function main() {
   ME = await auth.requireAuth();
@@ -194,7 +195,7 @@ function renderTabs() {
   ].join("");
   tabs.innerHTML = tabHTML;
   tabs.querySelectorAll(".tab").forEach((b) =>
-    b.addEventListener("click", () => { activeTab = b.dataset.tab; search = ""; renderTabs(); renderTab(); }));
+    b.addEventListener("click", () => { activeTab = b.dataset.tab; search = ""; soaFilter = "all"; renderTabs(); renderTab(); }));
 }
 
 function renderTab() {
@@ -250,8 +251,26 @@ function renderOverview() {
       </tr>`;
   }).join("");
 
+  // overall due — full-width hero band, textured + the project's building photo faded on the right
+  const HERO_TIERS = [[13, 33], [16, 30], [19, 26], [Infinity, 22]];
+  const overallStr = fmtMoney(m.totalDue, { compact: false });
+  const overallPx = (HERO_TIERS.find(([mx]) => overallStr.length <= mx) || HERO_TIERS[HERO_TIERS.length - 1])[1];
+
   body.innerHTML = `
     <div class="stat-grid">${statCards}</div>
+
+    <section class="hero-card reveal" style="margin-top:4px">
+      <img class="hero-photo" src="photos/projects/${esc(project.id)}.webp" alt="" aria-hidden="true">
+      <div class="hero-main">
+        <div class="hero-icon"><i class="ti ti-report-money"></i></div>
+        <div>
+          <div class="hero-label">Overall outstanding due</div>
+          <div class="hero-value" style="font-size:${overallPx}px">${overallStr}</div>
+          <div class="hero-foot">${fmtInt(m.totalUnits)} unit${m.totalUnits === 1 ? "" : "s"} with dues across all categories</div>
+        </div>
+      </div>
+    </section>
+
     <section class="card section reveal">
       <h2>Collection breakdown</h2>
       <div class="card-sub">Units and outstanding dues by category — click a row to open it</div>
@@ -268,8 +287,16 @@ function renderOverview() {
       </div>
     </section>`;
 
+  // building photo fallback: webp → png → brand texture (never a broken image)
+  const hp = body.querySelector(".hero-photo");
+  if (hp) hp.addEventListener("error", function onErr() {
+    const src = hp.getAttribute("src") || "";
+    if (src.endsWith(".webp") && src.includes("/projects/")) hp.src = src.replace(".webp", ".png");
+    else { hp.classList.add("is-texture"); hp.src = "photos/peacehomesbackground.webp"; hp.removeEventListener("error", onErr); }
+  });
+
   body.querySelectorAll("tr.clickable").forEach((tr) =>
-    tr.addEventListener("click", () => { activeTab = tr.dataset.tab; search = ""; renderTabs(); renderTab(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+    tr.addEventListener("click", () => { activeTab = tr.dataset.tab; search = ""; soaFilter = "all"; renderTabs(); renderTab(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
 }
 
 /* ------------------------------------------------ Category (compact) */
@@ -280,14 +307,23 @@ function matches(r, q) {
     .some((k) => String(r[k] || "").toLowerCase().includes(q));
 }
 
+const hasSOA = (r) => !!(r.soaBreakdown?.items?.length);
+
 function renderCategory(cat) {
   const c = catByKey[cat];
+  const isAvail = cat === "available";
+  const showSoaFilter = !isAvail;            // SOA is meaningless for available units
   const all = catRecords(cat);
-  const rows = all.filter((r) => matches(r, search));
+  let rows = all.filter((r) => matches(r, search));
+  if (showSoaFilter && soaFilter === "yes") rows = rows.filter(hasSOA);
+  else if (showSoaFilter && soaFilter === "no") rows = rows.filter((r) => !hasSOA(r));
   const totalDue = rows.reduce((s, r) => s + (Number(r.outstanding) || 0), 0);
   const totalRefl = rows.reduce((s, r) => s + (Number(r.reflected) || 0), 0);
-  const isAvail = cat === "available";
   const body = document.getElementById("tabBody");
+  // counts for the SOA filter chips (before the SOA filter is applied)
+  const searched = all.filter((r) => matches(r, search));
+  const soaYes = searched.filter(hasSOA).length;
+  const soaNo = searched.length - soaYes;
 
   // Managers/TL/Admin can always add & export; an officer only on projects
   // assigned to them. Officers viewing someone else's project see neither.
@@ -305,6 +341,11 @@ function renderCategory(cat) {
         ${fmtInt(rows.length)} record${rows.length === 1 ? "" : "s"}${isAvail ? "" : ` · ${fmtMoney(totalDue, { compact: true })} outstanding`}
       </span>
       <div style="flex:1"></div>
+      ${showSoaFilter ? `<div class="seg soa-seg" id="soaSeg">
+        <button class="seg-btn${soaFilter === "all" ? " active" : ""}" data-soa="all">All</button>
+        <button class="seg-btn${soaFilter === "yes" ? " active" : ""}" data-soa="yes"><i class="ti ti-file-check"></i> SOA${soaYes ? ` <span class="soa-seg-n">${soaYes}</span>` : ""}</button>
+        <button class="seg-btn${soaFilter === "no" ? " active" : ""}" data-soa="no">No SOA${soaNo ? ` <span class="soa-seg-n">${soaNo}</span>` : ""}</button>
+      </div>` : ""}
       ${canWork ? `<button class="btn sm" id="exportBtn" ${rows.length ? "" : "disabled"}><i class="ti ti-download"></i> Export CSV</button>
       <button class="btn primary sm" id="addBtn"><i class="ti ti-plus"></i> Add record</button>` : ""}
     </div>`;
@@ -357,6 +398,11 @@ function renderCategory(cat) {
     renderCategory(cat);
     const n = document.getElementById("searchInput"); n.focus(); n.setSelectionRange(pos, pos);
   });
+  document.querySelectorAll("#soaSeg .seg-btn").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.soa === soaFilter) return;
+    soaFilter = b.dataset.soa;
+    renderCategory(cat);
+  }));
   document.getElementById("addBtn")?.addEventListener("click", () => openAdd(cat));
   document.getElementById("exportBtn")?.addEventListener("click", () => exportCSV(rows, cat));
   body.querySelectorAll("tr.clickable").forEach((tr) =>

@@ -897,6 +897,14 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .icon-act:hover { background: var(--surface-2); color: var(--ink); }
 .icon-act.danger:hover { background: rgba(220,38,38,.1); color: #dc2626; }
 
+/* ---- SOA filter chips in the category toolbar ---- */
+.soa-seg { margin-bottom: 0; flex-shrink: 0; }
+.soa-seg .seg-btn { display: inline-flex; align-items: center; gap: 5px; }
+.soa-seg .seg-btn i { font-size: 14px; }
+.soa-seg-n { font-size: 10.5px; font-weight: 700; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0 5px; min-width: 17px; text-align: center; color: var(--ink-2); }
+.soa-seg .seg-btn.active .soa-seg-n { background: var(--accent-soft); border-color: transparent; color: var(--brand); }
+
 /* ---- assign modal ---- */
 .assign-list { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow-y: auto; }
 .assign-row { display: flex; align-items: center; gap: 11px; padding: 9px 8px; border-radius: 9px;
