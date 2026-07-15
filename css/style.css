@@ -410,6 +410,9 @@ table.data tfoot td {
   transition: color .15s, background .15s, border-color .15s;
 }
 .tab:hover { color: var(--ink); border-color: var(--brand-accent); }
+.tab .tab-ico { font-size: 15px; color: var(--c); flex-shrink: 0; }
+.tab.active .tab-ico { color: #fff; }
+:root[data-theme="dark"] .tab.active .tab-ico { color: #04130c; }
 .tab .swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .tab .count {
   font-size: 10.5px; font-weight: 700; color: var(--ink-3);

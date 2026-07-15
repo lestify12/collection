@@ -193,7 +193,7 @@ function renderTabs() {
     ...CAT_ORDER.map((k) => {
       const c = catByKey[k];
       return `<button class="tab ${activeTab === k ? "active" : ""}" data-tab="${k}">
-        <span class="swatch" style="background:${c.color}"></span>${esc(c.short)}
+        <i class="ti ${STAT_ICON[k] || "ti-circle"} tab-ico" style="--c:${c.color}"></i>${esc(c.short)}
         <span class="count">${catRecords(k).length}</span></button>`;
     }),
   ].join("");
