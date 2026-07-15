@@ -207,22 +207,24 @@ function renderTab() {
 function renderOverview() {
   const m = metrics();
   const body = document.getElementById("tabBody");
-  const inst = m.installment || { clients: 0, due: 0 };
 
   // show full amounts; shrink the font as the figure gets longer so it fits the card
   const CARD_TIERS = [[12, 21], [14, 19], [16, 17.5], [18, 16], [Infinity, 14.5]];
   const fitPx = (s) => (CARD_TIERS.find(([mx]) => s.length <= mx) || CARD_TIERS[CARD_TIERS.length - 1])[1];
 
-  const cards = [
-    { label: "Total units", value: fmtInt(m.projectUnits), icon: "ti-building-community", tint: "navy",
-      foot: `${fmtInt(m.totalUnits)} with dues · ${fmtInt(m.unsoldUnits)} unsold` },
-    { label: "Installment to collect", value: fmtMoney(inst.due, { compact: false }), icon: "ti-calendar-repeat",
-      tint: "amber", foot: `${fmtInt(inst.clients)} active installment clients`, money: true },
-    { label: "Legal exposure", value: fmtMoney(m.legal?.due || 0, { compact: false }), icon: "ti-gavel", tint: "red",
-      foot: `${fmtInt(m.legal?.clients || 0)} legal cases`, money: true },
-    { label: "Total outstanding", value: fmtMoney(m.totalDue, { compact: false }), icon: "ti-report-money",
-      tint: "green", foot: "across all due categories", money: true },
+  // one summary card per due category: 24% DP, Installment, Legal, DNC, Cancelled
+  const CARD_CATS = [
+    { key: "dp24",        label: "24% DP due",       icon: "ti-cash",            tint: "green", unit: "account" },
+    { key: "installment", label: "Installment due",  icon: "ti-calendar-repeat", tint: "navy",  unit: "client" },
+    { key: "legal",       label: "Legal case due",   icon: "ti-gavel",           tint: "red",   unit: "case" },
+    { key: "dnc",         label: "DNC clients due",  icon: "ti-user-x",          tint: "amber", unit: "client" },
+    { key: "cancelled",   label: "Cancelled due",    icon: "ti-ban",             tint: "slate", unit: "unit" },
   ];
+  const cards = CARD_CATS.map((cc) => {
+    const mm = m[cc.key] || { clients: 0, due: 0 };
+    return { label: cc.label, value: fmtMoney(mm.due, { compact: false }), icon: cc.icon, tint: cc.tint, money: true,
+      foot: `${fmtInt(mm.clients)} ${cc.unit}${mm.clients === 1 ? "" : "s"}` };
+  });
 
   const statCards = cards.map((c, i) => `
     <div class="stat-card reveal" style="--d:${i * 0.05}s">
