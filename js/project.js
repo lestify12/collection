@@ -28,17 +28,20 @@ function paidPct(r) {
   return Math.max(0, Math.min(100, (paid / total) * 100));
 }
 
-/* Buyer name + a slim payment-progress meter underneath it. */
+/* Buyer name (+ a "SOA" badge when a statement is on file) and a slim
+   payment-progress meter underneath it. */
 function buyerCell(r) {
   const name = esc(r.buyerName) || "<span style='color:var(--ink-3)'>—</span>";
+  const soa = r.soaBreakdown?.items?.length
+    ? `<span class="soa-tag" title="SOA uploaded${r.soaBreakdown.ref ? " · " + esc(r.soaBreakdown.ref) : ""}"><i class="ti ti-file-check"></i> SOA</span>`
+    : "";
   const pct = paidPct(r);
-  if (pct == null) return `<div class="buyer-cell"><span>${name}</span></div>`;
-  const p = Math.round(pct);
-  return `<div class="buyer-cell"><span>${name}</span>
-    <div class="pmeter-row" title="Paid ${p}% of total price">
+  const meter = pct == null ? "" : `
+    <div class="pmeter-row" title="Paid ${Math.round(pct)}% of total price">
       <span class="pmeter"><span class="pmeter-fill" style="width:${pct.toFixed(1)}%"></span></span>
-      <span class="pmeter-pct">${p}%</span>
-    </div></div>`;
+      <span class="pmeter-pct">${Math.round(pct)}%</span>
+    </div>`;
+  return `<div class="buyer-cell"><span class="buyer-line">${name}${soa}</span>${meter}</div>`;
 }
 
 initTheme();

@@ -920,6 +920,12 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 
 /* ---- buyer payment-progress meter (project category tables) ---- */
 .buyer-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.buyer-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.soa-tag { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .02em; color: var(--brand-accent);
+  background: rgba(47,143,91,.1); border: 1px solid rgba(47,143,91,.28);
+  border-radius: 999px; padding: 1px 8px; }
+.soa-tag i { font-size: 12px; }
 .pmeter-row { display: flex; align-items: center; gap: 7px; }
 .pmeter { position: relative; width: 84px; height: 6px; flex: 0 0 auto;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
