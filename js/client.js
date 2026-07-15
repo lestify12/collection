@@ -204,10 +204,16 @@ function render() {
         ${auth.canEdit(r, ME) ? `<button class="btn" id="remarksBtn"><i class="ti ti-message-2"></i> Remarks</button>
         <button class="btn" id="soaBtn"><i class="ti ti-file-upload"></i> Upload SOA</button>
         <input type="file" id="soaFile" accept="application/pdf,.pdf" hidden>
-        <button class="btn" id="moveBtn"><i class="ti ti-arrows-exchange"></i> Move</button>
-        <button class="btn" id="editBtn"><i class="ti ti-pencil"></i> Edit</button>` : ""}
-        ${auth.canViewAll(ME) ? `<button class="btn" id="assignBtn"><i class="ti ti-user-cog"></i> Assign</button>
-        <button class="btn danger" id="deleteBtn"><i class="ti ti-trash"></i> Delete</button>` : ""}
+        <div class="hdr-more">
+          <button class="btn hdr-more-btn" id="moreBtn" aria-haspopup="menu" aria-expanded="false" aria-label="More options" title="More options"><i class="ti ti-dots-vertical"></i></button>
+          <div class="hdr-menu" id="moreMenu" role="menu" hidden>
+            <button class="hdr-menu-item" id="editBtn" role="menuitem"><i class="ti ti-pencil"></i> Edit</button>
+            <button class="hdr-menu-item" id="moveBtn" role="menuitem"><i class="ti ti-arrows-exchange"></i> Move</button>
+            ${auth.canViewAll(ME) ? `<button class="hdr-menu-item" id="assignBtn" role="menuitem"><i class="ti ti-user-cog"></i> Assign</button>
+            <div class="hdr-menu-sep"></div>
+            <button class="hdr-menu-item danger" id="deleteBtn" role="menuitem"><i class="ti ti-trash"></i> Delete</button>` : ""}
+          </div>
+        </div>` : ""}
       </div>
     </div>
 
@@ -226,6 +232,19 @@ function render() {
     const soaFile = document.getElementById("soaFile");
     document.getElementById("soaBtn").addEventListener("click", () => soaFile.click());
     soaFile.addEventListener("change", handleSOAUpload);
+
+    // "more options" kebab menu (Edit / Move / Assign / Delete)
+    const moreBtn = document.getElementById("moreBtn");
+    const moreMenu = document.getElementById("moreMenu");
+    const closeMore = () => { moreMenu.hidden = true; moreBtn.setAttribute("aria-expanded", "false"); };
+    moreBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = moreMenu.hidden;
+      moreMenu.hidden = !open;
+      moreBtn.setAttribute("aria-expanded", String(open));
+    });
+    moreMenu.querySelectorAll(".hdr-menu-item").forEach((b) => b.addEventListener("click", closeMore));
+    document.addEventListener("click", (e) => { if (!e.target.closest(".hdr-more")) closeMore(); });
   }
   if (auth.canViewAll(ME)) {
     document.getElementById("assignBtn").addEventListener("click", () => openAssign(r));

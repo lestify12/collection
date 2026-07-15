@@ -444,6 +444,23 @@ table.data tfoot td {
 .btn.sm { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
+/* header "more options" kebab menu */
+.hdr-more { position: relative; display: inline-flex; }
+.hdr-more-btn { padding: 8px 11px; }
+.hdr-more-btn i { font-size: 18px; }
+.hdr-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 300; min-width: 184px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16); padding: 6px; }
+.hdr-menu[hidden] { display: none; }
+.hdr-menu-item { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+  padding: 9px 11px; border: 0; background: transparent; border-radius: 8px; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 550; color: var(--ink); white-space: nowrap; }
+.hdr-menu-item i { font-size: 17px; color: var(--ink-3); flex-shrink: 0; }
+.hdr-menu-item:hover { background: var(--surface-2); }
+.hdr-menu-item.danger { color: var(--danger); }
+.hdr-menu-item.danger i { color: var(--danger); }
+.hdr-menu-sep { height: 1px; background: var(--border); margin: 5px 6px; }
+
 .row-actions { display: flex; gap: 6px; white-space: nowrap; }
 .row-actions button {
   border: none; background: none; cursor: pointer; padding: 3px 6px;
