@@ -333,6 +333,19 @@ function renderClientTab() {
       </section>
     </div>`;
 
+  // The read-only banner names the officer this unit is assigned to. Records keep
+  // a name copy from assignment time, so resolve the live profile name (a renamed
+  // officer then shows correctly). Only fetches the user list when the banner is
+  // actually shown — i.e. an officer viewing someone else's unit.
+  if (!canEdit && r.assignedTo) {
+    auth.listUsers().then((us) => {
+      const u = (us || []).find((x) => x.uid === r.assignedTo);
+      const live = u && (u.name || u.email);
+      const el = body.querySelector(".ro-banner b");
+      if (live && el) el.textContent = live;
+    }).catch(() => {});
+  }
+
   if (sched) {
     mountScheduleTips();
     if (canEdit) {
