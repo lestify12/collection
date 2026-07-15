@@ -217,6 +217,10 @@ async function fetchJSON(path) {
     client pages use this so they don't download the whole (now large)
     collection on every navigation. Dashboard/team omit it (they aggregate
     across everything). */
+// Buyer names are displayed in ALL CAPS across the app; normalise on load.
+const upperNames = (recs) => recs.map((r) =>
+  (r && r.buyerName ? { ...r, buyerName: String(r.buyerName).toUpperCase() } : r));
+
 export async function loadAll(force = false, scope = null, projectId = null) {
   projectId = projectId || null;
   if (cache && !force && cache._projectId === projectId) return cache;
@@ -242,7 +246,7 @@ export async function loadAll(force = false, scope = null, projectId = null) {
     if (projectId) records = records.filter((r) => r.projectId === projectId);
   }
 
-  cache = { summary, records, assignments, _projectId: projectId };
+  cache = { summary, records: upperNames(records), assignments, _projectId: projectId };
   return cache;
 }
 
@@ -265,8 +269,8 @@ export async function fetchAllRecords(force = false) {
       .filter(Boolean)
       .concat(local.added);
   }
-  _searchCache = records;
-  return records;
+  _searchCache = upperNames(records);
+  return _searchCache;
 }
 
 const LS_PROJECTS = "collection_projects_v1";
