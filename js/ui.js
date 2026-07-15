@@ -126,9 +126,21 @@ export function renderNav(projects, activeId) {
     <a class="sidebar-item project-item ${p.id === activeId ? "active" : ""}"
        href="project.html?id=${encodeURIComponent(p.id)}"
        title="${esc(p.name)}" data-name="${esc(p.name).toLowerCase()}">
-      <span class="sidebar-thumb" style="background-image:url('photos/projects/${esc(p.id)}.webp'), url('photos/projects/${esc(p.id)}.png'), url('photos/peacehomesbackground.webp')"></span>
+      <span class="sidebar-thumb" data-pid="${esc(p.id)}" style="background-image:url('photos/projects/${esc(p.id)}.webp'), url('photos/projects/${esc(p.id)}.png'), url('photos/peacehomesbackground.webp')"></span>
       <span>${esc(navLabel(p.name))}</span>
     </a>`).join("");
+
+  // If a custom icon exists at icons/<id>.png, use it (contained on a tile)
+  // instead of the building photo. Until one is uploaded the photo stays.
+  nav.querySelectorAll(".sidebar-thumb[data-pid]").forEach((el) => {
+    const pid = el.dataset.pid;
+    const probe = new Image();
+    probe.onload = () => {
+      el.classList.add("has-icon");
+      el.style.backgroundImage = `url('icons/${pid}.png')`;
+    };
+    probe.src = `icons/${pid}.png`;
+  });
 
   const dash = document.getElementById("navDashboard");
   if (dash && !activeId) dash.classList.add("active");
