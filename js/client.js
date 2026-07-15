@@ -28,7 +28,7 @@ async function main() {
   if (!ME) return;
   auth.renderChrome(ME);
 
-  const { summary, records } = auth.scopeData(await db.loadAll(false, auth.loadScope(ME)), ME);
+  const { summary, records } = auth.scopeData(await db.loadAll(false, auth.loadScope(ME), projectId), ME);
   setModeBadge(db.LIVE);
   const projects = visibleProjects(summary.projects);
   project = summary.projects.find((p) => p.id === projectId) || null;
@@ -589,7 +589,7 @@ function promptModal(opts) {
 }
 
 async function reloadAndRender() {
-  const { records } = await db.loadAll(true);
+  const { records } = await db.loadAll(true, auth.loadScope(ME), projectId);
   record = records.find((x) => x.id === recordId) || record;
   render();
 }

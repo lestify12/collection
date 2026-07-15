@@ -156,15 +156,24 @@ async function fetchJSON(path) {
 /** Loads everything the pages need: { summary, records }.
     Every signed-in user reads all records (officers see all projects);
     write access is enforced separately in the UI and Firestore rules. */
-export async function loadAll(force = false, scope = null) {
-  if (cache && !force) return cache;
+/** Load { summary, records, assignments }.
+    Pass `projectId` to fetch ONLY that project's records — the project and
+    client pages use this so they don't download the whole (now large)
+    collection on every navigation. Dashboard/team omit it (they aggregate
+    across everything). */
+export async function loadAll(force = false, scope = null, projectId = null) {
+  projectId = projectId || null;
+  if (cache && !force && cache._projectId === projectId) return cache;
 
   const summary = await loadSummary();
   const assignments = await loadAssignments();
   let records;
 
   if (LIVE) {
-    const snap = await fs.getDocs(fs.collection(db, "records"));
+    const src = projectId
+      ? fs.query(fs.collection(db, "records"), fs.where("projectId", "==", projectId))
+      : fs.collection(db, "records");
+    const snap = await fs.getDocs(src);
     records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } else {
     const seed = await fetchJSON("data/records.json");
@@ -174,9 +183,10 @@ export async function loadAll(force = false, scope = null) {
       .map((r) => (r.id in local.overrides ? local.overrides[r.id] && { ...local.overrides[r.id], id: r.id } : r))
       .filter(Boolean);
     records = records.concat(local.added);
+    if (projectId) records = records.filter((r) => r.projectId === projectId);
   }
 
-  cache = { summary, records, assignments };
+  cache = { summary, records, assignments, _projectId: projectId };
   return cache;
 }
 

@@ -70,7 +70,7 @@ async function main() {
   if (!ME) return;
   auth.renderChrome(ME);
 
-  const raw = await db.loadAll(false, auth.loadScope(ME));
+  const raw = await db.loadAll(false, auth.loadScope(ME), projectId);
   const { summary, records } = auth.scopeData(raw, ME);
   ASSIGN = raw.assignments || {};
   setModeBadge(db.LIVE);
@@ -441,7 +441,7 @@ function exportCSV(rows, cat) {
 }
 
 async function refresh() {
-  const { records } = await db.loadAll(true);
+  const { records } = await db.loadAll(true, auth.loadScope(ME), projectId);
   allRecords = records;
   renderTabs();
   renderTab();
