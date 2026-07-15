@@ -55,24 +55,46 @@ async function main() {
     return names.length === 1 ? names[0] : names.slice(0, -1).join(", ") + " & " + names[names.length - 1];
   };
 
-  // per-project metrics: live from unit records where present, else the seeded workbook figures
-  const rows = projects.map((p) => ({ ...p, m: db.projectMetrics(p, records), assignee: projectAssignee(p.id) }));
-
-  const tot = { totalDue: 0, totalUnits: 0, unsoldUnits: 0, projectUnits: 0 };
-  const catTot = {};
-  for (const c of DUE_CATS) catTot[c.key] = { clients: 0, due: 0 };
-  for (const r of rows) {
-    tot.totalDue += r.m.totalDue || 0;
-    tot.totalUnits += r.m.totalUnits || 0;
-    tot.unsoldUnits += r.m.unsoldUnits || 0;
-    tot.projectUnits += r.m.projectUnits || 0;
-    for (const c of DUE_CATS) {
-      catTot[c.key].clients += r.m[c.key]?.clients || 0;
-      catTot[c.key].due += r.m[c.key]?.due || 0;
+  // Scope: "all" = every unit (with boss-summary fallback for un-imported
+  // projects); "mine" = only the signed-in officer's assigned units.
+  const buildScope = (scope) => {
+    const scoped = scope === "mine" ? records.filter((r) => r.assignedTo === user.uid) : records;
+    const projs = scope === "mine" ? projects.filter((p) => scoped.some((r) => r.projectId === p.id)) : projects;
+    const rows = projs.map((p) => ({ ...p, m: db.projectMetrics(p, scoped, scope === "mine"), assignee: projectAssignee(p.id) }));
+    const tot = { totalDue: 0, totalUnits: 0, unsoldUnits: 0, projectUnits: 0 };
+    const catTot = {};
+    for (const c of DUE_CATS) catTot[c.key] = { clients: 0, due: 0 };
+    for (const r of rows) {
+      tot.totalDue += r.m.totalDue || 0;
+      tot.totalUnits += r.m.totalUnits || 0;
+      tot.unsoldUnits += r.m.unsoldUnits || 0;
+      tot.projectUnits += r.m.projectUnits || 0;
+      for (const c of DUE_CATS) {
+        catTot[c.key].clients += r.m[c.key]?.clients || 0;
+        catTot[c.key].due += r.m[c.key]?.due || 0;
+      }
     }
-  }
+    return { rows, tot, catTot, scoped };
+  };
 
-  render(rows, tot, catTot, summary, records, user);
+  // My units / All units switcher, in the page header — controls the whole page.
+  let scope = user.role === "agent" ? "mine" : "all";
+  const draw = () => { const s = buildScope(scope); render(s.rows, s.tot, s.catTot, summary, s.scoped, user, scope); };
+  const header = document.querySelector(".page-header");
+  if (header && !document.getElementById("scopeSeg")) {
+    const seg = document.createElement("div");
+    seg.className = "seg scope-seg"; seg.id = "scopeSeg";
+    seg.innerHTML = `<button class="seg-btn${scope === "mine" ? " active" : ""}" data-scope="mine">My units</button>
+      <button class="seg-btn${scope === "all" ? " active" : ""}" data-scope="all">All units</button>`;
+    header.appendChild(seg);
+    seg.querySelectorAll(".seg-btn").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.scope === scope) return;
+      scope = b.dataset.scope;
+      seg.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+      draw();
+    }));
+  }
+  draw();
 }
 
 function legendHTML() {
@@ -94,20 +116,15 @@ const OD_YEARS = (() => { const a = []; for (let y = 2024; y <= 2031; y++) a.pus
 function monthOpts(sel) { return MONTHS.map((m, i) => `<option value="${i + 1}"${i + 1 === sel ? " selected" : ""}>${m}</option>`).join(""); }
 function yearOpts(sel) { return OD_YEARS.map((y) => `<option value="${y}"${y === sel ? " selected" : ""}>${y}</option>`).join(""); }
 
-function overdueCardHTML(user) {
+function overdueCardHTML() {
   const now = new Date();
   const m = now.getMonth() + 1;
   const y = Math.min(2031, Math.max(2024, now.getFullYear()));
-  const isAgent = user && user.role === "agent";
   return `
     <section class="card section reveal" id="overdueCard">
       <div class="od-head">
         <div><h2>Monthly overdue</h2>
           <div class="card-sub">Installments that should already be collected but aren’t</div></div>
-        <div class="seg od-scope">
-          <button class="seg-btn${isAgent ? " active" : ""}" data-scope="mine">My units</button>
-          <button class="seg-btn${isAgent ? "" : " active"}" data-scope="all">All units</button>
-        </div>
       </div>
       <div class="od-controls">
         <div class="seg od-mode">
@@ -131,7 +148,7 @@ function overdueCardHTML(user) {
     </section>`;
 }
 
-function render(rows, tot, catTot, summary, records = [], user = {}) {
+function render(rows, tot, catTot, summary, records = [], user = {}, scope = "all") {
   const el = document.getElementById("dashboard");
   const inst = catTot.installment;                          // the focus of this dashboard
   const instShare = tot.totalDue ? Math.round((inst.due / tot.totalDue) * 100) : 0;
@@ -175,7 +192,7 @@ function render(rows, tot, catTot, summary, records = [], user = {}) {
       <div class="hero-meter"><div class="hero-meter-fill" data-w="${instShare}"></div></div>
     </section>
 
-    ${overdueCardHTML(user)}
+    ${overdueCardHTML()}
 
     <div class="stat-grid">
       <div class="stat-card reveal"><div class="stat-icon green"><i class="ti ti-cash"></i></div>
@@ -278,18 +295,16 @@ function render(rows, tot, catTot, summary, records = [], user = {}) {
   el.querySelectorAll("tr.clickable").forEach((tr) =>
     tr.addEventListener("click", () => (location.href = tr.dataset.href)));
 
-  /* ---- monthly overdue card ---- */
+  /* ---- monthly overdue card (operates on the already-scoped records) ---- */
   const card = document.getElementById("overdueCard");
   if (card) {
-    let scope = user.role === "agent" ? "mine" : "all";
     let mode = "asof";
     const key = (mSel, ySel) => `${card.querySelector(ySel).value}-${String(card.querySelector(mSel).value).padStart(2, "0")}`;
     const recompute = () => {
-      const set = scope === "mine" ? records.filter((r) => r.assignedTo === user.uid) : records;
       let a = key("#odFromM", "#odFromY"), b = key("#odToM", "#odToY");
       if (mode === "range" && a > b) [a, b] = [b, a];
       let total = 0, n = 0;
-      for (const r of set) {
+      for (const r of records) {
         const od = mode === "range" ? dueInRange(r, a, b) : overdueAsOf(r, a);
         if (od > 0.01) { total += od; n++; }
       }
@@ -301,11 +316,6 @@ function render(rows, tot, catTot, summary, records = [], user = {}) {
         ? `${fmtInt(n)} unit${n === 1 ? "" : "s"} overdue between the selected months`
         : `${fmtInt(n)} unit${n === 1 ? "" : "s"} overdue as of the selected month`;
     };
-    card.querySelectorAll(".od-scope .seg-btn").forEach((btn) => btn.addEventListener("click", () => {
-      scope = btn.dataset.scope;
-      card.querySelectorAll(".od-scope .seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
-      recompute();
-    }));
     card.querySelectorAll(".od-mode .seg-btn").forEach((btn) => btn.addEventListener("click", () => {
       mode = btn.dataset.mode;
       card.querySelectorAll(".od-mode .seg-btn").forEach((b) => b.classList.toggle("active", b === btn));

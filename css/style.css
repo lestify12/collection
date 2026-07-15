@@ -943,10 +943,13 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .sidebar-add-project:hover { border-color: var(--brand-accent); color: var(--brand-accent); background: rgba(47,143,91,.06); }
 .sidebar-add-project i { font-size: 16px; }
 
+/* ---- dashboard My units / All units page switcher ---- */
+.scope-seg { flex-shrink: 0; }
+
 /* ---- dashboard monthly-overdue card ---- */
+#overdueCard { margin-bottom: 20px; }
 .od-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .od-head h2 { margin: 0; }
-.od-scope { flex-shrink: 0; }
 .od-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 16px 0 4px; }
 .od-pickers { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .od-sel { height: 38px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 10px;

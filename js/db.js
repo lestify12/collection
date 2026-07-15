@@ -438,9 +438,17 @@ function rowDue(r, catKey) {
 
 /** Per-project metrics: computed live from unit records when the project
     has any; otherwise the seeded figures from the summary workbook. */
-export function projectMetrics(project, records) {
+/* `fromRecords` = compute strictly from the given records (zeros when none),
+   used by the dashboard's "My units" scope; otherwise fall back to the boss
+   summary figures for projects with no imported records. */
+export function projectMetrics(project, records, fromRecords = false) {
   const recs = records.filter((r) => r.projectId === project.id);
-  if (!recs.length) return { ...project.metrics, source: "summary" };
+  if (!recs.length && !fromRecords) return { ...project.metrics, source: "summary" };
+  if (!recs.length) {
+    const z = { source: "records" };
+    for (const cat of window.APP_CONFIG.categories) z[cat.key] = { clients: 0, due: 0 };
+    return { ...z, totalUnits: 0, totalDue: 0, unsoldUnits: 0, projectUnits: 0 };
+  }
 
   const m = { source: "records" };
   let withDues = 0, totalDue = 0;
@@ -457,7 +465,8 @@ export function projectMetrics(project, records) {
   // boss summary figures, since most workbooks don't list available units.
   const sm = project.metrics || {};
   const hasAvail = (m.available?.clients || 0) > 0;
-  m.unsoldUnits = hasAvail ? m.available.clients : (sm.unsoldUnits || 0);
-  m.projectUnits = hasAvail ? recs.length : (sm.projectUnits || recs.length);
+  // In "My units" scope, count only the officer's units — never the boss summary.
+  m.unsoldUnits = hasAvail ? m.available.clients : (fromRecords ? 0 : (sm.unsoldUnits || 0));
+  m.projectUnits = hasAvail ? recs.length : (fromRecords ? recs.length : (sm.projectUnits || recs.length));
   return m;
 }
