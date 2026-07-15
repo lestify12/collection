@@ -243,16 +243,22 @@ function renderOverview() {
       <div class="cat-card-value"${c.money ? ` style="font-size:${fitPx(c.value)}px"` : ""}>${c.value}</div>
     </div>`).join("");
 
+  const maxDue = Math.max(...CAT_ORDER.map((k) => (m[k]?.due) || 0), 1);
   const rows = CAT_ORDER.map((k) => {
     const c = catByKey[k];
     const mm = m[k] || { clients: 0, due: 0 };
     const isAvail = k === "available";
     const count = isAvail ? m.unsoldUnits : mm.clients;
+    const barW = isAvail ? 0 : ((mm.due || 0) / maxDue) * 100;
     return `
       <tr class="clickable" data-tab="${k}">
-        <td><span class="cat-row-name"><span class="cat-row-ico" style="--c:${c.color}"><i class="ti ${STAT_ICON[k] || "ti-circle"}"></i></span>${esc(c.label)}</span></td>
+        <td class="cat-name-cell"><span class="cat-row-name">
+          <span class="cat-row-ico" style="--c:${c.color}"><i class="ti ${STAT_ICON[k] || "ti-circle"}"></i></span>
+          <span class="cat-row-label">${esc(c.label)}</span>
+          <span class="cat-row-bar" title="${isAvail ? "" : `${Math.round(barW)}% of the largest category`}"><span class="cat-row-bar-fill" style="width:${barW.toFixed(1)}%;background:${c.color}"></span></span>
+        </span></td>
         <td class="num">${fmtInt(count)}</td>
-        <td class="num">${isAvail ? "—" : fmtMoney(mm.due, { currency: false })}</td>
+        <td class="num strong-num">${isAvail ? "—" : fmtMoney(mm.due, { currency: false })}</td>
         <td class="num"><i class="ti ti-chevron-right" style="color:var(--ink-3)"></i></td>
       </tr>`;
   }).join("");
