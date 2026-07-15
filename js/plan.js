@@ -90,13 +90,23 @@ export function boxAmounts(r) {
   return Array(n).fill(r2(p.onePct));
 }
 
+/** The 24% downpayment target = DP + DLD + Admin (falls back to a 24% estimate).
+    This money is collected before the installments, so it must be removed from
+    `reflected` before the remainder is spread across the boxes. */
+export function dpTargetOf(r) {
+  const S = Number(r.sellingPrice) || 0;
+  const parts = (Number(r.dp20) || 0) + (Number(r.dld) || 0) + (Number(r.adminFee) || 0);
+  return Number(r.dpTotal) || parts || r2(0.24 * S);
+}
+
 /** Each installment as { idx, mkey:'YYYY-MM'|null, amount, paid, due, skip },
-    with the reflected amount filled into the boxes in month order. */
+    with the reflected amount (net of the downpayment) filled into the boxes in
+    month order. */
 export function scheduleRows(r) {
   const amounts = boxAmounts(r);
   if (!amounts.length) return [];
   const months = flowMonths(r, amounts.length);
-  let left = Number(r.reflected) || 0;
+  let left = Math.max(0, (Number(r.reflected) || 0) - dpTargetOf(r));
   return amounts.map((amt, i) => {
     const skip = !!(months[i] && months[i].skip);
     const paid = skip ? 0 : Math.max(0, Math.min(left, amt));

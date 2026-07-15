@@ -128,9 +128,12 @@ function buildSchedule(r) {
       pct: D ? Math.round((dpPaid / D) * 100) : 0, transferReady: dpDone };
   }
 
-  // Installment phase — downpayment already settled; reflected fills the boxes.
+  // Installment phase — the downpayment (DP + DLD + admin) is already settled and
+  // shown on its own bar, so it must NOT count toward the installment boxes. Only
+  // money received *beyond* the DP total fills the 1% boxes.
   // "No collection" boxes are skipped by the fill (nothing is expected there).
-  let left = R;
+  const instPaid = Math.max(0, R - D);
+  let left = instPaid;
   const instRows = boxes.map((amt, i) => {
     const skip = !!months[i]?.skip;
     const paid = skip ? 0 : Math.max(0, Math.min(left, amt));
@@ -139,9 +142,9 @@ function buildSchedule(r) {
       status: skip ? "skip" : paid >= amt - 0.01 && amt > 0 ? "paid" : paid > 0 ? "partial" : "due" };
   });
   const planTotal = boxes.reduce((a, b, i) => a + (months[i]?.skip ? 0 : b), 0);
-  const paidTotal = Math.min(R, planTotal);
+  const paidTotal = Math.min(instPaid, planTotal);
   return { isDp: false, boxes, instRows, instCount: boxes.length, onePct, balance, custom, plan, needsFlexi,
-    dpTarget: D, dpPaid: D, dpDone: true, planTotal, paidTotal,
+    dpTarget: D, dpPaid: Math.min(R, D), dpDone: true, planTotal, paidTotal,
     pct: planTotal ? Math.round((paidTotal / planTotal) * 100) : 0, transferReady: false };
 }
 
