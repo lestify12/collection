@@ -12,6 +12,7 @@
    on its records; assigning one unit sets it on that record.
    ============================================================ */
 import * as db from "./db.js";
+import { openAddProject as uiOpenAddProject } from "./ui.js";
 
 const FB_VER = "10.12.2";
 const LS_USERS = "collection_users_v1";
@@ -302,6 +303,19 @@ export function renderChrome(user) {
       t.innerHTML = `<i class="ti ti-users"></i>Team & access`;
       if (location.pathname.endsWith("team.html")) t.classList.add("active");
       dash.after(t);
+    }
+  }
+
+  // Manager + Admin can add a new project — button at the bottom of the sidebar.
+  if (canManage(user)) {
+    const sidebar = document.querySelector(".sidebar");
+    const foot = sidebar?.querySelector(".sidebar-foot");
+    if (sidebar && foot && !document.getElementById("addProjectBtn")) {
+      const b = document.createElement("button");
+      b.id = "addProjectBtn"; b.className = "sidebar-add-project";
+      b.innerHTML = `<i class="ti ti-plus"></i> Add project`;
+      b.addEventListener("click", () => uiOpenAddProject());
+      sidebar.insertBefore(b, foot);
     }
   }
 }

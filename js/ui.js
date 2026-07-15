@@ -11,7 +11,48 @@ export const catByKey = Object.fromEntries(CATS.map((c) => [c.key, c]));
 export function visibleProjects(projects) {
   const only = window.APP_CONFIG.onlyProjects;
   if (!Array.isArray(only) || only.length === 0) return projects;
-  return projects.filter((p) => only.includes(p.id));
+  // custom (manually-added) projects always show, even if not in the config list
+  return projects.filter((p) => p.custom || only.includes(p.id));
+}
+
+/* ------------------------------------------------ new project (Manager/admin) */
+export function openAddProject() {
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal" style="width:min(440px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-building-plus"></i></div>
+      <div style="min-width:0"><div class="modal-header-title">New project</div>
+      <div class="modal-header-sub">It appears in the sidebar — then import its Excel</div></div></div>
+      <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+    <form><div class="modal-body">
+      <label class="fld"><span>Project name</span><input id="npName" placeholder="e.g. Sky Gardens" autocomplete="off"></label>
+      <div class="login-error" id="npErr"></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn" data-x>Cancel</button>
+      <button type="submit" class="btn primary"><i class="ti ti-check"></i> Create project</button></div></form></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+  bd.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = bd.querySelector("#npName").value.trim();
+    const err = bd.querySelector("#npErr");
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (name.length < 2 || !id) { err.textContent = "Enter a project name (letters or numbers)."; err.classList.add("show"); return; }
+    const metrics = {};
+    for (const c of CATS) metrics[c.key] = { clients: 0, due: 0 };
+    Object.assign(metrics, { totalUnits: 0, totalDue: 0, unsoldUnits: 0, projectUnits: 0 });
+    const btn = bd.querySelector("button[type=submit]"); btn.disabled = true;
+    try {
+      await db.addProject({ id, name, handler: "", note: "", custom: true, metrics });
+      toast("Project created");
+      location.href = `project.html?id=${encodeURIComponent(id)}`;
+    } catch (ex) { err.textContent = ex.message || "Could not create the project."; err.classList.add("show"); btn.disabled = false; }
+  });
+  setTimeout(() => bd.querySelector("#npName")?.focus(), 200);
 }
 
 /* ------------------------------------------------ theme */

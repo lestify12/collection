@@ -213,6 +213,7 @@ export async function fetchAllRecords(force = false) {
   return records;
 }
 
+const LS_PROJECTS = "collection_projects_v1";
 async function loadSummary() {
   if (LIVE) {
     try {
@@ -220,7 +221,33 @@ async function loadSummary() {
       if (doc.exists()) return doc.data();
     } catch (e) { console.warn("summary doc unavailable, using bundled JSON", e); }
   }
-  return fetchJSON("data/projects.json");
+  const base = await fetchJSON("data/projects.json");
+  if (!LIVE) {
+    // local mode: merge any projects added in this browser
+    const extra = JSON.parse(localStorage.getItem(LS_PROJECTS) || "[]");
+    if (extra.length) {
+      const have = new Set(base.projects.map((p) => p.id));
+      return { ...base, projects: [...base.projects, ...extra.filter((p) => !have.has(p.id))] };
+    }
+  }
+  return base;
+}
+
+/** Add a new (empty) project. Manager/admin only (enforced by rules on the
+    app doc). Persisted into the summary so it appears in the sidebar. */
+export async function addProject(project) {
+  const summary = await loadSummary();
+  const projects = summary.projects || [];
+  if (projects.some((p) => p.id === project.id)) throw new Error("A project with that name already exists.");
+  if (LIVE) {
+    await fs.setDoc(fs.doc(db, "app", "summary"), { ...summary, projects: [...projects, project] });
+  } else {
+    const extra = JSON.parse(localStorage.getItem(LS_PROJECTS) || "[]");
+    extra.push(project);
+    localStorage.setItem(LS_PROJECTS, JSON.stringify(extra));
+  }
+  invalidate();
+  return project;
 }
 
 export function invalidate() { cache = null; _searchCache = null; }

@@ -927,6 +927,14 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
   border-radius: 999px; padding: 1px 8px; }
 .soa-tag i { font-size: 12px; }
 
+/* ---- sidebar "Add project" button (Manager / Admin) ---- */
+.sidebar-add-project { margin: 4px 12px 10px; display: flex; align-items: center; justify-content: center;
+  gap: 7px; padding: 10px; border: 1.5px dashed var(--border); border-radius: 10px; background: transparent;
+  color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s; }
+.sidebar-add-project:hover { border-color: var(--brand-accent); color: var(--brand-accent); background: rgba(47,143,91,.06); }
+.sidebar-add-project i { font-size: 16px; }
+
 /* ---- navbar global search dropdown ---- */
 .navbar-search.has-menu { position: relative; }
 .nav-search-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 200;
