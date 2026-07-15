@@ -240,28 +240,23 @@ export async function changePassword(newPassword) {
     a brand-new account. Live mode does the password change through a secure
     Cloud Function (the browser can't set another user's Firebase password);
     local/testing mode sets it directly. */
-export async function resetPassword(uid, tempPassword) {
+export async function resetPassword(uid) {
   if (db.LIVE) {
-    const url = String((window.APP_CONFIG && window.APP_CONFIG.functionsUrl) || "").trim();
-    if (!url) throw new Error("Password reset isn’t set up yet — the admin needs to deploy the reset function (see functions/README.md) and add its URL to config.js.");
-    let resp;
+    const u = (await listUsers()).find((x) => x.uid === uid);
+    if (!u?.email) throw new Error("This account has no email address to send the reset link to.");
     try {
-      const idToken = await db.authInst.currentUser.getIdToken();
-      resp = await fetch(url, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${idToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ uid, tempPassword }),
-      });
-    } catch (e) { throw new Error("Couldn’t reach the reset service. Check the function URL in config.js."); }
-    if (!resp.ok) {
-      const j = await resp.json().catch(() => ({}));
-      throw new Error(j.error || "Could not reset the password.");
+      await db.authNs.sendPasswordResetEmail(db.authInst, u.email);
+    } catch (e) {
+      const m = String(e?.code || e);
+      if (m.includes("too-many-requests")) throw new Error("Too many attempts — try again shortly.");
+      throw new Error("Could not send the reset email.");
     }
-    if (_user?.uid === uid) _user = { ..._user, mustChangePassword: true };
-    return { tempApplied: true };
+    return { emailed: true, email: u.email };
   }
-  await updateUser(uid, { password: tempPassword, mustChangePassword: true });
-  return { tempApplied: true };
+  // local/testing has no email service — set a temporary password so the flow is testable
+  const temp = "Peace" + Math.floor(1000 + Math.random() * 9000);
+  await updateUser(uid, { password: temp, mustChangePassword: true });
+  return { emailed: false, tempPassword: temp };
 }
 
 export async function deleteUser(uid) {

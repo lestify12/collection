@@ -223,7 +223,7 @@ async function openResetPassword(uid) {
   const u = users.find((x) => x.uid === uid);
   if (!u) return;
   const name = u.name || u.email;
-  const suggest = "Peace" + Math.floor(1000 + Math.random() * 9000);
+  const live = auth.isLive();
   const bd = modal(`
     <div class="modal-header"><div class="modal-header-left">
       <div class="modal-header-icon"><i class="ti ti-key"></i></div>
@@ -231,24 +231,23 @@ async function openResetPassword(uid) {
       <div class="modal-header-sub">${esc(name)}</div></div></div>
       <button class="modal-close" data-x><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
-      <label class="fld"><span>Temporary password</span><input id="rpPass" type="text" value="${esc(suggest)}"></label>
-      <p class="rp-note">Share this with ${esc(name)}. They’ll sign in with it once, then be required to set their own password — same as a new account.</p>
+      ${live
+        ? `<p class="rp-note">A secure password‑reset link will be emailed to <b>${esc(u.email)}</b>. Open that mailbox, set the new password, and hand it to whoever will use this account. Their assigned units stay with the account.</p>`
+        : `<p class="rp-note">Local/testing mode has no email service, so a temporary password will be set instead.</p>`}
       <div class="login-error" id="rpErr"></div>
     </div>
     <div class="modal-actions"><button class="btn" data-x>Cancel</button>
-      <button class="btn primary" id="rpGo"><i class="ti ti-key"></i> Reset password</button></div>`);
+      <button class="btn primary" id="rpGo"><i class="ti ti-mail"></i> ${live ? "Send reset email" : "Set temporary password"}</button></div>`);
 
   bd.querySelector("#rpGo").addEventListener("click", async () => {
-    const temp = bd.querySelector("#rpPass").value;
     const err = bd.querySelector("#rpErr");
-    if (temp.length < 6) { err.textContent = "Use at least 6 characters."; err.classList.add("show"); return; }
-    const btn = bd.querySelector("#rpGo"); btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Resetting…`;
+    const btn = bd.querySelector("#rpGo"); btn.disabled = true; btn.innerHTML = `<i class="ti ti-loader-2 spin"></i> Sending…`;
     try {
-      await auth.resetPassword(uid, temp);
+      const res = await auth.resetPassword(uid);
       close(bd);
-      toast(`Temporary password set for ${name}`);
+      toast(res.emailed ? `Reset link emailed to ${res.email}` : `Temporary password set: ${res.tempPassword}`);
       render();
-    } catch (e) { err.textContent = e.message || "Could not reset the password."; err.classList.add("show"); btn.disabled = false; btn.innerHTML = `<i class="ti ti-key"></i> Reset password`; }
+    } catch (e) { err.textContent = e.message || "Could not reset the password."; err.classList.add("show"); btn.disabled = false; btn.innerHTML = `<i class="ti ti-mail"></i> ${live ? "Send reset email" : "Set temporary password"}`; }
   });
 }
 
