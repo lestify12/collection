@@ -14,17 +14,28 @@ Firebase password directly, so the app calls this small server function
 
 ## One-time setup / deploy
 
+Run these **from the project root** (the folder that contains `firebase.json`).
+The project is already set in `.firebaserc`, so you don't need `firebase use`.
+
 1. Install the Firebase CLI (once, on your computer):
    ```
    npm install -g firebase-tools
    firebase login
    ```
-2. From the project root:
+2. Install the function's dependencies and deploy:
    ```
-   firebase use collection-tracker-6cda7
    cd functions && npm install && cd ..
    firebase deploy --only functions
    ```
+
+If `firebase deploy` still says "not a Firebase project directory", make sure
+you're in the folder that has `firebase.json` (the repo root), not inside
+`functions/`.
+
+You can also push the Firestore security rules from here with:
+```
+firebase deploy --only firestore:rules
+```
 
 ## Notes
 - Cloud Functions require the Firebase **Blaze (pay-as-you-go)** plan. This
