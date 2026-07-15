@@ -938,7 +938,12 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .nsm-item i { font-size: 16px; color: var(--ink-3); flex-shrink: 0; }
 .nsm-item:hover, .nsm-item.active { background: var(--surface-2); }
 .nsm-item.active i { color: var(--brand-accent); }
-.nsm-empty { padding: 12px; font-size: 13px; color: var(--ink-3); }
+.nsm-main { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.nsm-sub { flex-shrink: 0; font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+.nsm-group { padding: 8px 11px 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--ink-3); }
+.nsm-empty { display: flex; align-items: center; gap: 7px; padding: 12px; font-size: 13px; color: var(--ink-3); }
+.nsm-empty .spin { animation: spin 1s linear infinite; }
 .pmeter-row { display: flex; align-items: center; gap: 7px; }
 .pmeter { position: relative; width: 84px; height: 6px; flex: 0 0 auto;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }

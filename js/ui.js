@@ -1,6 +1,7 @@
 /* ============================================================
    Shared UI helpers — theme, nav, formatting, animations.
    ============================================================ */
+import * as db from "./db.js";
 
 export const CATS = window.APP_CONFIG.categories;
 export const CUR = window.APP_CONFIG.currency;
@@ -103,18 +104,43 @@ export function initSidebar() {
 
   const items = () => [...document.querySelectorAll("#navProjects .sidebar-item")];
   const close = () => { menu.classList.remove("open"); menu.innerHTML = ""; };
+  // project id → full name (from the sidebar list), for labelling unit results
+  const projName = () => Object.fromEntries(items().map((a) => {
+    const id = new URLSearchParams(a.getAttribute("href").split("?")[1] || "").get("id");
+    return [id, a.getAttribute("title") || a.dataset.name || id];
+  }));
+  let recsP = null;   // lazy: all records, loaded only when someone searches
+  const loadRecs = () => (recsP || (recsP = db.fetchAllRecords().catch(() => [])));
 
-  const run = () => {
+  const draw = (q, projMatches, recMatches, loading) => {
+    const names = projName();
+    let html = "";
+    if (projMatches.length) html += `<div class="nsm-group">Projects</div>` + projMatches.map((a) =>
+      `<a class="nsm-item" href="${a.getAttribute("href")}"><i class="ti ti-building"></i>
+        <span class="nsm-main">${esc(a.getAttribute("title") || a.dataset.name)}</span></a>`).join("");
+    if (recMatches.length) html += `<div class="nsm-group">Units &amp; buyers</div>` + recMatches.map((r) =>
+      `<a class="nsm-item" href="client.html?project=${encodeURIComponent(r.projectId)}&id=${encodeURIComponent(r.id)}">
+        <i class="ti ti-user"></i><span class="nsm-main"><b>${esc(r.unitNo || "—")}</b> · ${esc(r.buyerName || "—")}</span>
+        <span class="nsm-sub">${esc(navLabel(names[r.projectId] || ""))}</span></a>`).join("");
+    if (loading) html += `<div class="nsm-empty"><i class="ti ti-loader-2 spin"></i> Searching units &amp; buyers…</div>`;
+    else if (!projMatches.length && !recMatches.length) html += `<div class="nsm-empty">No matches for “${esc(q)}”</div>`;
+    menu.innerHTML = html;
+    menu.querySelector(".nsm-item")?.classList.add("active");
+    menu.classList.add("open");
+  };
+
+  const run = async () => {
     const q = search.value.trim().toLowerCase();
-    // keep the sidebar in sync
     items().forEach((a) => { a.style.display = !q || (a.dataset.name || "").includes(q) ? "" : "none"; });
     if (!q) return close();
-    const matches = items().filter((a) => (a.dataset.name || "").includes(q)).slice(0, 8);
-    menu.innerHTML = matches.length
-      ? matches.map((a, i) => `<a class="nsm-item ${i === 0 ? "active" : ""}" href="${a.getAttribute("href")}">
-          <i class="ti ti-building"></i><span>${esc(a.getAttribute("title") || a.dataset.name)}</span></a>`).join("")
-      : `<div class="nsm-empty">No projects match “${esc(search.value)}”</div>`;
-    menu.classList.add("open");
+    const projMatches = items().filter((a) => (a.dataset.name || "").includes(q)).slice(0, 5);
+    if (q.length < 2) return draw(q, projMatches, [], false);   // wait for 2+ chars before unit search
+    draw(q, projMatches, [], true);                             // show projects immediately, records loading
+    const all = await loadRecs();
+    if (search.value.trim().toLowerCase() !== q) return;        // a newer keystroke won
+    const recMatches = all.filter((r) =>
+      `${r.unitNo || ""} ${r.buyerName || ""}`.toLowerCase().includes(q)).slice(0, 8);
+    draw(q, projMatches, recMatches, false);
   };
 
   search.addEventListener("input", run);

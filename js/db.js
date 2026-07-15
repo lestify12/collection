@@ -190,6 +190,29 @@ export async function loadAll(force = false, scope = null, projectId = null) {
   return cache;
 }
 
+/* All records across every project — used only by the global search, loaded
+   lazily the first time someone types. Cached separately so it doesn't
+   disturb the page's (project-scoped) cache. */
+let _searchCache = null;
+export async function fetchAllRecords(force = false) {
+  if (_searchCache && !force) return _searchCache;
+  let records;
+  if (LIVE) {
+    const snap = await fs.getDocs(fs.collection(db, "records"));
+    records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } else {
+    const seed = await fetchJSON("data/records.json");
+    const local = loadLocal();
+    records = seed.records.map((r, i) => ({ id: `seed_${i}`, ...r }));
+    records = records
+      .map((r) => (r.id in local.overrides ? local.overrides[r.id] && { ...local.overrides[r.id], id: r.id } : r))
+      .filter(Boolean)
+      .concat(local.added);
+  }
+  _searchCache = records;
+  return records;
+}
+
 async function loadSummary() {
   if (LIVE) {
     try {
@@ -200,7 +223,7 @@ async function loadSummary() {
   return fetchJSON("data/projects.json");
 }
 
-export function invalidate() { cache = null; }
+export function invalidate() { cache = null; _searchCache = null; }
 
 /* ------------------------------------------------ writes */
 function cleanRecord(rec) {
