@@ -926,6 +926,19 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
   background: rgba(47,143,91,.1); border: 1px solid rgba(47,143,91,.28);
   border-radius: 999px; padding: 1px 8px; }
 .soa-tag i { font-size: 12px; }
+
+/* ---- navbar global search dropdown ---- */
+.navbar-search.has-menu { position: relative; }
+.nav-search-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 200;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16); padding: 6px; display: none; max-height: 60vh; overflow: auto; }
+.nav-search-menu.open { display: block; }
+.nsm-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px;
+  color: var(--ink); font-size: 13.5px; font-weight: 550; text-decoration: none; cursor: pointer; }
+.nsm-item i { font-size: 16px; color: var(--ink-3); flex-shrink: 0; }
+.nsm-item:hover, .nsm-item.active { background: var(--surface-2); }
+.nsm-item.active i { color: var(--brand-accent); }
+.nsm-empty { padding: 12px; font-size: 13px; color: var(--ink-3); }
 .pmeter-row { display: flex; align-items: center; gap: 7px; }
 .pmeter { position: relative; width: 84px; height: 6px; flex: 0 0 auto;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }

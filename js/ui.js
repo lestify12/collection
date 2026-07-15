@@ -89,17 +89,48 @@ export function renderNav(projects, activeId) {
   if (dash && !activeId) dash.classList.add("active");
 }
 
-/* Navbar search filters the sidebar project list live. Mobile drawer is
+/* Navbar search: filters the sidebar list live AND shows a dropdown of
+   matching projects you can click or arrow/Enter into. Mobile drawer is
    handled separately by js/mobile-nav.js. */
 export function initSidebar() {
   const search = document.getElementById("projSearch");
   if (!search) return;
-  search.addEventListener("input", () => {
+  const wrap = search.closest(".navbar-search") || search.parentElement;
+  wrap.classList.add("has-menu");
+  const menu = document.createElement("div");
+  menu.className = "nav-search-menu";
+  wrap.appendChild(menu);
+
+  const items = () => [...document.querySelectorAll("#navProjects .sidebar-item")];
+  const close = () => { menu.classList.remove("open"); menu.innerHTML = ""; };
+
+  const run = () => {
     const q = search.value.trim().toLowerCase();
-    document.querySelectorAll("#navProjects .sidebar-item").forEach((a) => {
-      a.style.display = !q || (a.dataset.name || "").includes(q) ? "" : "none";
-    });
+    // keep the sidebar in sync
+    items().forEach((a) => { a.style.display = !q || (a.dataset.name || "").includes(q) ? "" : "none"; });
+    if (!q) return close();
+    const matches = items().filter((a) => (a.dataset.name || "").includes(q)).slice(0, 8);
+    menu.innerHTML = matches.length
+      ? matches.map((a, i) => `<a class="nsm-item ${i === 0 ? "active" : ""}" href="${a.getAttribute("href")}">
+          <i class="ti ti-building"></i><span>${esc(a.getAttribute("title") || a.dataset.name)}</span></a>`).join("")
+      : `<div class="nsm-empty">No projects match “${esc(search.value)}”</div>`;
+    menu.classList.add("open");
+  };
+
+  search.addEventListener("input", run);
+  search.addEventListener("focus", () => { if (search.value.trim()) run(); });
+  search.addEventListener("keydown", (e) => {
+    const list = [...menu.querySelectorAll(".nsm-item")];
+    if (e.key === "Escape") { close(); search.blur(); return; }
+    if (!list.length) return;
+    let idx = list.findIndex((x) => x.classList.contains("active"));
+    if (e.key === "ArrowDown") { e.preventDefault(); idx = Math.min(list.length - 1, idx + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); idx = Math.max(0, idx - 1); }
+    else if (e.key === "Enter") { e.preventDefault(); (list[idx] || list[0]).click(); return; }
+    else return;
+    list.forEach((x, i) => x.classList.toggle("active", i === idx));
   });
+  document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) close(); });
 }
 
 export function setModeBadge(live) {
