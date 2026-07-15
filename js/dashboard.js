@@ -7,6 +7,7 @@ import {
   CATS, catByKey, esc, fmtMoney, fmtInt, renderNav, initTheme, initSidebar,
   setModeBadge, observeReveals, countUp, attachTips, toast, visibleProjects,
 } from "./ui.js";
+import { overdueAsOf, dueInRange, MONTHS } from "./plan.js";
 
 initTheme();
 initSidebar();
@@ -71,7 +72,7 @@ async function main() {
     }
   }
 
-  render(rows, tot, catTot, summary);
+  render(rows, tot, catTot, summary, records, user);
 }
 
 function legendHTML() {
@@ -88,7 +89,49 @@ function stackTip(name, m) {
       <span>Total</span><span class="v">${fmtMoney(m.totalDue, { compact: true })}</span></div>`;
 }
 
-function render(rows, tot, catTot, summary) {
+/* ---- Monthly overdue filter (My units / All units + month selection) ---- */
+const OD_YEARS = (() => { const a = []; for (let y = 2024; y <= 2031; y++) a.push(y); return a; })();
+function monthOpts(sel) { return MONTHS.map((m, i) => `<option value="${i + 1}"${i + 1 === sel ? " selected" : ""}>${m}</option>`).join(""); }
+function yearOpts(sel) { return OD_YEARS.map((y) => `<option value="${y}"${y === sel ? " selected" : ""}>${y}</option>`).join(""); }
+
+function overdueCardHTML(user) {
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const y = Math.min(2031, Math.max(2024, now.getFullYear()));
+  const isAgent = user && user.role === "agent";
+  return `
+    <section class="card section reveal" id="overdueCard">
+      <div class="od-head">
+        <div><h2>Monthly overdue</h2>
+          <div class="card-sub">Installments that should already be collected but aren’t</div></div>
+        <div class="seg od-scope">
+          <button class="seg-btn${isAgent ? " active" : ""}" data-scope="mine">My units</button>
+          <button class="seg-btn${isAgent ? "" : " active"}" data-scope="all">All units</button>
+        </div>
+      </div>
+      <div class="od-controls">
+        <div class="seg od-mode">
+          <button class="seg-btn active" data-mode="asof">As of a month</button>
+          <button class="seg-btn" data-mode="range">Between months</button>
+        </div>
+        <div class="od-pickers">
+          <select id="odFromM" class="od-sel">${monthOpts(m)}</select>
+          <select id="odFromY" class="od-sel">${yearOpts(y)}</select>
+          <span id="odTo" class="od-to" hidden><span class="od-dash">to</span>
+            <select id="odToM" class="od-sel">${monthOpts(m)}</select>
+            <select id="odToY" class="od-sel">${yearOpts(y)}</select></span>
+        </div>
+      </div>
+      <div class="od-result">
+        <div><div class="od-big" id="odAmount">—</div>
+          <div class="od-cap" id="odCount">&nbsp;</div></div>
+      </div>
+      <div class="od-note"><i class="ti ti-info-circle"></i>
+        For accurate figures, complete each unit’s <b>SOA monthly breakdown</b> (upload the SOA on the client page). Units without one use the default 1% schedule.</div>
+    </section>`;
+}
+
+function render(rows, tot, catTot, summary, records = [], user = {}) {
   const el = document.getElementById("dashboard");
   const inst = catTot.installment;                          // the focus of this dashboard
   const instShare = tot.totalDue ? Math.round((inst.due / tot.totalDue) * 100) : 0;
@@ -131,6 +174,8 @@ function render(rows, tot, catTot, summary) {
       </div>
       <div class="hero-meter"><div class="hero-meter-fill" data-w="${instShare}"></div></div>
     </section>
+
+    ${overdueCardHTML(user)}
 
     <div class="stat-grid">
       <div class="stat-card reveal"><div class="stat-icon green"><i class="ti ti-cash"></i></div>
@@ -232,6 +277,44 @@ function render(rows, tot, catTot, summary) {
 
   el.querySelectorAll("tr.clickable").forEach((tr) =>
     tr.addEventListener("click", () => (location.href = tr.dataset.href)));
+
+  /* ---- monthly overdue card ---- */
+  const card = document.getElementById("overdueCard");
+  if (card) {
+    let scope = user.role === "agent" ? "mine" : "all";
+    let mode = "asof";
+    const key = (mSel, ySel) => `${card.querySelector(ySel).value}-${String(card.querySelector(mSel).value).padStart(2, "0")}`;
+    const recompute = () => {
+      const set = scope === "mine" ? records.filter((r) => r.assignedTo === user.uid) : records;
+      let a = key("#odFromM", "#odFromY"), b = key("#odToM", "#odToY");
+      if (mode === "range" && a > b) [a, b] = [b, a];
+      let total = 0, n = 0;
+      for (const r of set) {
+        const od = mode === "range" ? dueInRange(r, a, b) : overdueAsOf(r, a);
+        if (od > 0.01) { total += od; n++; }
+      }
+      card.querySelector("#odAmount").textContent = fmtMoney(total, { compact: false });
+      const fit = [[13, 34], [16, 30], [19, 26], [Infinity, 22]];
+      const len = fmtMoney(total, { compact: false }).length;
+      card.querySelector("#odAmount").style.fontSize = (fit.find(([mx]) => len <= mx) || fit[fit.length - 1])[1] + "px";
+      card.querySelector("#odCount").textContent = mode === "range"
+        ? `${fmtInt(n)} unit${n === 1 ? "" : "s"} overdue between the selected months`
+        : `${fmtInt(n)} unit${n === 1 ? "" : "s"} overdue as of the selected month`;
+    };
+    card.querySelectorAll(".od-scope .seg-btn").forEach((btn) => btn.addEventListener("click", () => {
+      scope = btn.dataset.scope;
+      card.querySelectorAll(".od-scope .seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      recompute();
+    }));
+    card.querySelectorAll(".od-mode .seg-btn").forEach((btn) => btn.addEventListener("click", () => {
+      mode = btn.dataset.mode;
+      card.querySelectorAll(".od-mode .seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      card.querySelector("#odTo").hidden = mode !== "range";
+      recompute();
+    }));
+    card.querySelectorAll(".od-sel").forEach((s) => s.addEventListener("change", recompute));
+    recompute();
+  }
 
   observeReveals();
 }

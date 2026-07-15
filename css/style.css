@@ -943,6 +943,27 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .sidebar-add-project:hover { border-color: var(--brand-accent); color: var(--brand-accent); background: rgba(47,143,91,.06); }
 .sidebar-add-project i { font-size: 16px; }
 
+/* ---- dashboard monthly-overdue card ---- */
+.od-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.od-head h2 { margin: 0; }
+.od-scope { flex-shrink: 0; }
+.od-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 16px 0 4px; }
+.od-pickers { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.od-sel { height: 38px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.od-sel:focus { outline: 0; border-color: var(--brand-accent); }
+.od-to { display: inline-flex; align-items: center; gap: 8px; }
+.od-to[hidden] { display: none; }
+.od-dash { font-size: 12.5px; color: var(--ink-3); }
+.od-result { margin: 16px 0 6px; }
+.od-big { font-size: 30px; font-weight: 800; color: var(--cat-installment, var(--brand-accent)); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.od-cap { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+.od-note { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding: 11px 13px;
+  background: rgba(201,133,0,.08); border: 1px solid rgba(201,133,0,.25); border-radius: 11px;
+  font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.od-note i { color: #c98500; font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.od-note b { color: var(--ink); }
+
 /* ---- navbar global search dropdown ---- */
 .navbar-search.has-menu { position: relative; }
 .nav-search-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 200;

@@ -74,3 +74,47 @@ export function flowMonths(r, count) {
   }
   return out;
 }
+
+/* ------------------------------------------------ per-month overdue
+   These power the dashboard's month filter. They need each installment's
+   month + amount, which come from the SOA breakdown (or the default 1%
+   plan). Records with no schedule (cash / no price) contribute nothing —
+   hence the "complete the SOA breakdown" note for accurate figures. */
+
+/** The per-box installment amounts (custom SOA plan, or default 1% boxes). */
+export function boxAmounts(r) {
+  const p = planOf(r);
+  if (p.mode === "cash") return [];
+  if (Array.isArray(r.installmentPlan) && r.installmentPlan.length) return r.installmentPlan.map(Number);
+  const n = Math.max(0, Math.round(p.dcPct));
+  return Array(n).fill(r2(p.onePct));
+}
+
+/** Each installment as { idx, mkey:'YYYY-MM'|null, amount, paid, due, skip },
+    with the reflected amount filled into the boxes in month order. */
+export function scheduleRows(r) {
+  const amounts = boxAmounts(r);
+  if (!amounts.length) return [];
+  const months = flowMonths(r, amounts.length);
+  let left = Number(r.reflected) || 0;
+  return amounts.map((amt, i) => {
+    const skip = !!(months[i] && months[i].skip);
+    const paid = skip ? 0 : Math.max(0, Math.min(left, amt));
+    if (!skip) left -= paid;
+    return { idx: i, mkey: months[i] ? months[i].m : null, amount: amt, paid, skip, due: Math.max(0, r2(amt - paid)) };
+  });
+}
+
+/** Unpaid installments due on/before `cutoffKey` ('YYYY-MM'). */
+export function overdueAsOf(r, cutoffKey) {
+  let sum = 0;
+  for (const row of scheduleRows(r)) if (row.mkey && !row.skip && row.mkey <= cutoffKey) sum += row.due;
+  return r2(sum);
+}
+
+/** Unpaid installments due within [fromKey, toKey] inclusive. */
+export function dueInRange(r, fromKey, toKey) {
+  let sum = 0;
+  for (const row of scheduleRows(r)) if (row.mkey && !row.skip && row.mkey >= fromKey && row.mkey <= toKey) sum += row.due;
+  return r2(sum);
+}
