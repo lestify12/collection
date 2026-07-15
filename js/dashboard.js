@@ -102,29 +102,32 @@ async function main() {
     wrap.id = "scopeControls";
 
     if (auth.canViewAll(user)) {
-      // Managers / admins: "All units" + a per-project drill-down dropdown.
+      // Managers / admins: "All units" + a per-project picker (modal of cards).
       wrap.className = "scope-controls";
-      const opts = projects.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
       wrap.innerHTML = `
         <button class="scope-btn${scope === "all" ? " active" : ""}" data-scope="all">All units</button>
-        <div class="scope-picker">
+        <button class="scope-btn scope-browse" id="projBrowse">
           <i class="ti ti-building-community"></i>
-          <select id="projScope" class="scope-select" aria-label="View a single project">
-            <option value="">Choose a project…</option>${opts}
-          </select>
-          <i class="ti ti-chevron-down scope-caret"></i>
-        </div>`;
+          <span id="projBrowseLabel">Choose a project</span>
+          <i class="ti ti-chevron-down"></i>
+        </button>`;
       header.appendChild(wrap);
-      const allBtn = wrap.querySelector(".scope-btn");
-      const sel = wrap.querySelector("#projScope");
-      allBtn.addEventListener("click", () => {
-        if (scope === "all") return;
-        scope = "all"; sel.value = ""; allBtn.classList.add("active"); draw();
-      });
-      sel.addEventListener("change", () => {
-        if (!sel.value) { scope = "all"; allBtn.classList.add("active"); draw(); return; }
-        scope = sel.value; allBtn.classList.remove("active"); draw();
-      });
+      const allBtn = wrap.querySelector('[data-scope="all"]');
+      const browse = wrap.querySelector("#projBrowse");
+      const label = wrap.querySelector("#projBrowseLabel");
+      const setScope = (pid) => {
+        if (!pid || pid === "all") {
+          scope = "all"; label.textContent = "Choose a project";
+          browse.classList.remove("active"); allBtn.classList.add("active");
+        } else {
+          scope = pid; const p = projects.find((x) => x.id === pid);
+          label.textContent = p ? p.name : "Project";
+          browse.classList.add("active"); allBtn.classList.remove("active");
+        }
+        draw();
+      };
+      allBtn.addEventListener("click", () => { if (scope !== "all") setScope("all"); });
+      browse.addEventListener("click", () => openProjectPicker(projects, records, scope, setScope));
     } else {
       // Collection officers: My units / All units.
       wrap.className = "seg scope-seg";
@@ -145,6 +148,44 @@ async function main() {
 function legendHTML() {
   return `<div class="legend">${DUE_CATS.map((c) =>
     `<span class="key"><span class="swatch" style="background:${c.color}"></span>${esc(c.short)}</span>`).join("")}</div>`;
+}
+
+/* Project picker modal — a grid of mini building cards. Calls onPick(id|"all"). */
+function openProjectPicker(projects, records, current, onPick) {
+  const miniCard = (pid, name, sub, photo, iconOnly) => `
+    <button class="proj-mini${current === pid ? " active" : ""}" data-pid="${esc(pid)}">
+      <span class="proj-mini-photo"${photo ? ` style="background-image:url('${photo}'), url('photos/peacehomesbackground.png')"` : ""}>
+        ${iconOnly ? `<i class="ti ${iconOnly}"></i>` : ""}
+      </span>
+      <span class="proj-mini-body">
+        <span class="proj-mini-name">${esc(name)}</span>
+        <span class="proj-mini-sub">${esc(sub)}</span>
+      </span>
+    </button>`;
+  const cards = [miniCard("all", "All projects", "Everything combined", null, "ti-layout-grid")]
+    .concat(projects.map((p) => {
+      const m = db.projectMetrics(p, records);
+      const due = m.installment?.due || 0;
+      const sub = due > 0 ? fmtMoney(due, { compact: true }) + " installment due"
+        : m.projectUnits ? `${fmtInt(m.projectUnits)} unit${m.projectUnits === 1 ? "" : "s"}` : "View summary";
+      return miniCard(p.id, p.name, sub, `photos/projects/${p.id}.png`, "");
+    }));
+
+  const bd = document.createElement("div");
+  bd.className = "modal-backdrop";
+  bd.innerHTML = `<div class="modal proj-modal" style="width:min(820px,100%)">
+    <div class="modal-header"><div class="modal-header-left">
+      <div class="modal-header-icon"><i class="ti ti-building-community"></i></div>
+      <div style="min-width:0"><div class="modal-header-title">Choose a project</div>
+      <div class="modal-header-sub">See one project's collection summary</div></div></div>
+      <button class="modal-close" data-x aria-label="Close"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body"><div class="proj-grid">${cards.join("")}</div></div></div>`;
+  document.body.appendChild(bd);
+  requestAnimationFrame(() => bd.classList.add("open"));
+  const close = () => { bd.classList.remove("open"); setTimeout(() => bd.remove(), 200); };
+  bd.querySelectorAll("[data-x]").forEach((b) => b.addEventListener("click", close));
+  bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+  bd.querySelectorAll(".proj-mini").forEach((b) => b.addEventListener("click", () => { onPick(b.dataset.pid); close(); }));
 }
 
 function stackTip(name, m) {

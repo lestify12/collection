@@ -972,15 +972,27 @@ a.sbar-row:hover { background: var(--surface-2, rgba(0,0,0,.03)); }
 .scope-btn:hover { color: var(--ink); }
 .scope-btn.active { background: var(--surface); color: var(--ink); border-color: var(--brand-accent);
   box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-.scope-picker { position: relative; display: inline-flex; align-items: center; }
-.scope-picker > .ti-building-community { position: absolute; left: 11px; font-size: 15px; color: var(--brand-accent); pointer-events: none; }
-.scope-caret { position: absolute; right: 10px; font-size: 15px; color: var(--ink-3); pointer-events: none; }
-.scope-select { appearance: none; -webkit-appearance: none; font: inherit; font-size: 13px; font-weight: 600;
-  color: var(--ink); background: var(--surface); border: 1.5px solid var(--border); border-radius: 9px;
-  height: 38px; padding: 0 32px 0 32px; cursor: pointer; max-width: 220px;
-  text-overflow: ellipsis; transition: border-color .15s, box-shadow .15s; }
-.scope-select:hover { border-color: var(--brand-accent); }
-.scope-select:focus { outline: 0; border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(47,143,91,.18); }
+.scope-browse { display: inline-flex; align-items: center; gap: 7px; max-width: 240px; }
+.scope-browse > .ti-building-community { font-size: 15px; color: var(--brand-accent); flex-shrink: 0; }
+.scope-browse > .ti-chevron-down { font-size: 15px; color: var(--ink-3); flex-shrink: 0; }
+.scope-browse #projBrowseLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* project picker modal — grid of mini building cards */
+.proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.proj-mini { display: flex; flex-direction: column; text-align: left; padding: 0; overflow: hidden;
+  border: 1.5px solid var(--border); border-radius: 13px; background: var(--surface); cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .1s; }
+.proj-mini:hover { border-color: var(--brand-accent); box-shadow: 0 6px 18px rgba(0,0,0,.1); transform: translateY(-1px); }
+.proj-mini.active { border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(47,143,91,.18); }
+.proj-mini-photo { height: 74px; background-size: cover; background-position: center; background-color: #123c2a;
+  display: grid; place-items: center; color: rgba(255,255,255,.92); font-size: 22px; position: relative; }
+.proj-mini-photo::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(18,60,42,.12) 0%, rgba(18,60,42,.5) 100%); }
+.proj-mini-photo > i { position: relative; z-index: 1; }
+.proj-mini-body { padding: 9px 12px 11px; }
+.proj-mini-name { display: block; font-size: 13.5px; font-weight: 650; color: var(--ink); line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-mini-sub { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
 
 /* ---- dashboard monthly-overdue card ---- */
 #overdueCard { margin-bottom: 20px; }
