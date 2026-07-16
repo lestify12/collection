@@ -307,7 +307,7 @@ function renderClientTab() {
       <section class="card card--framed">
         <div class="card-head"><div class="card-head-t">
           <div class="card-head-title"><i class="ti ti-user"></i> Client details</div>
-          <div class="card-head-sub">${esc(c.label)}${r.agent ? " · " + esc(r.agent) : ""}</div>
+          <div class="card-head-sub">${esc(c.label)}</div>
         </div></div>
         <div class="card-pad">
           <div class="info-grid">${infoRows}</div>
