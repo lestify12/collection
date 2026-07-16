@@ -115,6 +115,37 @@ export function scheduleRows(r) {
   });
 }
 
+/** Total money still owed on a unit, derived from its plan: the downpayment
+    still outstanding plus every unpaid installment. Cash plans owe price minus
+    paid; a 24% DP client (still in the downpayment phase) owes only the DP.
+    Returns null when there's no basis to compute (no price, or a category with
+    no payment plan such as legal/dnc/cancelled) — the caller keeps the stored
+    figure in that case. */
+export function outstandingOf(r) {
+  const S = Number(r.sellingPrice) || 0;
+  if (!S) return null;
+  const cat = r.category;
+  if (cat && cat !== "dp24" && cat !== "installment") return null;   // plan-based cats only
+  const R = Number(r.reflected) || 0;
+  const p = planOf(r);
+  if (p.mode === "cash") return Math.max(0, r2(S - R));
+  const D = dpTargetOf(r);
+  const dpRemaining = Math.max(0, r2(D - R));                        // reflected covers the DP first
+  if (cat === "dp24") return dpRemaining;                            // installments haven't started
+  const instRemaining = scheduleRows(r).reduce((s, row) => s + (row.skip ? 0 : row.due), 0);
+  return Math.max(0, r2(dpRemaining + instRemaining));
+}
+
+/** The outstanding figure to show/aggregate: the stored value when it's been
+    entered, otherwise the plan-derived amount — so a blank due auto-fills for
+    downpayment/installment units instead of reading as zero. */
+export function dueOf(r) {
+  const stored = Number(r.outstanding) || 0;
+  if (stored > 0) return stored;
+  const computed = outstandingOf(r);
+  return computed == null ? stored : computed;
+}
+
 /** Unpaid installments due on/before `cutoffKey` ('YYYY-MM'). */
 export function overdueAsOf(r, cutoffKey) {
   let sum = 0;

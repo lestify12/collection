@@ -10,7 +10,7 @@ import {
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
 import { parseSOA } from "./soa.js";
-import { r2, planOf, flexiNeedsSetup, flowMonths, parseYM, addMonths, ymKey, fmtYM, MONTHS } from "./plan.js";
+import { r2, planOf, flexiNeedsSetup, flowMonths, parseYM, addMonths, ymKey, fmtYM, MONTHS, outstandingOf, dueOf } from "./plan.js";
 
 initTheme();
 initSidebar();
@@ -173,6 +173,13 @@ function infoVal(r, k, kind) {
   if (k === "installmentStart") { const ym = parseYM(r.installmentStart); return ym ? `${MONTHS[ym.m - 1]} ${ym.y}` : `<span class="muted">—</span>`; }
   if (k === "dpAmountCalc") return fmtMoney(planOf(r).dpAmount);
   if (k === "dcAmountCalc") return fmtMoney(planOf(r).dcAmount);
+  if (k === "outstanding") {
+    // Auto-fill the due from the plan when it hasn't been entered; only truly
+    // unknown (no stored figure and no plan basis) stays a dash.
+    const hasStored = r.outstanding !== null && r.outstanding !== undefined && r.outstanding !== "";
+    if (!hasStored && outstandingOf(r) == null) return `<span class="muted">—</span>`;
+    return fmtMoney(dueOf(r));
+  }
   const v = r[k];
   if (v === null || v === undefined || v === "") return `<span class="muted">—</span>`;
   if (kind === "money") return fmtMoney(v);
@@ -277,7 +284,7 @@ function renderClientTab() {
   const c = catByKey[r.category];
   const sched = buildSchedule(r);
   const reflected = Number(r.reflected) || 0;
-  const outstanding = Number(r.outstanding) || 0;
+  const outstanding = dueOf(r);
   const alwaysShow = ["sellingPrice", "reflected", "outstanding", "planType", "dpAmountCalc", "dcAmountCalc"];
   const infoRows = INFO.filter(([k]) => (r[k] !== undefined && r[k] !== null && r[k] !== "") || alwaysShow.includes(k))
     .map(([k, label, kind]) => `
@@ -575,8 +582,12 @@ async function handleSOAUpload(e) {
       patch.installmentPlan = res.items.map((it) => r2(((Number(it.pct) || 0) / 100) * S));
       patch.boxMonths = res.items.map((it) => (it.date ? { m: it.date.slice(0, 7), manual: true } : null));
     }
+    // Auto-update the buyer's Outstanding dues to match the SOA-driven schedule
+    // (downpayment still owed + installments still owed, given what's reflected).
+    const due = outstandingOf({ ...record, ...patch });
+    if (due != null) patch.outstanding = due;
     await db.updateRecord(record.id, patch);
-    toast(`Loaded ${res.items.length} installments from the SOA`);
+    toast(`Loaded ${res.items.length} installments · due updated to ${fmtMoney(patch.outstanding ?? record.outstanding ?? 0, { compact: true })}`);
     await reloadAndRender();
   } catch (err) {
     console.error(err);

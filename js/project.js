@@ -10,7 +10,7 @@ import {
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
 import { importWorkbook } from "./import-xlsx.js";
-import { flexiNeedsSetup, planOf, parseYM, MONTHS } from "./plan.js";
+import { flexiNeedsSetup, planOf, parseYM, MONTHS, dueOf } from "./plan.js";
 
 const planLabel = (r) => {
   const p = planOf(r);
@@ -484,7 +484,7 @@ function renderCategory(cat) {
     : k === "type" ? (r.type || "").toLowerCase()
     : k === "price" ? (Number(r.sellingPrice) || 0)
     : k === "reflected" ? (Number(r.reflected) || 0)
-    : k === "outstanding" ? (Number(r.outstanding) || 0) : r.unitNo;
+    : k === "outstanding" ? dueOf(r) : r.unitNo;
   rows.sort((a, b) => {
     if (sortKey === "unit") return byUnit(a, b) * sortDir;
     const va = sortVal(a, sortKey), vb = sortVal(b, sortKey);
@@ -494,7 +494,7 @@ function renderCategory(cat) {
   // sortable <th>: label + direction arrow, active column highlighted
   const th = (key, label, cls = "") => `<th class="th-sort ${cls}${sortKey === key ? " active" : ""}" data-sort="${key}">
     <span class="th-in">${esc(label)}<i class="ti ${sortKey === key ? (sortDir > 0 ? "ti-arrow-up" : "ti-arrow-down") : "ti-arrows-sort"} th-arrow"></i></span></th>`;
-  const totalDue = rows.reduce((s, r) => s + (Number(r.outstanding) || 0), 0);
+  const totalDue = rows.reduce((s, r) => s + dueOf(r), 0);
   const totalRefl = rows.reduce((s, r) => s + (Number(r.reflected) || 0), 0);
   const body = document.getElementById("tabBody");
   // counts for the SOA filter chips (before the SOA filter is applied)
@@ -558,7 +558,7 @@ function renderCategory(cat) {
             <td style="white-space:nowrap;color:var(--ink-2);font-size:12.5px">${esc(planLabel(r))}</td>
             <td style="white-space:nowrap;color:${r.installmentStart ? "var(--ink-2)" : "var(--ink-3)"};font-size:12.5px">${esc(startLabel(r))}</td>
             <td class="num money-good">${fmtMoney(r.reflected, { currency: false })}</td>
-            <td class="num ${Number(r.outstanding) > 0 ? "money-bad" : ""}">${fmtMoney(r.outstanding, { currency: false })}</td>
+            <td class="num ${dueOf(r) > 0 ? "money-bad" : ""}">${fmtMoney(dueOf(r), { currency: false })}</td>
             <td class="num"><i class="ti ti-chevron-right" style="color:var(--ink-3)"></i></td>
           </tr>`).join("")}</tbody>
         <tfoot><tr>
