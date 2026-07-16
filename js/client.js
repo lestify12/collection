@@ -582,12 +582,12 @@ async function handleSOAUpload(e) {
       patch.installmentPlan = res.items.map((it) => r2(((Number(it.pct) || 0) / 100) * S));
       patch.boxMonths = res.items.map((it) => (it.date ? { m: it.date.slice(0, 7), manual: true } : null));
     }
-    // Auto-update the buyer's Outstanding dues to match the SOA-driven schedule
-    // (downpayment still owed + installments still owed, given what's reflected).
+    // The outstanding due is derived live from the SOA schedule (what's fallen
+    // due up to this month), so there's nothing to store — it recomputes each
+    // time and never goes stale as more installments come due.
     const due = outstandingOf({ ...record, ...patch });
-    if (due != null) patch.outstanding = due;
     await db.updateRecord(record.id, patch);
-    toast(`Loaded ${res.items.length} installments · due updated to ${fmtMoney(patch.outstanding ?? record.outstanding ?? 0, { compact: true })}`);
+    toast(`Loaded ${res.items.length} installments · due now ${fmtMoney(due ?? 0, { compact: true })}`);
     await reloadAndRender();
   } catch (err) {
     console.error(err);

@@ -115,11 +115,22 @@ export function scheduleRows(r) {
   });
 }
 
-/** Money still owed on a unit, derived from its plan — but only where we have a
-    real basis to compute it, so it never over-states a workbook total:
+/** The current calendar month as 'YYYY-MM'. Installments dated on/before it are
+    "due now"; later ones haven't fallen due yet. */
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const hasSOA = (r) => !!(r && r.soaBreakdown && r.soaBreakdown.items && r.soaBreakdown.items.length);
+
+/** Money currently owed on a unit, derived from its plan — but only where we
+    have a real basis to compute it, so it never over-states a workbook total:
       • 24% DP client → the remaining downpayment (DP + DLD + admin − reflected);
       • installment unit WITH an uploaded SOA → the downpayment still owed plus
-        every unpaid installment from the statement's exact breakdown;
+        the installments that have already fallen DUE this month or earlier and
+        are still unpaid (NOT the whole remaining plan — future installments and
+        the handover aren't collectable yet);
       • cash (SOA-backed) → price − paid.
     Returns null everywhere else (legal/dnc/cancelled, or an installment unit
     with no SOA yet) so the caller keeps the stored figure — a plain installment
@@ -131,21 +142,23 @@ export function outstandingOf(r) {
   const R = Number(r.reflected) || 0;
   if (cat === "dp24") return Math.max(0, r2(dpTargetOf(r) - R));      // remaining downpayment
   if (cat && cat !== "installment") return null;                     // legal/dnc/cancelled/others
-  if (!(r.soaBreakdown && r.soaBreakdown.items && r.soaBreakdown.items.length)) return null;
+  if (!hasSOA(r)) return null;
   const p = planOf(r);
   if (p.mode === "cash") return Math.max(0, r2(S - R));
-  const dpRemaining = Math.max(0, r2(dpTargetOf(r) - R));            // reflected covers the DP first
-  const instRemaining = scheduleRows(r).reduce((s, row) => s + (row.skip ? 0 : row.due), 0);
-  return Math.max(0, r2(dpRemaining + instRemaining));
+  const dpRemaining = Math.max(0, r2(dpTargetOf(r) - R));            // DP shortfall is already past due
+  const overdueInst = overdueAsOf(r, currentMonthKey());            // only installments due up to now
+  return Math.max(0, r2(dpRemaining + overdueInst));
 }
 
-/** The outstanding figure to aggregate (sums, sort keys): the stored workbook
-    value when entered, otherwise the plan-derived amount — 0 when neither, so a
-    row with no known due contributes nothing. */
+/** The outstanding figure to aggregate (sums, sort keys). For an SOA-backed
+    unit the live plan-derived due (overdue as of this month) is authoritative;
+    otherwise use the stored workbook value, falling back to the plan-derived
+    amount (24% DP) when blank — 0 when there's no basis at all. */
 export function dueOf(r) {
+  const computed = outstandingOf(r);
+  if (computed != null && hasSOA(r)) return computed;   // SOA drives the due, live
   const stored = Number(r.outstanding) || 0;
   if (stored > 0) return stored;
-  const computed = outstandingOf(r);
   return computed == null ? stored : computed;
 }
 
@@ -153,10 +166,11 @@ export function dueOf(r) {
     when there's genuinely nothing to show — no stored value and no computable
     plan-based due — so a blank cell doesn't read as a firm "0.00". */
 export function dueDisplay(r) {
+  if (hasSOA(r)) return outstandingOf(r);   // live overdue (may be 0 when current)
   const stored = r.outstanding;
   const hasStored = stored !== null && stored !== undefined && stored !== "";
   if (hasStored) return Number(stored) || 0;
-  return outstandingOf(r);   // number, or null when there's no basis
+  return outstandingOf(r);   // 24% DP remaining, or null when there's no basis
 }
 
 /** Unpaid installments due on/before `cutoffKey` ('YYYY-MM'). */
