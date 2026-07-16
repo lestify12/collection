@@ -373,7 +373,7 @@ function renderOverview() {
     { key: "installment", label: "Installment due",  icon: "ti-calendar-repeat", tint: "navy",  unit: "client" },
     { key: "legal",       label: "Legal case due",   icon: "ti-gavel",           tint: "red",   unit: "case" },
     { key: "dnc",         label: "DNC clients due",  icon: "ti-user-x",          tint: "amber", unit: "client" },
-    { key: "cancelled",   label: "Cancelled by client", icon: "ti-ban",          tint: "slate", unit: "unit" },
+    { key: "cancelled",   label: "Cancelled by Clients", icon: "ti-ban",         tint: "slate", unit: "unit" },
   ];
   const cards = CARD_CATS.map((cc) => {
     const mm = m[cc.key] || { clients: 0, due: 0 };

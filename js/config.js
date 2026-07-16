@@ -51,7 +51,7 @@ window.APP_CONFIG = {
     { key: "legal",       label: "Legal Case Due",             short: "Legal",       color: "var(--cat-legal)",       due: true },
     { key: "dnc",         label: "DNC Clients",                short: "DNC",         color: "var(--cat-dnc)",         due: true },
     { key: "dp24",        label: "24% Downpayment Due",        short: "24% DP",      color: "var(--cat-dp24)",        due: true },
-    { key: "cancelled",   label: "Unit Cancelled by Client",   short: "Cancelled",   color: "var(--cat-cancelled)",   due: true },
+    { key: "cancelled",   label: "Cancelled by Clients",       short: "Cancelled by Clients", color: "var(--cat-cancelled)", due: true },
     { key: "others",      label: "Others / Returned to Inventory", short: "Others",  color: "var(--cat-others)",      due: false, showDue: true },
     { key: "available",   label: "Available Units",            short: "Available",   color: "var(--cat-available)",   due: false },
   ],
