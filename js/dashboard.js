@@ -376,7 +376,7 @@ function render(rows, tot, catTot, summary, records = [], user = {}, scope = "al
         <div><div class="stat-value" id="kpiDnc">0</div><div class="stat-label">DNC clients due</div>
         <div class="stat-foot">${fmtInt(catTot.dnc.clients)} client${catTot.dnc.clients === 1 ? "" : "s"}</div></div></div>
       <div class="stat-card reveal"><div class="stat-icon slate"><i class="ti ti-ban"></i></div>
-        <div><div class="stat-value" id="kpiCancelled">0</div><div class="stat-label">Cancelled due</div>
+        <div><div class="stat-value" id="kpiCancelled">0</div><div class="stat-label">Cancelled by Clients due</div>
         <div class="stat-foot">${fmtInt(catTot.cancelled.clients)} unit${catTot.cancelled.clients === 1 ? "" : "s"}</div></div></div>
       <div class="stat-card reveal"><div class="stat-icon navy"><i class="ti ti-building-community"></i></div>
         <div><div class="stat-value" id="kpiUnits">0</div><div class="stat-label">Total units</div>
