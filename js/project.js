@@ -626,7 +626,7 @@ function csvCell(v) {
 
 /* ---- Export ALL categories into one multi-sheet Excel workbook (SpreadsheetML) ---- */
 const SHEET_LABEL = { dp24: "24% Due", installment: "Installment", legal: "Legal",
-  dnc: "DNC", cancelled: "Cancelled", others: "Others", available: "Available" };
+  dnc: "DNC", cancelled: "Cancelled by Clients", others: "Others", available: "Available" };
 const SHEET_ORDER = ["dp24", "installment", "legal", "dnc", "cancelled", "others", "available"];
 const NUMERIC = new Set(["sellingPrice", "dld", "adminFee", "dp20", "dpTotal", "reflected", "monthlyInstallment", "outstanding"]);
 const xmlEsc = (s) => String(s).replace(/[&<>"']/g, (c) =>
