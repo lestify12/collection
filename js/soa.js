@@ -36,8 +36,12 @@ function toISO(d) {
 // separates the breakdown from the plain "Agreed Payment Plan (Due)" list
 // (which has no % column), so requiring a % targets the breakdown table.
 const ROW_RE = /(\d+)\s*(?:st|nd|rd|th)\s+Installment\s+(\d+(?:\.\d+)?)\s*%\s+(\d{1,2}-[A-Za-z]{3}-\d{2,4})/ig;
+// The final handover payment ("On Handover 50%" / "For Handover 50%") carries no
+// installment number and no due date, so the row regex above skips it. Capture
+// it separately and append it as an undated box (payable on completion).
+const HANDOVER_RE = /\b(?:on|for|upon|at|@)\s+handover\b[^%\d]{0,20}(\d+(?:\.\d+)?)\s*%/i;
 
-/** Parse a SOA PDF → { ref, start, items:[{n, pct, date}] }. */
+/** Parse a SOA PDF → { ref, start, items:[{n, pct, date, handover?}] }. */
 export async function parseSOA(file) {
   const pdfjs = await loadPdfJs();
   const buf = await file.arrayBuffer();
@@ -67,6 +71,12 @@ export async function parseSOA(file) {
     if (!byN.has(n)) byN.set(n, { n, pct: +m[2], date: toISO(m[3]) });
   }
   const items = [...byN.values()].sort((a, b) => a.n - b.n);
+  // Append the handover payment (e.g. 50%) as the final, undated installment so
+  // it's included in the schedule and the outstanding-due total.
+  const ho = text.match(HANDOVER_RE);
+  const hoPct = ho ? +ho[1] : 0;
+  if (hoPct > 0 && hoPct <= 100)
+    items.push({ n: (items.length ? items[items.length - 1].n : 0) + 1, pct: hoPct, date: null, handover: true });
   const start = items.length ? items[0].date : null;
   return { ref, unit, start, items };
 }
