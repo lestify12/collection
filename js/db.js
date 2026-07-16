@@ -78,22 +78,20 @@ export async function deleteUserDoc(uid) {
 export async function setProjectAssignee(projectId, uid, name = "") {
   const patch = { assignedTo: uid || "", assignedToName: uid ? (name || "") : "" };
   if (LIVE) {
-    let touched = 0;
-    let last = null;
-    while (true) {
-      let q = fs.query(fs.collection(db, "records"), fs.where("projectId", "==", projectId), fs.limit(400));
-      const snap = await fs.getDocs(q);
-      if (snap.empty) break;
+    // Read every record of the project in one query (reads aren't capped at
+    // 400 — only write batches are), then stamp them in chunks of 400. The old
+    // paginated loop re-ran the same projectId query with no cursor, so once
+    // the first page was stamped it kept returning the same docs and bailed —
+    // leaving the tail of any project with >400 units unassigned.
+    const snap = await fs.getDocs(fs.query(fs.collection(db, "records"), fs.where("projectId", "==", projectId)));
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += 400) {
       const batch = fs.writeBatch(db);
-      snap.docs.forEach((d) => batch.set(d.ref, patch, { merge: true }));
+      docs.slice(i, i + 400).forEach((d) => batch.set(d.ref, patch, { merge: true }));
       await batch.commit();
-      touched += snap.size;
-      if (snap.size < 400) break;
-      if (last === snap.docs[0].id) break;   // guard against loops
-      last = snap.docs[0].id;
     }
     invalidate();
-    return touched;
+    return docs.length;
   }
   // local mode
   const local = loadLocal();
