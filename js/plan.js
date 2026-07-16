@@ -115,35 +115,48 @@ export function scheduleRows(r) {
   });
 }
 
-/** Total money still owed on a unit, derived from its plan: the downpayment
-    still outstanding plus every unpaid installment. Cash plans owe price minus
-    paid; a 24% DP client (still in the downpayment phase) owes only the DP.
-    Returns null when there's no basis to compute (no price, or a category with
-    no payment plan such as legal/dnc/cancelled) — the caller keeps the stored
-    figure in that case. */
+/** Money still owed on a unit, derived from its plan — but only where we have a
+    real basis to compute it, so it never over-states a workbook total:
+      • 24% DP client → the remaining downpayment (DP + DLD + admin − reflected);
+      • installment unit WITH an uploaded SOA → the downpayment still owed plus
+        every unpaid installment from the statement's exact breakdown;
+      • cash (SOA-backed) → price − paid.
+    Returns null everywhere else (legal/dnc/cancelled, or an installment unit
+    with no SOA yet) so the caller keeps the stored figure — a plain installment
+    unit's outstanding must come from the workbook, not a guessed 1% schedule. */
 export function outstandingOf(r) {
   const S = Number(r.sellingPrice) || 0;
   if (!S) return null;
   const cat = r.category;
-  if (cat && cat !== "dp24" && cat !== "installment") return null;   // plan-based cats only
   const R = Number(r.reflected) || 0;
+  if (cat === "dp24") return Math.max(0, r2(dpTargetOf(r) - R));      // remaining downpayment
+  if (cat && cat !== "installment") return null;                     // legal/dnc/cancelled/others
+  if (!(r.soaBreakdown && r.soaBreakdown.items && r.soaBreakdown.items.length)) return null;
   const p = planOf(r);
   if (p.mode === "cash") return Math.max(0, r2(S - R));
-  const D = dpTargetOf(r);
-  const dpRemaining = Math.max(0, r2(D - R));                        // reflected covers the DP first
-  if (cat === "dp24") return dpRemaining;                            // installments haven't started
+  const dpRemaining = Math.max(0, r2(dpTargetOf(r) - R));            // reflected covers the DP first
   const instRemaining = scheduleRows(r).reduce((s, row) => s + (row.skip ? 0 : row.due), 0);
   return Math.max(0, r2(dpRemaining + instRemaining));
 }
 
-/** The outstanding figure to show/aggregate: the stored value when it's been
-    entered, otherwise the plan-derived amount — so a blank due auto-fills for
-    downpayment/installment units instead of reading as zero. */
+/** The outstanding figure to aggregate (sums, sort keys): the stored workbook
+    value when entered, otherwise the plan-derived amount — 0 when neither, so a
+    row with no known due contributes nothing. */
 export function dueOf(r) {
   const stored = Number(r.outstanding) || 0;
   if (stored > 0) return stored;
   const computed = outstandingOf(r);
   return computed == null ? stored : computed;
+}
+
+/** The outstanding figure to DISPLAY: same as dueOf, but null (→ shown as "—")
+    when there's genuinely nothing to show — no stored value and no computable
+    plan-based due — so a blank cell doesn't read as a firm "0.00". */
+export function dueDisplay(r) {
+  const stored = r.outstanding;
+  const hasStored = stored !== null && stored !== undefined && stored !== "";
+  if (hasStored) return Number(stored) || 0;
+  return outstandingOf(r);   // number, or null when there's no basis
 }
 
 /** Unpaid installments due on/before `cutoffKey` ('YYYY-MM'). */

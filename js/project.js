@@ -10,7 +10,7 @@ import {
 } from "./ui.js";
 import { openRecordForm } from "./record-form.js";
 import { importWorkbook } from "./import-xlsx.js";
-import { flexiNeedsSetup, planOf, parseYM, MONTHS, dueOf } from "./plan.js";
+import { flexiNeedsSetup, planOf, parseYM, MONTHS, dueOf, dueDisplay } from "./plan.js";
 
 const planLabel = (r) => {
   const p = planOf(r);
@@ -558,7 +558,7 @@ function renderCategory(cat) {
             <td style="white-space:nowrap;color:var(--ink-2);font-size:12.5px">${esc(planLabel(r))}</td>
             <td style="white-space:nowrap;color:${r.installmentStart ? "var(--ink-2)" : "var(--ink-3)"};font-size:12.5px">${esc(startLabel(r))}</td>
             <td class="num money-good">${fmtMoney(r.reflected, { currency: false })}</td>
-            <td class="num ${dueOf(r) > 0 ? "money-bad" : ""}">${fmtMoney(dueOf(r), { currency: false })}</td>
+            <td class="num ${dueOf(r) > 0 ? "money-bad" : ""}">${fmtMoney(dueDisplay(r), { currency: false })}</td>
             <td class="num"><i class="ti ti-chevron-right" style="color:var(--ink-3)"></i></td>
           </tr>`).join("")}</tbody>
         <tfoot><tr>
